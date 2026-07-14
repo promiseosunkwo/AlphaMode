@@ -1,0 +1,118 @@
+﻿@page "/upcoming-matches"
+
+<div class="alpha-page">
+
+    <section class="section">
+        <div class="alpha-container">
+
+            <div class="section-heading">
+                <p class="eyebrow">Match Schedule</p>
+                <h2>Upcoming Games</h2>
+                <p class="subtext">
+                    View all scheduled matches, players, rankings, and tournaments.
+                </p>
+            </div>
+
+            <!-- MATCH LIST -->
+            <div class="match-schedule">
+
+                @foreach (var match in Matches)
+                {
+                    <div class="match-card">
+
+                        <!-- LEFT: DATE/TIME -->
+                        <div class="match-time">
+                            <span class="date">@match.Date.ToString("dd MMM")</span>
+                            <span class="time">@match.Date.ToString("HH:mm")</span>
+                        </div>
+
+                        <!-- TOURNAMENT -->
+                        <div class="match-tournament">
+                            <span class="label">Tournament</span>
+                            <b>@match.Tournament</b>
+                        </div>
+
+                        <!-- PLAYERS -->
+                        <div class="match-players">
+
+                            <div class="player-block">
+                                <div class="avatar">@GetInitials(match.Player1)</div>
+                                <div>
+                                    <b>@match.Player1</b>
+                                    <small>Rank #@match.Player1Rank</small>
+                                </div>
+                            </div>
+
+                            <span class="vs">VS</span>
+
+                            <div class="player-block">
+                                <div class="avatar">@GetInitials(match.Player2)</div>
+                                <div>
+                                    <b>@match.Player2</b>
+                                    <small>Rank #@match.Player2Rank</small>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- STATUS -->
+                        <div class="match-status">
+                            <span class="status upcoming">Upcoming</span>
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+@code {
+
+    private List<Match> Matches = new()
+    {
+        new()
+        {
+            Date = DateTime.Now.AddHours(3),
+            Tournament = "Alpha Cup 1",
+            Player1 = "ToyinFC",
+            Player1Rank = 1,
+            Player2 = "ShadowX",
+            Player2Rank = 4
+        },
+        new()
+        {
+            Date = DateTime.Now.AddDays(1).AddHours(2),
+            Tournament = "Mortal Clash",
+            Player1 = "FatalKen",
+            Player1Rank = 2,
+            Player2 = "ComboLord",
+            Player2Rank = 3
+        },
+        new()
+        {
+            Date = DateTime.Now.AddDays(2).AddHours(5),
+            Tournament = "Elite Series",
+            Player1 = "KingJay",
+            Player1Rank = 5,
+            Player2 = "ToyinFC",
+            Player2Rank = 1
+        }
+    };
+
+    private string GetInitials(string name)
+        => string.Join("", name.Split(' ').Select(x => x[0])).ToUpper();
+
+    private class Match
+    {
+        public DateTime Date { get; set; }
+        public string Tournament { get; set; } = "";
+        public string Player1 { get; set; } = "";
+        public int Player1Rank { get; set; }
+        public string Player2 { get; set; } = "";
+        public int Player2Rank { get; set; }
+    }
+}

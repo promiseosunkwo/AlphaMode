@@ -1,0 +1,141 @@
+﻿@page "/bracket"
+
+<div class="alpha-page">
+
+    <section class="section">
+        <div class="alpha-container">
+
+            <div class="section-heading">
+                <p class="eyebrow">Tournament Bracket</p>
+                <h2>@TournamentName</h2>
+                <p class="subtext">Knockout progression from Round of 16 to Final</p>
+            </div>
+
+            <div class="bracket">
+
+                <!-- ROUND 1 -->
+                <div class="round">
+                    <h3>Round of 16</h3>
+
+                    @foreach (var match in RoundOf16)
+                    {
+                        <div class="match-box">
+                            <span>@match.Player1</span>
+                            <span class="vs">VS</span>
+                            <span>@match.Player2</span>
+
+                            @if (!string.IsNullOrEmpty(match.Winner))
+                            {
+                                <div class="winner">
+                                    Winner: @match.Winner
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- QUARTER FINAL -->
+                <div class="round">
+                    <h3>Quarter Finals</h3>
+
+                    @foreach (var match in QuarterFinals)
+                    {
+                        <div class="match-box highlight">
+                            <span>@match.Player1</span>
+                            <span class="vs">VS</span>
+                            <span>@match.Player2</span>
+
+                            @if (!string.IsNullOrEmpty(match.Winner))
+                            {
+                                <div class="winner">
+                                    Winner: @match.Winner
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- SEMI FINAL -->
+                <div class="round">
+                    <h3>Semi Finals</h3>
+
+                    @foreach (var match in SemiFinals)
+                    {
+                        <div class="match-box highlight">
+                            <span>@match.Player1</span>
+                            <span class="vs">VS</span>
+                            <span>@match.Player2</span>
+
+                            @if (!string.IsNullOrEmpty(match.Winner))
+                            {
+                                <div class="winner">
+                                    Winner: @match.Winner
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- FINAL -->
+                <div class="round final">
+                    <h3>Final</h3>
+
+                    @foreach (var match in Finals)
+                    {
+                        <div class="match-box final-box">
+                            <span>@match.Player1</span>
+                            <span class="vs">VS</span>
+                            <span>@match.Player2</span>
+
+                            @if (!string.IsNullOrEmpty(match.Winner))
+                            {
+                                <div class="winner champion">
+                                    🏆 Champion: @match.Winner
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+@code {
+
+    private string TournamentName = "Alpha Cup Championship";
+
+    private List<BracketMatch> RoundOf16 = new()
+    {
+        new() { Player1 = "ToyinFC", Player2 = "ShadowX", Winner = "ToyinFC" },
+        new() { Player1 = "FatalKen", Player2 = "ComboLord", Winner = "FatalKen" },
+        new() { Player1 = "KingJay", Player2 = "AlphaZero", Winner = "KingJay" },
+        new() { Player1 = "DarkWolf", Player2 = "NeoBlade", Winner = "NeoBlade" }
+    };
+
+    private List<BracketMatch> QuarterFinals = new()
+    {
+        new() { Player1 = "ToyinFC", Player2 = "FatalKen", Winner = "ToyinFC" },
+        new() { Player1 = "KingJay", Player2 = "NeoBlade", Winner = "NeoBlade" }
+    };
+
+    private List<BracketMatch> SemiFinals = new()
+    {
+        new() { Player1 = "ToyinFC", Player2 = "NeoBlade", Winner = "ToyinFC" }
+    };
+
+    private List<BracketMatch> Finals = new()
+    {
+        new() { Player1 = "ToyinFC", Player2 = "ShadowKing", Winner = "ToyinFC" }
+    };
+
+    private class BracketMatch
+    {
+        public string Player1 { get; set; } = "";
+        public string Player2 { get; set; } = "";
+        public string Winner { get; set; } = "";
+    }
+}

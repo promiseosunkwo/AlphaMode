@@ -1,0 +1,72 @@
+﻿.admin-sidebar {
+    width: 300px;
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+    padding: 24px;
+    background: linear-gradient( 180deg, rgba(255,255,255,.04), rgba(255,255,255,.02) );
+    border-right: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(20px);
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 40px;
+}
+
+.logo-box {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    font-size: 1.2rem;
+    background: linear-gradient( 135deg, #ff3c00, #7c3cff );
+    box-shadow: 0 0 25px rgba(255,60,0,.4);
+}
+
+.sidebar-header h3 {
+    margin: 0;
+}
+
+.sidebar-header span {
+    color: var(--text-muted);
+    font-size: .85rem;
+}
+
+.sidebar-title {
+    display: block;
+    color: #7a7a7a;
+    font-size: .75rem;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+.sidebar-section {
+    margin-bottom: 28px;
+}
+
+    .sidebar-section a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: .25s;
+    }
+
+        .sidebar-section a:hover {
+            background: rgba(255,255,255,.05);
+            color: white;
+        }
+
+        .sidebar-section a.active {
+            background: linear-gradient( 135deg, rgba(255,60,0,.2), rgba(124,60,255,.2) );
+            border: 1px solid rgba(255,255,255,.08);
+            color: white;
+        }

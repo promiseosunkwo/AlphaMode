@@ -1,0 +1,223 @@
+﻿@page "/admin/tournaments"
+@using AlphaMode.Components.Layout
+@layout AdminLayout
+
+<div class="tournament-page">
+
+    <!-- HEADER -->
+    <div class="page-header">
+
+        <div>
+            <h1>Tournament Management</h1>
+            <p>Create, manage and monitor tournaments</p>
+        </div>
+
+        <button class="create-btn">
+            + Create Tournament
+        </button>
+
+    </div>
+
+    <!-- STATS -->
+    <div class="tournament-stats">
+
+        <div class="stat-card">
+            <span>Active</span>
+            <h2>8</h2>
+        </div>
+
+        <div class="stat-card">
+            <span>Upcoming</span>
+            <h2>14</h2>
+        </div>
+
+        <div class="stat-card">
+            <span>Completed</span>
+            <h2>52</h2>
+        </div>
+
+        <div class="stat-card">
+            <span>Total Revenue</span>
+            <h2>£24.8k</h2>
+        </div>
+
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filter-bar">
+
+        <input type="text"
+               placeholder="Search tournament..." />
+
+        <select>
+            <option>All Games</option>
+            <option>EA FC 26</option>
+            <option>Mortal Kombat</option>
+            <option>Tekken 8</option>
+        </select>
+
+        <select>
+            <option>All Status</option>
+            <option>Upcoming</option>
+            <option>Live</option>
+            <option>Completed</option>
+        </select>
+
+    </div>
+
+    <!-- TOURNAMENT CARDS -->
+    <div class="tournament-grid">
+
+        @foreach (var tournament in Tournaments)
+        {
+            <div class="tournament-card">
+
+                <div class="card-top">
+
+                    <span class="game-badge">
+                        @tournament.Game
+                    </span>
+
+                    <span class="@GetStatusClass(tournament.Status)">
+                        @tournament.Status
+                    </span>
+
+                </div>
+
+                <h3>@tournament.Name</h3>
+
+                <p>
+                    @tournament.Description
+                </p>
+
+                <div class="tournament-info">
+
+                    <div>
+                        <small>Players</small>
+                        <strong>@tournament.RegisteredPlayers / @tournament.MaxPlayers</strong>
+                    </div>
+
+                    <div>
+                        <small>Prize Pool</small>
+                        <strong>£@tournament.PrizePool</strong>
+                    </div>
+
+                    <div>
+                        <small>Start Date</small>
+                        <strong>@tournament.StartDate.ToString("dd MMM")</strong>
+                    </div>
+
+                </div>
+
+                <div class="progress-section">
+
+                    <div class="progress-label">
+                        Registration
+                    </div>
+
+                    <div class="progress-bar">
+
+                        <div class="progress-fill"
+                             style="width:@GetRegistrationPercentage(tournament)%">
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="card-actions">
+
+                    <button class="btn-action edit">
+                        Edit
+                    </button>
+
+                    <button class="btn-action bracket">
+                        Bracket
+                    </button>
+
+                    <button class="btn-action start">
+                        Start
+                    </button>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    private List<TournamentDto> Tournaments = new()
+    {
+        new()
+        {
+            Name = "Alpha Cup",
+            Game = "EA FC 26",
+            Description = "32-player knockout championship",
+            Status = "Live",
+            RegisteredPlayers = 30,
+            MaxPlayers = 32,
+            PrizePool = 1000,
+            StartDate = DateTime.Now
+        },
+
+        new()
+        {
+            Name = "Mortal Clash",
+            Game = "Mortal Kombat",
+            Description = "Fight for ultimate glory",
+            Status = "Upcoming",
+            RegisteredPlayers = 12,
+            MaxPlayers = 16,
+            PrizePool = 500,
+            StartDate = DateTime.Now.AddDays(4)
+        },
+
+        new()
+        {
+            Name = "Tekken Masters",
+            Game = "Tekken 8",
+            Description = "Elite ranked tournament",
+            Status = "Completed",
+            RegisteredPlayers = 16,
+            MaxPlayers = 16,
+            PrizePool = 750,
+            StartDate = DateTime.Now.AddDays(-14)
+        }
+    };
+
+    private int GetRegistrationPercentage(TournamentDto tournament)
+    {
+        return (int)((double)tournament.RegisteredPlayers /
+                     tournament.MaxPlayers * 100);
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Live" => "status live",
+            "Upcoming" => "status upcoming",
+            "Completed" => "status completed",
+            _ => "status"
+        };
+    }
+
+    public class TournamentDto
+    {
+        public string Name { get; set; } = "";
+        public string Game { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Status { get; set; } = "";
+
+        public int RegisteredPlayers { get; set; }
+        public int MaxPlayers { get; set; }
+
+        public decimal PrizePool { get; set; }
+
+        public DateTime StartDate { get; set; }
+    }
+}

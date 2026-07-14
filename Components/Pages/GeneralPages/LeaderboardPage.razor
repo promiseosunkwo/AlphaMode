@@ -1,0 +1,113 @@
+﻿@page "/leaderboard"
+
+<div class="alpha-page">
+
+    <!-- HERO HEADER -->
+    <section class="section">
+        <div class="alpha-container">
+
+            <div class="section-heading">
+                <p class="eyebrow">Global Rankings</p>
+                <h2>AlphaMode Leaderboard</h2>
+                <p class="subtext">
+                    Top players ranked by wins, points, and tournament performance.
+                </p>
+            </div>
+
+            <!-- FILTER BAR -->
+            <div class="leaderboard-filter">
+                <input type="text"
+                       placeholder="Search player..."
+                       class="search-box"
+                       @bind="searchText" />
+
+                <select class="filter-box" @bind="selectedGame">
+                    <option value="">All Games</option>
+                    <option value="FIFA">FIFA</option>
+                    <option value="Mortal Kombat">Mortal Kombat</option>
+                    <option value="Tekken">Tekken</option>
+                    <option value="COD">Call of Duty</option>
+                </select>
+            </div>
+
+            <!-- TABLE -->
+            <div class="leaderboard-table">
+
+                <div class="table-header">
+                    <span>Rank</span>
+                    <span>Player</span>
+                    <span>Game</span>
+                    <span>Wins</span>
+                    <span>Losses</span>
+                    <span>Points</span>
+                    <span>Status</span>
+                </div>
+
+                @foreach (var player in FilteredPlayers)
+                {
+                    <div class="table-row">
+                        <span class="rank">#@player.Rank</span>
+
+                        <span class="player">
+                            <div class="avatar">@player.Initials</div>
+                            @player.Name
+                        </span>
+
+                        <span>@player.Game</span>
+                        <span>@player.Wins</span>
+                        <span>@player.Losses</span>
+
+                        <span class="points">@player.Points</span>
+
+                        <span>
+                            <span class="badge @(player.IsOnline ? "online" : "offline")">
+                                @(player.IsOnline ? "Online" : "Offline")
+                            </span>
+                        </span>
+                    </div>
+                }
+
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+@code {
+
+    private string searchText = "";
+    private string selectedGame = "";
+
+    private List<PlayerRank> Players = new()
+    {
+        new() { Rank = 1, Name = "ToyinFC", Game = "FIFA", Wins = 28, Losses = 3, Points = 960, IsOnline = true },
+        new() { Rank = 2, Name = "FatalKen", Game = "Mortal Kombat", Wins = 24, Losses = 5, Points = 870, IsOnline = true },
+        new() { Rank = 3, Name = "ComboLord", Game = "Tekken", Wins = 21, Losses = 6, Points = 810, IsOnline = false },
+        new() { Rank = 4, Name = "ShadowX", Game = "COD", Wins = 18, Losses = 7, Points = 760, IsOnline = true },
+        new() { Rank = 5, Name = "KingJay", Game = "FIFA", Wins = 17, Losses = 8, Points = 720, IsOnline = false }
+    };
+
+    private IEnumerable<PlayerRank> FilteredPlayers =>
+        Players
+            .Where(p =>
+                (string.IsNullOrWhiteSpace(searchText) ||
+                 p.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(selectedGame) ||
+                 p.Game == selectedGame))
+            .OrderByDescending(p => p.Points);
+
+    private class PlayerRank
+    {
+        public int Rank { get; set; }
+        public string Name { get; set; } = "";
+        public string Game { get; set; } = "";
+        public int Wins { get; set; }
+        public int Losses { get; set; }
+        public int Points { get; set; }
+        public bool IsOnline { get; set; }
+
+        public string Initials =>
+            string.Join("", Name.Split(' ').Select(x => x[0])).ToUpper();
+    }
+}

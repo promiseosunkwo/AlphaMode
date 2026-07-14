@@ -1,0 +1,150 @@
+﻿@page "/tournaments"
+@using AlphaMode.Components.Sections.GeneralSectionComponents
+
+<div class="alpha-page">
+
+    <section class="section">
+        <div class="alpha-container">
+
+            <div class="section-heading">
+                <p class="eyebrow">Competition Hub</p>
+                <h2>Tournaments</h2>
+                <p class="subtext">
+                    Track live competitions and view completed tournaments.
+                </p>
+            </div>
+
+            <!-- TOGGLE FILTER -->
+            <button class="tab @(activeTab == "ongoing" ? "active" : "")"
+                    @onclick="SetOngoing">
+                🔴 Ongoing
+            </button>
+
+            <button class="tab @(activeTab == "ended" ? "active" : "")"
+                    @onclick="SetEnded">
+                🏁 Ended
+            </button>
+
+            <!-- ONGOING -->
+            @if (activeTab == "ongoing")
+            {
+                <div class="tournament-grid">
+
+                    @foreach (var t in OngoingTournaments)
+                    {
+                        <div class="tournament-card live">
+                            <div class="card-top">
+                                <h3>@t.Name</h3>
+                                <span class="live-badge">LIVE</span>
+                            </div>
+
+                            <p>@t.Game</p>
+
+                            <div class="tournament-info">
+                                <div>
+                                    <span>Players</span>
+                                    <b>@t.Players</b>
+                                </div>
+
+                                <div>
+                                    <span>Prize</span>
+                                    <b>@t.Prize</b>
+                                </div>
+
+                                <div>
+                                    <span>Stage</span>
+                                    <b>@t.Stage</b>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary w-100">
+                                View Tournament
+                            </button>
+                        </div>
+                    }
+
+                </div>
+            }
+
+            <!-- ENDED -->
+            @if (activeTab == "ended")
+            {
+                <div class="tournament-grid">
+
+                    @foreach (var t in EndedTournaments)
+                    {
+                        <div class="tournament-card ended">
+                            <div class="card-top">
+                                <h3>@t.Name</h3>
+                                <span class="ended-badge">COMPLETED</span>
+                            </div>
+
+                            <p>@t.Game</p>
+
+                            <div class="tournament-info">
+                                <div>
+                                    <span>Winner</span>
+                                    <b>@t.Winner</b>
+                                </div>
+
+                                <div>
+                                    <span>Prize</span>
+                                    <b>@t.Prize</b>
+                                </div>
+
+                                <div>
+                                    <span>Players</span>
+                                    <b>@t.Players</b>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-outline w-100">
+                                View Results
+                            </button>
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </div>
+    </section>
+
+</div>
+
+@code {
+
+    private void SetOngoing()
+    {
+        activeTab = "ongoing";
+    }
+
+    private void SetEnded()
+    {
+        activeTab = "ended";
+    }
+    private string activeTab = "ongoing";
+
+    private List<Tournament> OngoingTournaments = new()
+    {
+        new() { Name = "Alpha Cup 1", Game = "FIFA 24", Players = 16, Prize = "£500", Stage = "Semi Finals" },
+        new() { Name = "Mortal Clash", Game = "Mortal Kombat", Players = 8, Prize = "£250", Stage = "Quarter Finals" },
+        new() { Name = "Elite Series", Game = "COD", Players = 32, Prize = "£1000", Stage = "Round 2" }
+    };
+
+    private List<Tournament> EndedTournaments = new()
+    {
+        new() { Name = "Alpha Cup 0", Game = "FIFA 23", Players = 16, Prize = "£500", Winner = "ToyinFC" },
+        new() { Name = "Winter Clash", Game = "Tekken", Players = 8, Prize = "£300", Winner = "ShadowX" }
+    };
+
+    private class Tournament
+    {
+        public string Name { get; set; } = "";
+        public string Game { get; set; } = "";
+        public int Players { get; set; }
+        public string Prize { get; set; } = "";
+        public string Stage { get; set; } = "";
+        public string Winner { get; set; } = "";
+    }
+}

@@ -1,0 +1,73 @@
+﻿.admin-topbar {
+    height: 85px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 30px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.02);
+    backdrop-filter: blur(20px);
+}
+
+.search-area input {
+    width: 400px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.04);
+    color: white;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.live-indicator {
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(255,60,60,.12);
+    color: #ff5252;
+    font-weight: 700;
+}
+
+.quick-create {
+    border: none;
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: linear-gradient( 135deg, #ff3c00, #7c3cff );
+    color: white;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.icon-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(255,255,255,.05);
+    cursor: pointer;
+}
+
+.profile-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.profile-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    background: linear-gradient( 135deg, #ff3c00, #7c3cff );
+}
+
+.profile-box small {
+    display: block;
+    color: var(--text-muted);
+}

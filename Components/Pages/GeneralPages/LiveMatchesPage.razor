@@ -1,0 +1,182 @@
+﻿@page "/live-matches"
+@implements IDisposable
+
+<div class="alpha-page">
+
+    <section class="section">
+        <div class="alpha-container">
+
+            <div class="section-heading">
+                <p class="eyebrow">Live Arena</p>
+                <h2>Live Matches</h2>
+                <p class="subtext">Track matches in real-time with live scores and countdowns</p>
+            </div>
+
+            <div class="live-grid">
+
+                @foreach (var match in Matches)
+                {
+                    <div class="live-card">
+
+                        <!-- STATUS -->
+                        <div class="status-row">
+                            <span class="status @(GetStatusClass(match))">
+                                @GetStatusText(match)
+                            </span>
+
+                            @if (match.Status == MatchStatus.Live)
+                            {
+                                <span class="live-dot">● LIVE</span>
+                            }
+                        </div>
+
+                        <!-- COUNTDOWN -->
+                        @if (match.Status == MatchStatus.Upcoming)
+                        {
+                            <div class="countdown">
+                                Starts in: <b>@GetCountdown(match.StartTime)</b>
+                            </div>
+                        }
+
+                        <!-- PLAYERS + SCORE -->
+                        <div class="match-row">
+
+                            <div class="player">
+                                <div class="avatar">@Initials(match.Player1)</div>
+                                <span>@match.Player1</span>
+                            </div>
+
+                            <div class="score">
+                                @match.Score1 - @match.Score2
+                            </div>
+
+                            <div class="player right">
+                                <div class="avatar">@Initials(match.Player2)</div>
+                                <span>@match.Player2</span>
+                            </div>
+
+                        </div>
+
+                        <!-- TOURNAMENT -->
+                        <div class="tournament">
+                            @match.Tournament
+                        </div>
+
+                        <!-- ACTION -->
+                        <button class="btn btn-primary w-100">
+                            View Match
+                        </button>
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+@code {
+
+    private System.Timers.Timer? timer;
+
+    private List<LiveMatch> Matches = new()
+    {
+        new()
+        {
+            Player1 = "ToyinFC",
+            Player2 = "ShadowX",
+            Score1 = 2,
+            Score2 = 1,
+            Tournament = "Alpha Cup",
+            StartTime = DateTime.Now.AddMinutes(-10),
+            Status = MatchStatus.Live
+        },
+        new()
+        {
+            Player1 = "FatalKen",
+            Player2 = "ComboLord",
+            Score1 = 0,
+            Score2 = 0,
+            Tournament = "Mortal Clash",
+            StartTime = DateTime.Now.AddMinutes(15),
+            Status = MatchStatus.Upcoming
+        },
+        new()
+        {
+            Player1 = "KingJay",
+            Player2 = "NeoBlade",
+            Score1 = 3,
+            Score2 = 2,
+            Tournament = "Elite Series",
+            StartTime = DateTime.Now.AddHours(-2),
+            Status = MatchStatus.Finished
+        }
+    };
+
+    protected override void OnInitialized()
+    {
+        timer = new System.Timers.Timer(1000);
+        timer.Elapsed += async (_, _) =>
+        {
+            await InvokeAsync(StateHasChanged);
+        };
+        timer.Start();
+    }
+
+    private string GetCountdown(DateTime start)
+    {
+        var diff = start - DateTime.Now;
+
+        if (diff.TotalSeconds <= 0)
+            return "Starting...";
+
+        return $"{diff.Minutes:D2}:{diff.Seconds:D2}";
+    }
+
+    private string Initials(string name)
+        => string.Join("", name.Split(' ').Select(x => x[0])).ToUpper();
+
+    private string GetStatusText(LiveMatch m)
+        => m.Status switch
+        {
+            MatchStatus.Live => "Live",
+            MatchStatus.Upcoming => "Upcoming",
+            MatchStatus.Finished => "Finished",
+            _ => ""
+        };
+
+    private string GetStatusClass(LiveMatch m)
+        => m.Status switch
+        {
+            MatchStatus.Live => "live",
+            MatchStatus.Upcoming => "upcoming",
+            MatchStatus.Finished => "finished",
+            _ => ""
+        };
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+
+    private class LiveMatch
+    {
+        public string Player1 { get; set; } = "";
+        public string Player2 { get; set; } = "";
+        public int Score1 { get; set; }
+        public int Score2 { get; set; }
+        public string Tournament { get; set; } = "";
+        public DateTime StartTime { get; set; }
+        public MatchStatus Status { get; set; }
+    }
+
+    private enum MatchStatus
+    {
+        Upcoming,
+        Live,
+        Finished
+    }
+}
+
