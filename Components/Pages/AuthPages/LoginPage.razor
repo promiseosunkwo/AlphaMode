@@ -2,6 +2,7 @@
 @using AlphaMode.Components.Account
 @using AlphaMode.Components.Account.Pages
 @using AlphaMode.Components.Account.Shared
+@using AlphaMode.ViewModels
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
 @using AlphaMode.Domain.Identity
@@ -79,7 +80,7 @@
     private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private LoginViewModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
