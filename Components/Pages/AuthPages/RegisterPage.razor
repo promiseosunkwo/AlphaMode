@@ -31,15 +31,52 @@
             <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
                 <DataAnnotationsValidator /><ValidationSummary class="auth-validation-summary" role="alert" />
                 <div class="auth-field-grid">
-                    <div class="auth-field"><label for="first-name">First name</label><InputText id="first-name" @bind-Value="Input.FirstName" class="auth-input" autocomplete="given-name" aria-required="true" placeholder="Alex" /><ValidationMessage For="() => Input.FirstName" class="auth-field-error" /></div>
-                    <div class="auth-field"><label for="last-name">Last name</label><InputText id="last-name" @bind-Value="Input.LastName" class="auth-input" autocomplete="family-name" aria-required="true" placeholder="Morgan" /><ValidationMessage For="() => Input.LastName" class="auth-field-error" /></div>
+                    <div class="auth-field">
+                        <label for="first-name">First name</label>
+                            <InputText id="first-name" @bind-Value="Input.FirstName" class="auth-input" autocomplete="given-name" aria-required="true" placeholder="Alex" />
+                            <ValidationMessage For="() => Input.FirstName" class="auth-field-error" />
+                    </div>
+                    <div class="auth-field"><label for="last-name">Last name</label>
+                        <InputText id="last-name" @bind-Value="Input.LastName" class="auth-input" autocomplete="family-name" aria-required="true" placeholder="Morgan" />
+                        <ValidationMessage For="() => Input.LastName" class="auth-field-error" />
+                    </div>
                 </div>
-                <div class="auth-field"><label for="gamer-tag">Gamer tag</label><InputText id="gamer-tag" @bind-Value="Input.GamerTag" class="auth-input" autocomplete="nickname" aria-required="true" placeholder="AlphaPlayer" /><small class="auth-hint">Letters, numbers, underscores, and hyphens only.</small><ValidationMessage For="() => Input.GamerTag" class="auth-field-error" /></div>
-                <div class="auth-field"><label for="register-email">Email address</label><InputText id="register-email" @bind-Value="Input.Email" class="auth-input" autocomplete="email" inputmode="email" aria-required="true" placeholder="name@example.com" /><ValidationMessage For="() => Input.Email" class="auth-field-error" /></div>
+
+                <div class="auth-field">
+                    <label for="gamer-tag">Gamer tag</label>
+                        <InputText id="gamer-tag" @bind-Value="Input.GamerTag" class="auth-input" autocomplete="nickname" aria-required="true" placeholder="AlphaPlayer" />
+                        <small class="auth-hint">Letters, numbers, underscores, and hyphens only.</small>
+                        <ValidationMessage For="() => Input.GamerTag" class="auth-field-error" />
+                </div>
+
+                <div class="auth-field">
+                    <label for="register-email">Email address</label>
+                    <InputText id="register-email" @bind-Value="Input.Email" class="auth-input" autocomplete="email" inputmode="email" aria-required="true" placeholder="name@example.com" />
+                    <ValidationMessage For="() => Input.Email" class="auth-field-error" />
+                </div>
                 <div class="auth-field-grid">
-                    <div class="auth-field"><label for="register-password">Password</label><div class="password-field"><InputText id="register-password" type="password" @bind-Value="Input.Password" class="auth-input" autocomplete="new-password" aria-required="true" placeholder="8+ characters" /><button type="button" class="password-toggle" data-password-toggle="register-password" aria-label="Show password" aria-pressed="false"><span class="eye-open">&#128065;</span><span class="eye-closed">&#128584;</span></button></div><ValidationMessage For="() => Input.Password" class="auth-field-error" /></div>
-                    <div class="auth-field"><label for="confirm-password">Confirm password</label><div class="password-field"><InputText id="confirm-password" type="password" @bind-Value="Input.ConfirmPassword" class="auth-input" autocomplete="new-password" aria-required="true" placeholder="Repeat password" /><button type="button" class="password-toggle" data-password-toggle="confirm-password" aria-label="Show password" aria-pressed="false"><span class="eye-open">&#128065;</span><span class="eye-closed">&#128584;</span></button></div><ValidationMessage For="() => Input.ConfirmPassword" class="auth-field-error" /></div>
+                    <div class="auth-field">
+                        <label for="register-password">Password</label>
+                        <div class="password-field">
+                            <InputText id="register-password" type="password" @bind-Value="Input.Password" class="auth-input" autocomplete="new-password" aria-required="true" placeholder="8+ characters" />
+                            <button type="button" class="password-toggle" data-password-toggle="register-password" aria-label="Show password" aria-pressed="false">
+                                <span class="eye-open">&#128065;</span><span class="eye-closed">&#128584;</span>
+                            </button>
+                        </div>
+                            <ValidationMessage For="() => Input.Password" class="auth-field-error" />
+                    </div>
+
+                    <div class="auth-field">
+                        <label for="confirm-password">Confirm password</label>
+                        <div class="password-field"><InputText id="confirm-password" type="password" @bind-Value="Input.ConfirmPassword" class="auth-input" autocomplete="new-password" aria-required="true" placeholder="Repeat password" />
+                            <button type="button" class="password-toggle" data-password-toggle="confirm-password" aria-label="Show password" aria-pressed="false">
+                                <span class="eye-open">&#128065;</span><span class="eye-closed">&#128584;</span>
+                            </button>
+                        </div>
+                           <ValidationMessage For="() => Input.ConfirmPassword" class="auth-field-error" />
+                    </div>
                 </div>
+
                 <p class="password-requirements">Use 8+ characters with uppercase, lowercase, and a number.</p>
                 <label class="auth-check compact"><InputCheckbox @bind-Value="Input.RememberMe" /><span><strong>Keep me signed in</strong></span></label>
                 <label class="auth-check compact"><InputCheckbox @bind-Value="Input.AcceptTerms" /><span><strong>I agree to the Terms of Service and Privacy Policy</strong></span></label>
@@ -53,8 +90,13 @@
 
 @code {
     private IEnumerable<IdentityError>? identityErrors;
-    [SupplyParameterFromForm] private RegisterViewModel Input { get; set; } = new();
-    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromForm] 
+    private RegisterViewModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery] 
+    private string? ReturnUrl { get; set; }
+
     private string? Message => identityErrors is null ? null : "Error: " + string.Join(" ", identityErrors.Select(error => error.Description));
 
     private async Task RegisterUser()
@@ -64,10 +106,19 @@
         await UserStore.SetUserNameAsync(user, email, CancellationToken.None);
         await GetEmailStore().SetEmailAsync(user, email, CancellationToken.None);
         var result = await UserManager.CreateAsync(user, Input.Password);
+
         if (!result.Succeeded) { identityErrors = result.Errors; return; }
 
-        var claimsResult = await UserManager.AddClaimsAsync(user, new[] { new Claim(ClaimTypes.GivenName, Input.FirstName.Trim()), new Claim(ClaimTypes.Surname, Input.LastName.Trim()), new Claim("gamer_tag", Input.GamerTag.Trim()) });
-        if (!claimsResult.Succeeded) { await UserManager.DeleteAsync(user); identityErrors = claimsResult.Errors; Logger.LogWarning("Account creation rolled back because profile data could not be saved."); return; }
+        var claimsResult = await UserManager.AddClaimsAsync(user, new[] { new Claim(ClaimTypes.GivenName, Input.FirstName.Trim()), 
+            new Claim(ClaimTypes.Surname, Input.LastName.Trim()), new Claim("gamer_tag", Input.GamerTag.Trim()) });
+
+        if (!claimsResult.Succeeded)
+        { 
+            await UserManager.DeleteAsync(user); 
+            identityErrors = claimsResult.Errors; 
+            Logger.LogWarning("Account creation rolled back because profile data could not be saved."); 
+            return; 
+        }
 
         Logger.LogInformation("A new AlphaMode account was created.");
         var userId = await UserManager.GetUserIdAsync(user);
