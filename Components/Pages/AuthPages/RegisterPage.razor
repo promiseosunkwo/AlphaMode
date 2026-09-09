@@ -1,197 +1,88 @@
-﻿@page "/register"
-@using AlphaMode.Components.Account
-@using AlphaMode.Components.Account.Pages
-@using AlphaMode.Components.Account.Shared
-@using Microsoft.AspNetCore.Components.Forms
-@using System.ComponentModel.DataAnnotations
+@page "/register"
+@page "/Account/Register"
+@using System.Security.Claims
 @using System.Text
 @using System.Text.Encodings.Web
+@using AlphaMode.Components.Account
+@using AlphaMode.Components.Account.Shared
 @using AlphaMode.Domain.Identity
+@using AlphaMode.ViewModels
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IEmailSender<ApplicationUser> EmailSender
-@inject ILogger<Register> Logger
+@inject ILogger<RegisterPage> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-
-<div class="auth-page">
-
-    <div class="auth-card">
-
-        <div class="auth-header">
-            <div class="brand-mini">A</div>
-            <h2>Create Account</h2>
-            <p>Join AlphaMode and start competing</p>
+<PageTitle>Create account | AlphaMode</PageTitle>
+<main class="auth-page">
+    <section class="auth-shell auth-shell-register" aria-labelledby="register-title">
+        <aside class="auth-showcase">
+            <a class="auth-brand" href="/"><span class="brand-mini">A</span><span>ALPHA<span>MODE</span></span></a>
+            <div class="auth-showcase-copy"><span class="auth-kicker">Enter the arena</span><h1>Your next win<br />starts here.</h1><p>Create your player identity, join tournaments, and build a record worth remembering.</p></div>
+            <ol class="auth-steps"><li><span>1</span><div><strong>Create your profile</strong><small>Claim your gamer tag</small></div></li><li><span>2</span><div><strong>Find your competition</strong><small>Join matches and tournaments</small></div></li><li><span>3</span><div><strong>Climb the ranks</strong><small>Build your AlphaMode legacy</small></div></li></ol>
+        </aside>
+        <div class="auth-panel auth-panel-register">
+            <header class="auth-header"><span class="auth-kicker">Join AlphaMode</span><h2 id="register-title">Create your account</h2><p>It only takes a minute to get match-ready.</p></header>
+            <StatusMessage Message="@Message" />
+            <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+                <DataAnnotationsValidator /><ValidationSummary class="auth-validation-summary" role="alert" />
+                <div class="auth-field-grid">
+                    <div class="auth-field"><label for="first-name">First name</label><InputText id="first-name" @bind-Value="Input.FirstName" class="auth-input" autocomplete="given-name" aria-required="true" placeholder="Alex" /><ValidationMessage For="() => Input.FirstName" class="auth-field-error" /></div>
+                    <div class="auth-field"><label for="last-name">Last name</label><InputText id="last-name" @bind-Value="Input.LastName" class="auth-input" autocomplete="family-name" aria-required="true" placeholder="Morgan" /><ValidationMessage For="() => Input.LastName" class="auth-field-error" /></div>
+                </div>
+                <div class="auth-field"><label for="gamer-tag">Gamer tag</label><InputText id="gamer-tag" @bind-Value="Input.GamerTag" class="auth-input" autocomplete="nickname" aria-required="true" placeholder="AlphaPlayer" /><small class="auth-hint">Letters, numbers, underscores, and hyphens only.</small><ValidationMessage For="() => Input.GamerTag" class="auth-field-error" /></div>
+                <div class="auth-field"><label for="register-email">Email address</label><InputText id="register-email" @bind-Value="Input.Email" class="auth-input" autocomplete="email" inputmode="email" aria-required="true" placeholder="name@example.com" /><ValidationMessage For="() => Input.Email" class="auth-field-error" /></div>
+                <div class="auth-field-grid">
+                    <div class="auth-field"><label for="register-password">Password</label><div class="password-field"><InputText id="register-password" type="password" @bind-Value="Input.Password" class="auth-input" autocomplete="new-password" aria-required="true" placeholder="8+ characters" /><button type="button" class="password-toggle" data-password-toggle="register-password" aria-label="Show password" aria-pressed="false"><span class="eye-open">&#128065;</span><span class="eye-closed">&#128584;</span></button></div><ValidationMessage For="() => Input.Password" class="auth-field-error" /></div>
+                    <div class="auth-field"><label for="confirm-password">Confirm password</label><div class="password-field"><InputText id="confirm-password" type="password" @bind-Value="Input.ConfirmPassword" class="auth-input" autocomplete="new-password" aria-required="true" placeholder="Repeat password" /><button type="button" class="password-toggle" data-password-toggle="confirm-password" aria-label="Show password" aria-pressed="false"><span class="eye-open">&#128065;</span><span class="eye-closed">&#128584;</span></button></div><ValidationMessage For="() => Input.ConfirmPassword" class="auth-field-error" /></div>
+                </div>
+                <p class="password-requirements">Use 8+ characters with uppercase, lowercase, and a number.</p>
+                <label class="auth-check compact"><InputCheckbox @bind-Value="Input.RememberMe" /><span><strong>Keep me signed in</strong></span></label>
+                <label class="auth-check compact"><InputCheckbox @bind-Value="Input.AcceptTerms" /><span><strong>I agree to the Terms of Service and Privacy Policy</strong></span></label>
+                <ValidationMessage For="() => Input.AcceptTerms" class="auth-field-error auth-terms-error" />
+                <button class="auth-submit" type="submit">Create account <span>&rarr;</span></button>
+            </EditForm>
+            <footer class="auth-footer"><span>Already have an account?</span><a href="@(NavigationManager.GetUriWithQueryParameters("login", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Sign in</a></footer>
         </div>
-
-        <StatusMessage Message="@Message" />
-        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
-            <DataAnnotationsValidator />
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-
-            <div class="form-group">
-                <label>Firstname</label>
-                <InputText @bind-Value="Input.Firstname" class="form-control" autocomplete="firstname" aria-required="true" placeholder="Chinedu" />
-                <ValidationMessage For="() => Input.Firstname" class="text-danger" />
-            </div>
-
-            <div class="form-group">
-                <label>Lastname</label>
-                <InputText @bind-Value="Input.Lastname" class="form-control" autocomplete="lastname" aria-required="true" placeholder="Olawole" />
-                <ValidationMessage For="() => Input.Lastname" class="text-danger" />
-            </div>
-
-            <div class="form-group">
-                <label>Username</label>
-                <InputText @bind-Value="Input.Username" class="form-control" autocomplete="username" aria-required="true" placeholder="XFighter" />
-                <ValidationMessage For="() => Input.Username" class="text-danger" />
-            </div>
-
-            <div class="form-group">
-                <label>Email</label>
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
-            </div>
-
-            <div class="form-group">
-                <label>Password</label>
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-
-            <div class="form-group">
-                <label>Confirm Password</label>
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="confirm-password">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
-            </div>
-
-            <button class="btn btn-primary w-100" type="submit">
-                Create Account
-            </button>
-        </EditForm>
-
-        <div class="auth-footer">
-            <p>Already have an account?</p>
-            <a href="/login">Login</a>
-        </div>
-
-    </div>
-    @* <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div> *@
-</div>
+    </section>
+</main>
 
 @code {
-
     private IEnumerable<IdentityError>? identityErrors;
+    [SupplyParameterFromForm] private RegisterViewModel Input { get; set; } = new();
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+    private string? Message => identityErrors is null ? null : "Error: " + string.Join(" ", identityErrors.Select(error => error.Description));
 
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
-
-    [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
-
-    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
-
-    public async Task RegisterUser(EditContext editContext)
+    private async Task RegisterUser()
     {
-        var user = CreateUser();
-
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-        var emailStore = GetEmailStore();
-        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+        var email = Input.Email.Trim();
+        var user = new ApplicationUser();
+        await UserStore.SetUserNameAsync(user, email, CancellationToken.None);
+        await GetEmailStore().SetEmailAsync(user, email, CancellationToken.None);
         var result = await UserManager.CreateAsync(user, Input.Password);
+        if (!result.Succeeded) { identityErrors = result.Errors; return; }
 
-        if (!result.Succeeded)
-        {
-            identityErrors = result.Errors;
-            return;
-        }
+        var claimsResult = await UserManager.AddClaimsAsync(user, new[] { new Claim(ClaimTypes.GivenName, Input.FirstName.Trim()), new Claim(ClaimTypes.Surname, Input.LastName.Trim()), new Claim("gamer_tag", Input.GamerTag.Trim()) });
+        if (!claimsResult.Succeeded) { await UserManager.DeleteAsync(user); identityErrors = claimsResult.Errors; Logger.LogWarning("Account creation rolled back because profile data could not be saved."); return; }
 
-        Logger.LogInformation("User created a new account with password.");
-
+        Logger.LogInformation("A new AlphaMode account was created.");
         var userId = await UserManager.GetUserIdAsync(user);
-        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
-
-        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
-
-        if (UserManager.Options.SignIn.RequireConfirmedAccount)
-        {
-            RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
-                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
-        }
-
-        await SignInManager.SignInAsync(user, isPersistent: false);
+        var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await UserManager.GenerateEmailConfirmationTokenAsync(user)));
+        var callbackUrl = NavigationManager.GetUriWithQueryParameters(NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri, new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+        await EmailSender.SendConfirmationLinkAsync(user, email, HtmlEncoder.Default.Encode(callbackUrl));
+        if (UserManager.Options.SignIn.RequireConfirmedAccount) RedirectManager.RedirectTo("Account/RegisterConfirmation", new() { ["email"] = email, ["returnUrl"] = ReturnUrl });
+        await SignInManager.SignInAsync(user, Input.RememberMe);
         RedirectManager.RedirectTo(ReturnUrl);
-    }
-
-    private ApplicationUser CreateUser()
-    {
-        try
-        {
-            return Activator.CreateInstance<ApplicationUser>();
-        }
-        catch
-        {
-            throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
-                $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
-        }
     }
 
     private IUserEmailStore<ApplicationUser> GetEmailStore()
     {
-        if (!UserManager.SupportsUserEmail)
-        {
-            throw new NotSupportedException("The default UI requires a user store with email support.");
-        }
+        if (!UserManager.SupportsUserEmail) throw new NotSupportedException("The user store must support email addresses.");
         return (IUserEmailStore<ApplicationUser>)UserStore;
     }
-
-    private sealed class InputModel
-    {
-        [Required]
-        [Display(Name = "Firstname")]
-        public string Firstname { get; set; } = "";
-
-
-        [Required]
-        [Display(Name = "Lastname")]
-        public string Lastname { get; set; } = "";
-
-        [Required]
-        [Display(Name = "Username")]
-        public string Username { get; set; } = "";
-
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
-        public string Email { get; set; } = "";
-
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
-        [DataType(DataType.Password)]
-        [Display(Name = "Password")]
-        public string Password { get; set; } = "";
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; } = "";
-    }
 }
+

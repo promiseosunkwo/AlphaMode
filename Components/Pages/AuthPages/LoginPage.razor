@@ -1,137 +1,69 @@
-﻿@page "/login"
+@page "/login"
+@page "/Account/Login"
 @using AlphaMode.Components.Account
-@using AlphaMode.Components.Account.Pages
 @using AlphaMode.Components.Account.Shared
-@using AlphaMode.ViewModels
-@using Microsoft.AspNetCore.Components.Forms
-@using System.ComponentModel.DataAnnotations
 @using AlphaMode.Domain.Identity
+@using AlphaMode.ViewModels
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
-
 @inject SignInManager<ApplicationUser> SignInManager
-@inject ILogger<Login> Logger
+@inject ILogger<LoginPage> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-
-<div class="auth-page">
-
-    <div class="auth-card">
-        <div class="auth-header">
-            <div class="brand-mini">A</div>
-            <h2>Welcome Back</h2>
-            <p>Login to continue your AlphaMode journey</p>
+<PageTitle>Sign in | AlphaMode</PageTitle>
+<main class="auth-page">
+    <section class="auth-shell" aria-labelledby="login-title">
+        <aside class="auth-showcase">
+            <a class="auth-brand" href="/"><span class="brand-mini">A</span><span>ALPHA<span>MODE</span></span></a>
+            <div class="auth-showcase-copy"><span class="auth-kicker">Your arena awaits</span><h1>Play sharper.<br />Rise faster.</h1><p>Return to your competitions, rankings, and community—all in one place.</p></div>
+            <div class="auth-stat-row"><div><strong>24/7</strong><span>Competition</span></div><div><strong>Live</strong><span>Rankings</span></div><div><strong>One</strong><span>Community</span></div></div>
+        </aside>
+        <div class="auth-panel">
+            <header class="auth-header"><span class="auth-kicker">Welcome back</span><h2 id="login-title">Sign in to AlphaMode</h2><p>Enter your details to continue your journey.</p></header>
+            <StatusMessage Message="@errorMessage" />
+            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator /><ValidationSummary class="auth-validation-summary" role="alert" />
+                <div class="auth-field">
+                    <label for="login-email">Email address</label>
+                    <InputText id="login-email" @bind-Value="Input.Email" class="auth-input" autocomplete="username" inputmode="email" aria-required="true" placeholder="name@example.com" />
+                    <ValidationMessage For="() => Input.Email" class="auth-field-error" />
+                </div>
+                <div class="auth-field">
+                    <div class="auth-label-row"><label for="login-password">Password</label><a href="Account/ForgotPassword">Forgot password?</a></div>
+                    <div class="password-field">
+                        <InputText id="login-password" type="password" @bind-Value="Input.Password" class="auth-input" autocomplete="current-password" aria-required="true" placeholder="Enter your password" />
+                        <button type="button" class="password-toggle" data-password-toggle="login-password" aria-label="Show password" aria-pressed="false"><span class="eye-open">&#128065;</span><span class="eye-closed">&#128584;</span></button>
+                    </div>
+                    <ValidationMessage For="() => Input.Password" class="auth-field-error" />
+                </div>
+                <label class="auth-check"><InputCheckbox @bind-Value="Input.RememberMe" /><span><strong>Remember me</strong><small>Keep me signed in on this device</small></span></label>
+                <button class="auth-submit" type="submit">Sign in <span>&rarr;</span></button>
+            </EditForm>
+            <footer class="auth-footer"><span>New to AlphaMode?</span><a href="@(NavigationManager.GetUriWithQueryParameters("register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Create an account</a></footer>
         </div>
-
-        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-            <DataAnnotationsValidator />
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-group">
-                <label>Email</label>
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-
-            <div class="checkbox mb-3">
-                <label class="form-label">
-                    <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                    Remember me
-                </label>
-            </div>
-
-            <button class="btn btn-primary w-100" type="submit">
-                Login
-            </button>
-        </EditForm>
-
-        <div class="auth-footer">
-            <p>Don't have an account?</p>
-            <p>
-                <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-            </p>
-            <p>
-                <a href="Account/ForgotPassword">Forgot your password?</a>
-            </p>
-        </div>
-    </div>
-
-    @* <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div> *@
-
-</div>
+    </section>
+</main>
 
 @code {
     private string? errorMessage;
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm]
-    private LoginViewModel Input { get; set; } = new();
-
-    [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+    [SupplyParameterFromForm] private LoginViewModel Input { get; set; } = new();
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
-        {
-            // Clear the existing external cookie to ensure a clean login process
-            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-        }
+        if (HttpMethods.IsGet(HttpContext.Request.Method)) await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
     }
 
-    public async Task LoginUser()
+    private async Task LoginUser()
     {
-        // This doesn't count login failures towards account lockout
-        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-        if (result.Succeeded)
-        {
-            Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
-        }
-        else if (result.RequiresTwoFactor)
-        {
-            RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
-        }
-        else if (result.IsLockedOut)
-        {
-            Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
-        }
-        else
-        {
-            errorMessage = "Error: Invalid login attempt.";
-        }
-    }
-
-    private sealed class InputModel
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = "";
-
-        [Required]
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = "";
-
-        [Display(Name = "Remember me?")]
-        public bool RememberMe { get; set; }
+        var result = await SignInManager.PasswordSignInAsync(Input.Email.Trim(), Input.Password, Input.RememberMe, lockoutOnFailure: true);
+        if (result.Succeeded) { Logger.LogInformation("User signed in."); RedirectManager.RedirectTo(ReturnUrl); }
+        else if (result.RequiresTwoFactor) RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        else if (result.IsLockedOut) { Logger.LogWarning("User account locked after repeated failed sign-in attempts."); RedirectManager.RedirectTo("Account/Lockout"); }
+        else if (result.IsNotAllowed) errorMessage = "Error: Sign-in is not available for this account. Confirm your email or contact support.";
+        else errorMessage = "Error: We couldn't sign you in with those details. Check your email and password.";
     }
 }
+
