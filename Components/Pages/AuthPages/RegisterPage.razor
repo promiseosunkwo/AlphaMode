@@ -29,6 +29,7 @@
             <header class="auth-header"><span class="auth-kicker">Join AlphaMode</span><h2 id="register-title">Create your account</h2><p>It only takes a minute to get match-ready.</p></header>
             <StatusMessage Message="@Message" />
             <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+                <AntiforgeryToken />
                 <DataAnnotationsValidator /><ValidationSummary class="auth-validation-summary" role="alert" />
                 <div class="auth-field-grid">
                     <div class="auth-field">

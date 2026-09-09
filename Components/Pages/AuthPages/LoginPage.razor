@@ -23,6 +23,7 @@
             <header class="auth-header"><span class="auth-kicker">Welcome back</span><h2 id="login-title">Sign in to AlphaMode</h2><p>Enter your details to continue your journey.</p></header>
             <StatusMessage Message="@errorMessage" />
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <AntiforgeryToken />
                 <DataAnnotationsValidator /><ValidationSummary class="auth-validation-summary" role="alert" />
                 <div class="auth-field">
                     <label for="login-email">Email address</label>
