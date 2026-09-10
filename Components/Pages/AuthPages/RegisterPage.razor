@@ -82,7 +82,8 @@
                 <label class="auth-check compact"><InputCheckbox @bind-Value="Input.RememberMe" /><span><strong>Keep me signed in</strong></span></label>
                 <label class="auth-check compact"><InputCheckbox @bind-Value="Input.AcceptTerms" /><span><strong>I agree to the Terms of Service and Privacy Policy</strong></span></label>
                 <ValidationMessage For="() => Input.AcceptTerms" class="auth-field-error auth-terms-error" />
-                <button class="auth-submit" type="submit">Create account <span>&rarr;</span></button>
+                @* The shared button swaps to a spinner as soon as the form submits. *@
+                <LoadingButton CssClass="auth-submit" LoadingText="Creating account...">Create account <span>&rarr;</span></LoadingButton>
             </EditForm>
             <footer class="auth-footer"><span>Already have an account?</span><a href="@(NavigationManager.GetUriWithQueryParameters("login", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Sign in</a></footer>
         </div>

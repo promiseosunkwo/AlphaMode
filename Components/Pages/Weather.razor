@@ -1,4 +1,4 @@
-﻿@page "/weather"
+@page "/weather"
 @attribute [StreamRendering]
 
 <PageTitle>Weather</PageTitle>
@@ -9,7 +9,8 @@
 
 @if (forecasts == null)
 {
-    <p><em>Loading...</em></p>
+    @* Streaming rendering sends this accessible table skeleton while data is fetched. *@
+    <ContentSkeleton Variant="table" Rows="5" Label="Loading weather forecast" />
 }
 else
 {
@@ -62,3 +63,4 @@ else
         public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
     }
 }
+
