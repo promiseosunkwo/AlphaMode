@@ -40,7 +40,8 @@
                     <ValidationMessage For="() => Input.Password" class="auth-field-error" />
                 </div>
                 <label class="auth-check"><InputCheckbox @bind-Value="Input.RememberMe" /><span><strong>Remember me</strong><small>Keep me signed in on this device</small></span></label>
-                <button class="auth-submit" type="submit">Sign in <span>&rarr;</span></button>
+                @* LoadingButton prevents duplicate submissions and explains the current action. *@
+                <LoadingButton CssClass="auth-submit" LoadingText="Signing in...">Sign in <span>&rarr;</span></LoadingButton>
             </EditForm>
             <footer class="auth-footer"><span>New to AlphaMode?</span><a href="@(NavigationManager.GetUriWithQueryParameters("register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Create an account</a></footer>
         </div>
