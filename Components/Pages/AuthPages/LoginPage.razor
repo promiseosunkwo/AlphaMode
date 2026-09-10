@@ -23,8 +23,9 @@
             <header class="auth-header"><span class="auth-kicker">Welcome back</span><h2 id="login-title">Sign in to AlphaMode</h2><p>Enter your details to continue your journey.</p></header>
             <StatusMessage Message="@errorMessage" />
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <AntiforgeryToken />
-                <DataAnnotationsValidator /><ValidationSummary class="auth-validation-summary" role="alert" />
+
+                <DataAnnotationsValidator />
+                <ValidationSummary class="auth-validation-summary" role="alert" />
                 <div class="auth-field">
                     <label for="login-email">Email address</label>
                     <InputText id="login-email" @bind-Value="Input.Email" class="auth-input" autocomplete="username" inputmode="email" aria-required="true" placeholder="name@example.com" />
@@ -48,9 +49,15 @@
 
 @code {
     private string? errorMessage;
-    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
-    [SupplyParameterFromForm] private LoginViewModel Input { get; set; } = new();
-    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    [CascadingParameter] 
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm] 
+    private LoginViewModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery] 
+    private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,10 +67,22 @@
     private async Task LoginUser()
     {
         var result = await SignInManager.PasswordSignInAsync(Input.Email.Trim(), Input.Password, Input.RememberMe, lockoutOnFailure: true);
-        if (result.Succeeded) { Logger.LogInformation("User signed in."); RedirectManager.RedirectTo(ReturnUrl); }
+
+        if (result.Succeeded) { 
+            Logger.LogInformation("User signed in.");
+
+            var redirectUrl = !string.IsNullOrWhiteSpace(ReturnUrl) && Uri.IsWellFormedUriString(ReturnUrl, UriKind.Relative) ? ReturnUrl : "/";
+
+            RedirectManager.RedirectTo(redirectUrl);
+        }
         else if (result.RequiresTwoFactor) RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
-        else if (result.IsLockedOut) { Logger.LogWarning("User account locked after repeated failed sign-in attempts."); RedirectManager.RedirectTo("Account/Lockout"); }
+
+        else if (result.IsLockedOut) 
+        { 
+            Logger.LogWarning("User account locked after repeated failed sign-in attempts."); RedirectManager.RedirectTo("Account/Lockout"); 
+        }
         else if (result.IsNotAllowed) errorMessage = "Error: Sign-in is not available for this account. Confirm your email or contact support.";
+
         else errorMessage = "Error: We couldn't sign you in with those details. Check your email and password.";
     }
 }
