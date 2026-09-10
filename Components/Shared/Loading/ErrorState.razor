@@ -1,8 +1,16 @@
+
+
 <div class="resource-state resource-state-error" role="alert">
     <span class="resource-state-icon" aria-hidden="true">!</span>
+
     <h3>@Title</h3><p>@Message</p>
-    @if (OnRetry.HasDelegate) { <button class="btn btn-outline" @onclick="OnRetry">Try again</button> }
+
+    @if (OnRetry.HasDelegate) 
+    { 
+        <button class="btn btn-outline" @onclick="OnRetry">Try again</button>
+    }
 </div>
+
 @code {
     [Parameter] public string Title { get; set; } = "Something went wrong";
     [Parameter] public string Message { get; set; } = "We could not load this content.";
