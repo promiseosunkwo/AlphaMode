@@ -1,5 +1,6 @@
 using AlphaMode.Components;
 using AlphaMode.Components.Account;
+using AlphaMode.Services;
 using AlphaMode.Domain.Identity;
 using AlphaMode.Infrastructure.Identity;
 using AlphaMode.Infrastructure.Persistence;
@@ -18,6 +19,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddCascadingAuthenticationState();
+
+// Keeps tournament registration UI state scoped to the signed-in user session.
+builder.Services.AddScoped<UserTournamentRegistrationState>();
 
 // Identity UI helpers (Blazor template)
 builder.Services.AddScoped<IdentityUserAccessor>();

@@ -1,0 +1,22 @@
+@page "/dashboard/tournaments"
+@layout AlphaMode.Components.Layout.UserLayout
+@rendermode InteractiveServer
+@using AlphaMode.Data
+@using AlphaMode.Services
+@using AlphaMode.Components.Sections.UserSectionComponents
+@inject UserTournamentRegistrationState Registration
+<PageTitle>Tournaments | AlphaMode</PageTitle>
+<PortalPageHeader Eyebrow="Competition hub" Title="Available tournaments" Description="Discover competitions, secure your place, and track registrations." />
+<div class="portal-filter-row"><button class="active">All games</button><button>EA FC 26</button><button>Fighting</button><button>Call of Duty</button></div>
+<section class="tournament-browser">
+@foreach (var tournament in UserPortalSampleData.Tournaments)
+{
+    var joined = tournament.IsJoined || Registration.IsRegistered(tournament.Id);
+    <article class="portal-tournament-card"><div class="tournament-cover"><span>@tournament.Game</span><b>£@tournament.PrizePool.ToString("N0")</b></div><div class="tournament-card-body"><span class="portal-status open">@tournament.Status</span><h2>@tournament.Name</h2><div class="tournament-details"><span><small>Starts</small>@tournament.StartsAt.ToString("dd MMM, HH:mm")</span><span><small>Players</small>@tournament.RegisteredPlayers / @tournament.Capacity</span></div><progress value="@tournament.RegisteredPlayers" max="@tournament.Capacity"></progress><button class="portal-button @(joined ? "subtle" : "primary")" disabled="@joined" @onclick="() => Register(tournament.Id)">@(joined ? "Registered ✓" : "Register now")</button></div></article>
+}
+</section>
+@code {
+    // Registration state is session-scoped until the persistence service is connected.
+    private void Register(int tournamentId) => Registration.Register(tournamentId);
+}
+

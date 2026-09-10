@@ -1,0 +1,13 @@
+@page "/dashboard/profile"
+@layout AlphaMode.Components.Layout.UserLayout
+@using AlphaMode.Data
+@using AlphaMode.Components.Sections.UserSectionComponents
+<PageTitle>Player profile | AlphaMode</PageTitle>
+<PortalPageHeader Eyebrow="Account" Title="Player profile" Description="Your identity, preferences, and competitive history."><Actions><a class="portal-button subtle" href="Account/Manage">Manage account</a></Actions></PortalPageHeader>
+<div class="profile-page-grid">
+    <section class="portal-panel profile-card"><div class="profile-avatar large">@Profile.Initials<span></span></div><h2>@Profile.DisplayName</h2><p>@@@Profile.GamerTag</p><span class="portal-status open">Level @Profile.Level</span><div class="profile-completion"><div><span>Profile completion</span><strong>85%</strong></div><progress value="85" max="100"></progress></div></section>
+    <section class="portal-panel profile-details"><div class="portal-section-heading"><div><span>Personal details</span><h2>About you</h2></div></div><dl><div><dt>Display name</dt><dd>@Profile.DisplayName</dd></div><div><dt>Gamer tag</dt><dd>@@@Profile.GamerTag</dd></div><div><dt>Email</dt><dd>@Profile.Email</dd></div><div><dt>Region</dt><dd>@Profile.Region</dd></div><div><dt>Favourite game</dt><dd>@Profile.FavouriteGame</dd></div><div><dt>Member since</dt><dd>@Profile.MemberSince.ToString("MMMM yyyy")</dd></div></dl></section>
+    <section class="portal-panel span-all"><div class="portal-section-heading"><div><span>Career</span><h2>Competitive record</h2></div></div><div class="career-grid"><div><strong>@Stats.Matches</strong><span>Matches</span></div><div><strong>@Stats.Wins</strong><span>Wins</span></div><div><strong>@Stats.WinRate%</strong><span>Win rate</span></div><div><strong>#@Stats.BestRank</strong><span>Best rank</span></div><div><strong>@Stats.Trophies</strong><span>Trophies</span></div></div></section>
+</div>
+@code { private static AlphaMode.ViewModels.PlayerProfileViewModel Profile => UserPortalSampleData.Profile; private static AlphaMode.ViewModels.PlayerStatsViewModel Stats => UserPortalSampleData.Stats; }
+
