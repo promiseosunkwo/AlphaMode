@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- Keep existing AlphaMode.* namespaces while exposing the renamed web assembly. -->
+    <RootNamespace>AlphaMode</RootNamespace>
+    <AssemblyName>AlphaMode.Web</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-AlphaMode-c489107e-d50c-44e4-b641-0475ec329c09</UserSecretsId>
