@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.37314.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlphaMode", "AlphaMode.csproj", "{AEBB721A-7B06-49C8-82C1-10708A3C84CF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlphaMode.Web", "AlphaMode.Web.csproj", "{AEBB721A-7B06-49C8-82C1-10708A3C84CF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlphaMode.Domain", "..\AlphaMode.Domain\AlphaMode.Domain.csproj", "{9BDE82F0-9A29-4CEE-B291-661249BA05AC}"
 EndProject

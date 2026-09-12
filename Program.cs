@@ -1,4 +1,3 @@
-using AlphaMode.Components;
 using AlphaMode.Components.Account;
 using AlphaMode.Services;
 using AlphaMode.Domain.Identity;
@@ -6,9 +5,9 @@ using AlphaMode.Infrastructure.Identity;
 using AlphaMode.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
-using System;
+using AlphaMode.Application;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +26,11 @@ builder.Services.AddScoped<UserTournamentRegistrationState>();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+
+
+
+// Dependency Injection for Application
+builder.Services.AddApplication();
 
 // -------------------------
 // DB CONTEXT (IMPORTANT FIX)
