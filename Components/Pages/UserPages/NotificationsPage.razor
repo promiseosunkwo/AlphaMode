@@ -1,16 +1,23 @@
 @page "/dashboard/notifications"
-@layout AlphaMode.Components.Layout.UserLayout
+@layout AlphaMode.Web.Components.Layout.UserLayout
 @rendermode InteractiveServer
 @using AlphaMode.Data
 @using AlphaMode.Components.Sections.UserSectionComponents
 <PageTitle>Notifications | AlphaMode</PageTitle>
 <PortalPageHeader Eyebrow="Inbox" Title="Notifications" Description="Match updates, competition alerts, and account activity.">
-    <Actions><button class="portal-button subtle" @onclick="MarkAllRead">Mark all as read</button></Actions>
+    <Actions>
+        <button class="portal-button subtle" @onclick="MarkAllRead">Mark all as read</button>
+    </Actions>
 </PortalPageHeader>
 <div class="portal-filter-row"><button class="active">All <span>@notifications.Count</span></button><button>Unread <span>@notifications.Count(x => !x.IsRead)</span></button><button>Matches</button><button>Tournaments</button></div>
 <section class="notification-list">
-@if (notifications.Count == 0) { <EmptyState Title="You're all caught up" Message="New match and tournament updates will appear here." /> }
-else { @foreach (var item in notifications) { <article class="notification-row @(!item.IsRead ? "unread" : "")"><span class="notification-type">@GetIcon(item.Type)</span><div><div><strong>@item.Title</strong><time>@FormatAge(item.CreatedAt)</time></div><p>@item.Message</p>@if(item.Link is not null){<a href="@item.Link">View details →</a>}</div>@if(!item.IsRead){<button @onclick="() => MarkRead(item.Id)" aria-label="Mark notification as read">✓</button>}</article> } }
+@if (notifications.Count == 0) 
+{
+    <p>You are all caught up</p>
+}
+else 
+{ @foreach (var item in notifications) { 
+        <article class="notification-row @(!item.IsRead ? "unread" : "")"><span class="notification-type">@GetIcon(item.Type)</span><div><div><strong>@item.Title</strong><time>@FormatAge(item.CreatedAt)</time></div><p>@item.Message</p>@if(item.Link is not null){<a href="@item.Link">View details →</a>}</div>@if(!item.IsRead){<button @onclick="() => MarkRead(item.Id)" aria-label="Mark notification as read">✓</button>}</article> } }
 </section>
 @code {
     private List<AlphaMode.ViewModels.PlayerNotificationViewModel> notifications = UserPortalSampleData.Notifications.ToList();

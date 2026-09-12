@@ -1,7 +1,7 @@
 @page "/dashboard/ranking"
-@layout AlphaMode.Components.Layout.UserLayout
-@using AlphaMode.Data
+@layout AlphaMode.Web.Components.Layout.UserLayout
 @using AlphaMode.Components.Sections.UserSectionComponents
+@using AlphaMode.Data
 <PageTitle>Ranking | AlphaMode</PageTitle>
 <PortalPageHeader Eyebrow="Performance" Title="Global ranking" Description="See where you stand and what it takes to reach the next tier." />
 <section class="ranking-hero"><div><span>Current position</span><strong>#@UserPortalSampleData.Stats.CurrentRank</strong><small>↑ 3 places this month</small></div><div class="rank-copy"><span class="portal-status open">Diamond tier</span><h2>You're in the top 8%</h2><p>Earn 140 more points to pass the next ranked player.</p><progress value="72" max="100"></progress></div><div class="rank-metric"><small>Points</small><strong>@UserPortalSampleData.Stats.Points.ToString("N0")</strong><span>+180 this month</span></div></section>

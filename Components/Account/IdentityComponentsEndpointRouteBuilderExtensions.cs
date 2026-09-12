@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
-using AlphaMode.Components.Account.Pages;
-using AlphaMode.Components.Account.Pages.Manage;
 using AlphaMode.Domain.Identity;
+using AlphaMode.Web.Components.Account.Pages;
+using AlphaMode.Web.Components.Account.Pages.Manage;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
