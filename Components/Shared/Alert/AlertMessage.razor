@@ -1,0 +1,93 @@
+﻿@if (Visible)
+{
+    <div class="alpha-alert @CssClass" role="alert">
+        <div class="alpha-alert-icon">
+            @Icon
+        </div>
+
+        <div class="alpha-alert-content">
+            @if (!string.IsNullOrWhiteSpace(Title))
+            {
+                <strong>@Title</strong>
+            }
+
+            <p>@Message</p>
+        </div>
+
+        @if (Dismissible)
+        {
+            <button type="button"
+                    class="alpha-alert-close"
+                    aria-label="Dismiss"
+                    @onclick="Dismiss">
+                ×
+            </button>
+        }
+    </div>
+}
+
+
+
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Message { get; set; } = string.Empty;
+
+    [Parameter]
+    public AlertType Type { get; set; } = AlertType.Error;
+
+    [Parameter]
+    public bool Dismissible { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnDismiss { get; set; }
+
+    private bool Visible { get; set; } = true;
+
+    private string CssClass => Type switch
+    {
+        AlertType.Success => "success",
+        AlertType.Warning => "warning",
+        AlertType.Info => "info",
+        _ => "error"
+    };
+
+    private string Icon => Type switch
+    {
+        AlertType.Success => "✓",
+        AlertType.Warning => "!",
+        AlertType.Info => "i",
+        _ => "×"
+    };
+
+    private async Task Dismiss()
+    {
+        Visible = false;
+
+        if (OnDismiss.HasDelegate)
+        {
+            await OnDismiss.InvokeAsync();
+        }
+    }
+}
+
+
+@* @if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <AlertMessage Title="Registration failed"
+                  Message="@errorMessage"
+                  Type="AlertType.Error"
+                  OnDismiss="ClearError" />
+}
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <AlertMessage Title="You're registered"
+                  Message="@successMessage"
+                  Type="AlertType.Success"
+                  OnDismiss="ClearSuccess" />
+}
+ *@

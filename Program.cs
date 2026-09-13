@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using AlphaMode.Application;
+using AlphaMode.Infrastructure;
 using AlphaMode.Components;
 
 
@@ -32,21 +33,22 @@ builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuth
 
 // Dependency Injection for Application
 builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 // -------------------------
 // DB CONTEXT (IMPORTANT FIX)
 // -------------------------
-var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string not found.");
+//var connectionString =
+//    builder.Configuration.GetConnectionString("DefaultConnection")
+//    ?? throw new InvalidOperationException("Connection string not found.");
 
 // REQUIRED for Identity + EF tools
 //builder.Services.AddDbContext<ApplicationDbContext>(options =>
 //    options.UseSqlServer(connectionString));
 
 // OPTIONAL for Blazor services
-builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+//builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
+//    options.UseSqlServer(connectionString));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
