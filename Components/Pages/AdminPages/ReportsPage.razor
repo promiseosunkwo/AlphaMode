@@ -1,0 +1,8 @@
+@page "/admin/reports"
+@using AlphaMode.Components.Layout
+@using AlphaMode.Components.Sections.AdminSectionComponents
+@layout AdminLayout
+<PageTitle>Reports · AlphaMode Admin</PageTitle>
+<AdminPageHeader Title="Reports & moderation" Description="Review disputes, account reports and operational exceptions from one queue." />
+<section class="adm-stats-grid"><AdminStatCard Label="Open reports" Value="6" Detail="2 high priority" Icon="!" Tone="amber"/><AdminStatCard Label="Resolved this week" Value="31" Detail="Median time: 42 min" Icon="✓" Tone="green"/><AdminStatCard Label="Match disputes" Value="4" Detail="Across 3 tournaments" Icon="⚔" Tone="purple"/></section>
+<section class="adm-panel"><div class="adm-toolbar"><select><option>All report types</option><option>Player conduct</option><option>Match dispute</option></select><select><option>All priorities</option><option>High</option><option>Normal</option></select></div><div class="adm-table-wrap"><table class="adm-table"><thead><tr><th>Report</th><th>Submitted by</th><th>Priority</th><th>Age</th><th></th></tr></thead><tbody><tr><td><strong>Match result disputed</strong><small>FIFA Elite Cup · Match #1842</small></td><td>KingPromise</td><td><span class="adm-status suspended">High</span></td><td>34 min</td><td class="adm-row-actions"><button>Review</button></td></tr><tr><td><strong>Unsporting conduct</strong><small>Player report · #1840</small></td><td>PixelRaiders</td><td><span class="adm-status draft">Normal</span></td><td>2 hrs</td><td class="adm-row-actions"><button>Review</button></td></tr></tbody></table></div></section>

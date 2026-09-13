@@ -1,89 +1,19 @@
-﻿<div class="admin-sidebar">
-
-    <div class="sidebar-header">
-
-        <div class="logo-box">
-            A
-        </div>
-
-        <div>
-            <h3>AlphaMode</h3>
-            <span>Admin Portal</span>
-        </div>
-
-    </div>
-
-    <div class="sidebar-section">
-        <span class="sidebar-title">MAIN</span>
-
-        <NavLink href="/admin/dashboard">
-            Dashboard
-        </NavLink>
-        <br />
-
-        <NavLink href="/admin/analytics">
-           Analytics
-        </NavLink>
-    </div>
-
-    <div class="sidebar-section">
-        <span class="sidebar-title">TOURNAMENTS</span>
-
-        <NavLink href="/admin/tournaments">
-            Tournaments
-        </NavLink>
-        <br />
-        <NavLink href="/admin/brackets">
-            Brackets
-        </NavLink>
-        <br />
-        <NavLink href="/admin/live-matches">
-            Live Matches
-        </NavLink>
-        <br />
-        <NavLink href="/admin/upcoming-matches">
-           Upcoming Matches
-        </NavLink>
-    </div>
-
-    <div class="sidebar-section">
-        <span class="sidebar-title">PLAYERS</span>
-
-        <NavLink href="/admin/players">
-            Players
-        </NavLink>
-        <br />
-        <NavLink href="/admin/rankings">
-           Rankings
-        </NavLink>
-        <br />
-        <NavLink href="/admin/reports">
-            Reports
-        </NavLink>
-    </div>
-
-    <div class="sidebar-section">
-        <span class="sidebar-title">FINANCE</span>
-
-        <NavLink href="/admin/payments">
-           Payments
-        </NavLink>
-        <br />
-        <NavLink href="/admin/prizes">
-           Prize Pools
-        </NavLink>
-    </div>
-
-    <div class="sidebar-section">
-        <span class="sidebar-title">SYSTEM</span>
-
-        <NavLink href="/admin/settings">
-            Settings
-        </NavLink>
-        <br />
-        <NavLink href="/admin/audit">
-           Audit Logs
-        </NavLink>
-    </div>
-
-</div>
+<aside class="adm-sidebar">
+    <div class="adm-brand"><span class="adm-brand-mark">A</span><div><strong>AlphaMode</strong><small>Administration</small></div></div>
+    <nav class="adm-navigation" aria-label="Admin navigation">
+        <p>Overview</p>
+        <NavLink href="/admin/dashboard" Match="NavLinkMatch.All"><span>⌂</span>Dashboard</NavLink>
+        <p>Operations</p>
+        <NavLink href="/admin/tournaments"><span>♜</span>Tournaments</NavLink>
+        <NavLink href="/admin/matches"><span>⚔</span>Matches & fixtures</NavLink>
+        <NavLink href="/admin/games"><span>▦</span>Game catalogue</NavLink>
+        <p>Community</p>
+        <NavLink href="/admin/players"><span>♙</span>Players</NavLink>
+        <NavLink href="/admin/notifications"><span>◉</span>Notifications</NavLink>
+        <p>Management</p>
+        <NavLink href="/admin/reports"><span>▥</span>Reports</NavLink>
+        <NavLink href="/admin/settings"><span>⚙</span>Settings</NavLink>
+    </nav>
+    <div class="adm-sidebar-footer"><a href="/">← View public site</a><small>Admin UI · v1.0</small></div>
+</aside>
+<label class="adm-nav-scrim" for="adm-nav-toggle" aria-label="Close navigation"></label>

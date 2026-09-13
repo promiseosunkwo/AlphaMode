@@ -1,0 +1,7 @@
+@page "/admin/settings"
+@using AlphaMode.Components.Layout
+@using AlphaMode.Components.Sections.AdminSectionComponents
+@layout AdminLayout
+<PageTitle>Settings · AlphaMode Admin</PageTitle>
+<AdminPageHeader Title="Platform settings" Description="Configure administrative defaults and platform-level behaviour." />
+<div class="adm-settings-grid"><nav class="adm-panel adm-settings-nav"><a class="active" href="#general">General</a><a href="#competition">Competition defaults</a><a href="#security">Security</a><a href="#integrations">Integrations</a></nav><section class="adm-panel adm-settings-form" id="general"><div class="adm-panel-header"><div><p class="adm-eyebrow">General</p><h2>Platform details</h2></div></div><div class="adm-form-grid"><label>Platform name<input value="AlphaMode" /></label><label>Support email<input type="email" value="support@alphamode.gg" /></label><label>Default timezone<select><option>Europe/London</option><option>Africa/Lagos</option><option>UTC</option></select></label><label>Default currency<select><option>GBP</option><option>NGN</option><option>USD</option></select></label><label class="adm-checkbox span-2"><input type="checkbox" checked /> Allow public player registration</label><label class="adm-checkbox span-2"><input type="checkbox" checked /> Require email verification</label></div><div class="adm-form-actions"><button class="adm-button primary">Save changes</button></div></section></div>

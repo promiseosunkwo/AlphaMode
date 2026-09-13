@@ -1,163 +1,30 @@
-﻿<div class="dashboard-page">
+<AdminPageHeader Title="Command centre" Description="Monitor platform activity and move quickly on the work that needs attention.">
+    <Actions><a class="adm-button secondary" href="/admin/reports">Export report</a><a class="adm-button primary" href="/admin/tournaments">Create tournament</a></Actions>
+</AdminPageHeader>
 
-    <!-- PAGE HEADER -->
-    <div class="page-header">
+<section class="adm-stats-grid" aria-label="Platform summary">
+    <AdminStatCard Label="Active players" Value="2,418" Detail="↑ 8.2% this month" Icon="♙" Tone="blue" />
+    <AdminStatCard Label="Live tournaments" Value="12" Detail="4 require attention" Icon="♜" Tone="purple" />
+    <AdminStatCard Label="Matches today" Value="48" Detail="7 currently live" Icon="⚔" Tone="green" />
+    <AdminStatCard Label="Open reports" Value="6" Detail="2 high priority" Icon="!" Tone="amber" />
+</section>
 
-        <div>
-            <h1>Dashboard</h1>
-            <p>
-                Welcome back. Here's what's happening today.
-            </p>
-        </div>
-
-        <button class="create-btn">
-            + Create Tournament
-        </button>
-
-    </div>
-
-    <!-- STATS -->
-    <div class="stats-grid">
-
-        <div class="stat-card">
-            <span>Total Players</span>
-            <h2>1,254</h2>
-            <small>+12% this month</small>
-        </div>
-
-        <div class="stat-card">
-            <span>Active Tournaments</span>
-            <h2>8</h2>
-            <small>3 currently live</small>
-        </div>
-
-        <div class="stat-card">
-            <span>Total Revenue</span>
-            <h2>£12,580</h2>
-            <small>+18% this month</small>
-        </div>
-
-        <div class="stat-card">
-            <span>Matches Played</span>
-            <h2>456</h2>
-            <small>Today: 22</small>
-        </div>
-
-    </div>
-
-    <!-- SECOND ROW -->
-    <div class="dashboard-row">
-
-        <!-- LIVE MATCHES -->
-        <div class="panel large">
-
-            <div class="panel-header">
-                <h3>Live Matches</h3>
-            </div>
-
-            <div class="live-match">
-
-                <div>
-                    <strong>ToyinFC</strong>
-                    vs
-                    <strong>ShadowX</strong>
-                </div>
-
-                <div class="score">
-                    2 - 1
-                </div>
-
-            </div>
-
-            <div class="live-match">
-
-                <div>
-                    <strong>NeoBlade</strong>
-                    vs
-                    <strong>KingJay</strong>
-                </div>
-
-                <div class="score">
-                    0 - 0
-                </div>
-
-            </div>
-
-        </div>
-
-        <!-- TOP PLAYERS -->
-        <div class="panel">
-
-            <div class="panel-header">
-                <h3>Top Players</h3>
-            </div>
-
-            <div class="player-row">
-                #1 ToyinFC
-            </div>
-
-            <div class="player-row">
-                #2 NeoBlade
-            </div>
-
-            <div class="player-row">
-                #3 ShadowX
-            </div>
-
-            <div class="player-row">
-                #4 FatalKen
-            </div>
-
-        </div>
-
-    </div>
-
-    <!-- RECENT TOURNAMENTS -->
-    <div class="panel">
-
-        <div class="panel-header">
-            <h3>Recent Tournaments</h3>
-        </div>
-
-        <table class="admin-table">
-
-            <thead>
-                <tr>
-                    <th>Tournament</th>
-                    <th>Game</th>
-                    <th>Players</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                <tr>
-                    <td>Alpha Cup</td>
-                    <td>EA FC 26</td>
-                    <td>32</td>
-                    <td>
-                        <span class="badge live">
-                            Live
-                        </span>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td>Mortal Clash</td>
-                    <td>Mortal Kombat</td>
-                    <td>16</td>
-                    <td>
-                        <span class="badge upcoming">
-                            Upcoming
-                        </span>
-                    </td>
-                </tr>
-
-            </tbody>
-
-        </table>
-
-    </div>
-
+<div class="adm-dashboard-grid">
+    <section class="adm-panel adm-span-2">
+        <div class="adm-panel-header"><div><p class="adm-eyebrow">Live operations</p><h2>Matches in progress</h2></div><a href="/admin/matches">View schedule →</a></div>
+        <div class="adm-match-row"><span class="adm-live-dot"></span><div><strong>NovaStrike</strong><small>Valorant Masters · Semi-final</small></div><b>1 — 0</b><div class="right"><strong>PixelRaiders</strong><small>Map 2 · 18:42</small></div></div>
+        <div class="adm-match-row"><span class="adm-live-dot"></span><div><strong>KingPromise</strong><small>FIFA Elite Cup · Round 4</small></div><b>2 — 2</b><div class="right"><strong>GoalMachine</strong><small>Second half · 72'</small></div></div>
+        <div class="adm-match-row"><span class="adm-live-dot"></span><div><strong>ApexCore</strong><small>CODM League · Group A</small></div><b>3 — 1</b><div class="right"><strong>NightOwl</strong><small>Game 5 · Starting</small></div></div>
+    </section>
+    <aside class="adm-panel">
+        <div class="adm-panel-header"><div><p class="adm-eyebrow">Action queue</p><h2>Needs review</h2></div><span class="adm-count">9</span></div>
+        <a class="adm-queue-item" href="/admin/players"><span class="amber">3</span><div><strong>Player verifications</strong><small>Oldest: 2 hours ago</small></div></a>
+        <a class="adm-queue-item" href="/admin/reports"><span class="red">2</span><div><strong>Match disputes</strong><small>One is high priority</small></div></a>
+        <a class="adm-queue-item" href="/admin/tournaments"><span class="blue">4</span><div><strong>Draft tournaments</strong><small>Awaiting publication</small></div></a>
+    </aside>
+    <section class="adm-panel adm-span-2">
+        <div class="adm-panel-header"><div><p class="adm-eyebrow">Performance</p><h2>Registrations this week</h2></div><select class="adm-compact-select"><option>Last 7 days</option><option>Last 30 days</option></select></div>
+        <div class="adm-chart" aria-label="Registration trend"><div style="--h:42%"><span>Mon</span></div><div style="--h:58%"><span>Tue</span></div><div style="--h:48%"><span>Wed</span></div><div style="--h:75%"><span>Thu</span></div><div style="--h:64%"><span>Fri</span></div><div style="--h:91%"><span>Sat</span></div><div style="--h:78%"><span>Sun</span></div></div>
+    </section>
+    <aside class="adm-panel"><div class="adm-panel-header"><div><p class="adm-eyebrow">Quick actions</p><h2>Create & manage</h2></div></div><div class="adm-quick-grid"><a href="/admin/tournaments">＋<span>New tournament</span></a><a href="/admin/matches">＋<span>Schedule match</span></a><a href="/admin/notifications">✦<span>Send update</span></a><a href="/admin/players">♙<span>Add player</span></a></div></aside>
 </div>

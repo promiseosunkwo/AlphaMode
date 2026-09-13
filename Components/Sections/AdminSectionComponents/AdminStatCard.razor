@@ -1,5 +1,2 @@
-﻿<h3>AdminStatCard</h3>
-
-@code {
-
-}
+<article class="adm-stat-card"><div class="adm-stat-icon @Tone">@Icon</div><div><p>@Label</p><strong>@Value</strong><small>@Detail</small></div></article>
+@code { [Parameter] public string Label { get; set; }=""; [Parameter] public string Value { get; set; }=""; [Parameter] public string Detail { get; set; }=""; [Parameter] public string Icon { get; set; }="•"; [Parameter] public string Tone { get; set; }="blue"; }
