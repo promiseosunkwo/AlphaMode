@@ -1,180 +1,341 @@
 @page "/admin/games"
 @rendermode InteractiveServer
+
 @using AlphaMode.Application.Games.DTOs
 @using AlphaMode.Application.Games.Interfaces
 @using AlphaMode.Components.Layout
 @using AlphaMode.Components.Sections.AdminSectionComponents
 @using AlphaMode.Services
-@using AlphaMode.ViewModels
+
 @inject IGameService GameService
 @inject ToastService Toast
+
 @layout AdminLayout
 
 <PageTitle>Games · AlphaMode Admin</PageTitle>
-<AdminPageHeader Title="Game catalogue" Description="Control the titles and platforms available when competitions are configured.">
+
+<AdminPageHeader Title="Game catalogue"
+                 Description="Control the titles and platforms available when competitions are configured.">
     <Actions>
-        <button class="adm-button primary" @onclick="Create">＋ Add game</button>
+        <button type="button"
+                class="adm-button primary"
+                @onclick="OpenCreateModal">
+            ＋ Add game
+        </button>
     </Actions>
-    </AdminPageHeader>
+</AdminPageHeader>
+
 <section class="adm-panel">
+
     <div class="adm-toolbar">
-        <label class="adm-search"><span>⌕</span>
-            <input @bind="query" @bind:event="oninput" placeholder="Search catalogue…" />
-        </label><span class="adm-result-count">@Filtered.Count() titles</span>
+
+        <label class="adm-search">
+            <span>⌕</span>
+
+            <input placeholder="Search catalogue…"
+                   @bind="query"
+                   @bind:event="oninput" />
+        </label>
+
+        <span class="adm-result-count">
+            @FilteredGames.Count() titles
+        </span>
+
     </div>
-    <div class="adm-card-grid">
-        @foreach(var game in Filtered){
-            <article class="adm-game-card">
-                <div class="adm-game-art">@game.Name[0]</div>
-                <div>
-                    <span class="adm-status @(game.IsActive ? "active" : "suspended")">@(game.IsActive ? "Enabled" : "Disabled")</span>
-                    <h3>@game.Name</h3>
-                    <p>@game.Version · @game.Platform</p>
-                </div>
-                <div class="adm-card-actions">
-                    <button @onclick="()=>Edit(game)">Edit</button>
-                    <button @onclick="() => game.IsActive = !game.IsActive">@(game.IsActive ? "Disable" : "Enable")</button>
-                    <button class="danger" @onclick="()=>items.Remove(game)">Delete</button>
-                </div>
+
+    @if (isLoading)
+    {
+        <div class="adm-empty-state">
+            Loading games...
+        </div>
+    }
+    else if (!FilteredGames.Any())
+    {
+        <div class="adm-empty-state">
+            @if (string.IsNullOrWhiteSpace(query))
+            {
+                <p>No games have been added yet.</p>
+            }
+            else
+            {
+                <p>No games match your search.</p>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="adm-card-grid">
+
+            @foreach (var game in FilteredGames)
+            {
+                <article class="adm-game-card"
+                         @key="game.Id">
+
+                    <div class="adm-game-art">
+
+                        @if (!string.IsNullOrWhiteSpace(game.ImageUrl))
+                        {
+                            <img src="@game.ImageUrl"
+                                 alt="@game.Name"
+                                 loading="lazy" />
+                        }
+                        else
+                        {
+                            <span>@GetGameInitial(game.Name)</span>
+                        }
+
+                    </div>
+
+                    <div>
+                        <span class="adm-status @(game.IsActive ? "active" : "suspended")">
+                            @(game.IsActive ? "Enabled" : "Disabled")
+                        </span>
+
+                        <h3>@game.Name</h3>
+
+                        <p>
+                            @game.Version · @game.Platform
+                        </p>
+
+                        <small>
+                            @game.TournamentCount
+                            @(game.TournamentCount == 1 ? "tournament" : "tournaments")
+                        </small>
+                    </div>
+
+                    <div class="adm-card-actions">
+
+                        <button type="button"
+                                @onclick="() => OpenEditModal(game)">
+                            Edit
+                        </button>
+
+                        @if (game.IsActive)
+                        {
+                            <button type="button"
+                                    disabled="@IsProcessing(game.Id)"
+                                    @onclick="() => DeactivateGameAsync(game.Id)">
+                                Disable
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    disabled="@IsProcessing(game.Id)"
+                                    @onclick="() => ActivateGameAsync(game.Id)">
+                                Enable
+                            </button>
+                        }
+
+                        <button type="button"
+                                class="danger"
+                                disabled="@IsProcessing(game.Id)"
+                                @onclick="() => DeleteGameAsync(game.Id)">
+                            Delete
+                        </button>
+
+                    </div>
+
                 </article>
-          }
-     </div>
+            }
+
+        </div>
+    }
+
 </section>
 
-<AdminModal IsOpen="open" Title="@(model.Id==0?"Add game":"Edit game")" OnClose="Close">
+
+<AdminModal IsOpen="@open"
+            Title="@(IsEditing ? "Edit game" : "Add game")"
+            OnClose="CloseModal">
+
     <ChildContent>
-        <EditForm Model="Model" OnValidSubmit="CreateGameAsync">
-    <div class="adm-form-grid">
-        <label class="span-2">Game name<input @bind="Model.Name" /></label>
-        <label>Genre<input @bind="Model.Version" /></label>
-        <label>Platform<select @bind="Model.Platform">
-            <option>PC</option>
-            <option>PlayStation</option>
-            <option>Xbox</option>
-            <option>Mobile</option>
-            <option>Cross-platform</option>
-        </select>
-        </label>
-        <label class="adm-checkbox span-2">
-            <input type="checkbox" @bind="model.IsActive" /> Is Tournament active?
-        </label>
-        </div>
+
+        <EditForm id="game-form"
+                  Model="Model"
+                  OnValidSubmit="SaveGameAsync">
+
+            <DataAnnotationsValidator />
+
+            <div class="adm-form-grid">
+
+                <label class="span-2">
+                    Game name
+
+                    <InputText @bind-Value="Model.Name"
+                               placeholder="e.g. EA Sports FC 26" />
+
+                    <ValidationMessage For="@(() => Model.Name)" />
+                </label>
+
+                <label>
+                    Version
+
+                    <InputText @bind-Value="Model.Version"
+                               placeholder="e.g. FC 26" />
+
+                    <ValidationMessage For="@(() => Model.Version)" />
+                </label>
+
+                <label>
+                    Platform
+
+                    <InputSelect @bind-Value="Model.Platform">
+
+                        <option value="">
+                            Select platform
+                        </option>
+
+                        <option value="PC">
+                            PC
+                        </option>
+
+                        <option value="PlayStation">
+                            PlayStation
+                        </option>
+
+                        <option value="Xbox">
+                            Xbox
+                        </option>
+
+                        <option value="Mobile">
+                            Mobile
+                        </option>
+
+                        <option value="Cross-platform">
+                            Cross-platform
+                        </option>
+
+                    </InputSelect>
+
+                    <ValidationMessage For="@(() => Model.Platform)" />
+                </label>
+
+                <label class="span-2">
+                    Image URL
+
+                    <InputText @bind-Value="Model.ImageUrl"
+                               placeholder="https://..." />
+
+                    <ValidationMessage For="@(() => Model.ImageUrl)" />
+                </label>
+
+                @if (IsEditing)
+                {
+                    <label class="adm-checkbox span-2">
+                        <InputCheckbox @bind-Value="editIsActive" />
+
+                        Game is active
+                    </label>
+                }
+
+            </div>
+
         </EditForm>
+
     </ChildContent>
-    
+
     <Footer>
 
-        <button class="adm-button secondary" @onclick="Close">Cancel</button>
-        <button class="adm-button primary" @onclick="Save">Save game</button>
+        <button type="button"
+                class="adm-button secondary"
+                disabled="@isSubmitting"
+                @onclick="CloseModal">
+            Cancel
+        </button>
+
+        <button type="submit"
+                form="game-form"
+                class="adm-button primary"
+                disabled="@isSubmitting">
+
+            @if (isSubmitting)
+            {
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>@(IsEditing ? "Save changes" : "Add game")</span>
+            }
+
+        </button>
 
     </Footer>
 
-    </AdminModal>
+</AdminModal>
 
 
 @code {
+
+    // -------------------------------------------------------
+    // Data
+    // -------------------------------------------------------
 
     private IReadOnlyList<GameDto> Games = [];
 
     private CreateGameRequest Model = new();
 
+
+    // -------------------------------------------------------
+    // Page state
+    // -------------------------------------------------------
+
     private bool isLoading;
 
     private bool isSubmitting;
 
-    private string query="";
-
     private bool open;
 
-    private AdminGameItem model= new();
+    private string query = string.Empty;
+
+
+    // -------------------------------------------------------
+    // Editing state
+    // -------------------------------------------------------
+
+    private Guid? editingGameId;
+
+    private bool editIsActive = true;
+
+    private Guid? processingGameId;
+
+    private bool IsEditing => editingGameId.HasValue;
+
+
+    // -------------------------------------------------------
+    // Filtering
+    // -------------------------------------------------------
+
+    private IEnumerable<GameDto> FilteredGames =>
+        Games.Where(game =>
+            string.IsNullOrWhiteSpace(query)
+            ||
+            game.Name.Contains(
+                query,
+                StringComparison.OrdinalIgnoreCase)
+            ||
+            game.Platform.Contains(
+                query,
+                StringComparison.OrdinalIgnoreCase)
+            ||
+            game.Version.Contains(
+                query,
+                StringComparison.OrdinalIgnoreCase));
+
+
+    // -------------------------------------------------------
+    // Initialization
+    // -------------------------------------------------------
 
     protected override async Task OnInitializedAsync()
     {
         await LoadGamesAsync();
-
-        var result = await GameService.GetAllAsync();
-
-        if (!result.Succeeded)
-        {
-            Toast.Error(
-                result.Error ?? "Unable to load games.");
-
-            return;
-        }
-
-        Games = result.Value ?? [];
     }
 
-    private async Task CreateGameAsync()
-    {
-        var result = await GameService.CreateAsync(
-            new CreateGameRequest
-            {
-                Name = Model.Name,
-                Version = Model.Version,
-                Platform = Model.Platform,
-                ImageUrl = Model.ImageUrl
-            });
 
-        if (!result.Succeeded)
-        {
-            Toast.Warning(result.Error!);
-            return;
-        }
-
-        Toast.Success(result.Message!);
-
-        await LoadGamesAsync();
-    }
-
-    private async Task DeactivateGameAsync(Guid id)
-    {
-        var result =
-            await GameService.DeactivateAsync(id);
-
-        if (!result.Succeeded)
-        {
-            Toast.Warning(result.Error!);
-            return;
-        }
-
-        Toast.Success(result.Message!);
-
-        await LoadGamesAsync();
-    }
-
-    private readonly List<AdminGameItem> items = [new() { Id = 1, Name = "Valorant", Version = "Tactical shooter", Platform = "PC" }, new() { Id = 2, Name = "EA Sports FC 26", Version = "Sports", Platform = "Cross-platform" }, new() { Id = 3, Name = "Call of Duty Mobile", Version = "Shooter", Platform = "Mobile" }, new() { Id = 4, Name = "Rocket League", Version = "Sports", Platform = "Cross-platform", IsActive = false }];
-    private IEnumerable<AdminGameItem> Filtered=>items.Where(x=>string.IsNullOrWhiteSpace(query)||x.Name.Contains(query,StringComparison.OrdinalIgnoreCase));
-    private void Create(){model=new(){Platform="PC"};open=true;}
-    private void Edit(AdminGameItem x)
-    {
-        model = new()
-        {
-            Id=x.Id,
-            Name=x.Name,
-            Slug = x.Slug,
-            Version = x.Version,
-            Platform=x.Platform,
-            IsActive = x.IsActive
-        }
-        ;open=true;
-        }
-
-    private async Task DeleteGameAsync(Guid id)
-    {
-        var result =
-            await GameService.DeleteAsync(id);
-
-        if (!result.Succeeded)
-        {
-            Toast.Warning(result.Error!);
-            return;
-        }
-
-        Toast.Success(result.Message!);
-
-        await LoadGamesAsync();
-    }
+    // -------------------------------------------------------
+    // Load
+    // -------------------------------------------------------
 
     private async Task LoadGamesAsync()
     {
@@ -182,20 +343,23 @@
 
         try
         {
-            var result = await GameService.GetAllAsync();
+            var result =
+                await GameService.GetAllAsync();
 
             if (!result.Succeeded)
             {
-                Toast.Error(
-                    result.Error ?? "Unable to load games.");
-
                 Games = [];
+
+                Toast.Error(
+                    result.Error
+                    ?? "Unable to load games.");
+
                 return;
             }
 
             Games = result.Value ?? [];
         }
-        catch
+        catch (Exception)
         {
             Games = [];
 
@@ -209,24 +373,335 @@
     }
 
 
-    private void Save(){
+    // -------------------------------------------------------
+    // Open Create
+    // -------------------------------------------------------
 
-        if(string.IsNullOrWhiteSpace(model.Name))
+    private void OpenCreateModal()
+    {
+        editingGameId = null;
 
-            return;var x=items.FirstOrDefault(i=>i.Id==model.Id);
+        editIsActive = true;
 
-        if(x is null){model.Id=items.Max(i=>i.Id)+1;items.Add(model);
-        }
-        else
+        Model = new CreateGameRequest
         {
-            x.Name=model.Name;
-            x.Slug = model.Slug;
-            x.Version=model.Version;
-            x.Platform=model.Platform;
-            x.IsActive=model.IsActive;
-        }Close();
-        }
+            Platform = string.Empty
+        };
 
-
-        private void Close()=>open=false;
+        open = true;
     }
+
+
+    // -------------------------------------------------------
+    // Open Edit
+    // -------------------------------------------------------
+
+    private void OpenEditModal(GameDto game)
+    {
+        editingGameId = game.Id;
+
+        editIsActive = game.IsActive;
+
+        Model = new CreateGameRequest
+        {
+            Name = game.Name,
+            Version = game.Version,
+            Platform = game.Platform,
+            ImageUrl = game.ImageUrl
+        };
+
+        open = true;
+    }
+
+
+    // -------------------------------------------------------
+    // Save
+    // -------------------------------------------------------
+
+    private async Task SaveGameAsync()
+    {
+        if (Model.Name == null || Model.Version == null || Model.Platform == null)
+        {
+            Toast.Error("All Fields are required");
+            return;
+        }
+        if (isSubmitting)
+            return;
+
+        isSubmitting = true;
+
+        try
+        {
+            if (IsEditing)
+            {
+                await UpdateGameAsync();
+            }
+            else
+            {
+                await CreateGameAsync();
+            }
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+
+    // -------------------------------------------------------
+    // Create
+    // -------------------------------------------------------
+
+    private async Task CreateGameAsync()
+    {
+        try
+        {
+            var request = new CreateGameRequest
+            {
+                Name = Model.Name,
+                Version = Model.Version,
+                Platform = Model.Platform,
+                ImageUrl = Model.ImageUrl
+            };
+
+            var result =
+                await GameService.CreateAsync(request);
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to create game.");
+
+                return;
+            }
+
+            Toast.Success(
+                result.Message
+                ?? "Game created successfully.");
+
+            CloseModal();
+
+            await LoadGamesAsync();
+        }
+        catch (Exception)
+        {
+            Toast.Error(
+                "Something went wrong while creating the game.");
+        }
+    }
+
+
+    // -------------------------------------------------------
+    // Update
+    // -------------------------------------------------------
+
+    private async Task UpdateGameAsync()
+    {
+        if (!editingGameId.HasValue)
+            return;
+
+        try
+        {
+            var request = new UpdateGameRequest
+            {
+                Id = editingGameId.Value,
+                Name = Model.Name,
+                Version = Model.Version,
+                Platform = Model.Platform,
+                ImageUrl = Model.ImageUrl,
+                IsActive = editIsActive
+            };
+
+            var result =
+                await GameService.UpdateAsync(request);
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to update game.");
+
+                return;
+            }
+
+            Toast.Success(
+                result.Message
+                ?? "Game updated successfully.");
+
+            CloseModal();
+
+            await LoadGamesAsync();
+        }
+        catch (Exception)
+        {
+            Toast.Error(
+                "Something went wrong while updating the game.");
+        }
+    }
+
+
+    // -------------------------------------------------------
+    // Activate
+    // -------------------------------------------------------
+
+    private async Task ActivateGameAsync(Guid id)
+    {
+        if (processingGameId.HasValue)
+            return;
+
+        processingGameId = id;
+
+        try
+        {
+            var result =
+                await GameService.ActivateAsync(id);
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to activate game.");
+
+                return;
+            }
+
+            Toast.Success(
+                result.Message
+                ?? "Game activated successfully.");
+
+            await LoadGamesAsync();
+        }
+        catch (Exception)
+        {
+            Toast.Error(
+                "Something went wrong while activating the game.");
+        }
+        finally
+        {
+            processingGameId = null;
+        }
+    }
+
+
+    // -------------------------------------------------------
+    // Deactivate
+    // -------------------------------------------------------
+
+    private async Task DeactivateGameAsync(Guid id)
+    {
+        if (processingGameId.HasValue)
+            return;
+
+        processingGameId = id;
+
+        try
+        {
+            var result =
+                await GameService.DeactivateAsync(id);
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to deactivate game.");
+
+                return;
+            }
+
+            Toast.Success(
+                result.Message
+                ?? "Game deactivated successfully.");
+
+            await LoadGamesAsync();
+        }
+        catch (Exception)
+        {
+            Toast.Error(
+                "Something went wrong while deactivating the game.");
+        }
+        finally
+        {
+            processingGameId = null;
+        }
+    }
+
+
+    // -------------------------------------------------------
+    // Delete
+    // -------------------------------------------------------
+
+    private async Task DeleteGameAsync(Guid id)
+    {
+        if (processingGameId.HasValue)
+            return;
+
+        processingGameId = id;
+
+        try
+        {
+            var result =
+                await GameService.DeleteAsync(id);
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to delete game.");
+
+                return;
+            }
+
+            Toast.Success(
+                result.Message
+                ?? "Game deleted successfully.");
+
+            await LoadGamesAsync();
+        }
+        catch (Exception)
+        {
+            Toast.Error(
+                "Something went wrong while deleting the game.");
+        }
+        finally
+        {
+            processingGameId = null;
+        }
+    }
+
+
+    // -------------------------------------------------------
+    // Modal
+    // -------------------------------------------------------
+
+    private void CloseModal()
+    {
+        open = false;
+
+        editingGameId = null;
+
+        editIsActive = true;
+
+        Model = new CreateGameRequest();
+    }
+
+
+    // -------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------
+
+    private bool IsProcessing(Guid id)
+    {
+        return processingGameId == id;
+    }
+
+    private static string GetGameInitial(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+
+        return name.Trim()[0]
+            .ToString()
+            .ToUpperInvariant();
+    }
+}
