@@ -1,14 +1,124 @@
 @rendermode InteractiveServer
 @using AlphaMode.ViewModels
-<AdminPageHeader Title="Tournaments" Description="Create competitions, control registration and manage their lifecycle."><Actions><button class="adm-button primary" @onclick="Create">＋ New tournament</button></Actions></AdminPageHeader>
+<AdminPageHeader Title="Tournaments" Description="Create competitions, control registration and manage their lifecycle.">
+    <Actions>
+        <button class="adm-button primary" @onclick="Create">＋ New tournament</button>
+    </Actions>
+    
+</AdminPageHeader>
+
 <section class="adm-panel">
- <div class="adm-toolbar"><label class="adm-search"><span>⌕</span><input @bind="query" @bind:event="oninput" placeholder="Search tournaments…" /></label><select @bind="statusFilter"><option value="All">All statuses</option><option>Published</option><option>Draft</option><option>Completed</option></select><span class="adm-result-count">@Filtered.Count() results</span></div>
- <div class="adm-table-wrap"><table class="adm-table"><thead><tr><th>Tournament</th><th>Starts</th><th>Registration</th><th>Status</th><th></th></tr></thead><tbody>@foreach(var item in Filtered){<tr><td><strong>@item.Name</strong><small>@item.Game</small></td><td>@item.StartsOn.ToString("dd MMM yyyy")</td><td><div class="adm-progress"><span style="width:@Percent(item)%"></span></div><small>@item.Registered / @item.Capacity players</small></td><td><span class="adm-status @item.Status.ToLower()">@item.Status</span></td><td class="adm-row-actions"><button @onclick="()=>Edit(item)">Edit</button><button class="danger" @onclick="()=>Delete(item)">Delete</button></td></tr>}</tbody></table></div>
+     <div class="adm-toolbar">
+         <label class="adm-search">
+             <span>⌕</span>
+             <input @bind="query" @bind:event="oninput" placeholder="Search tournaments…" />
+         </label>
+     
+         <select @bind="statusFilter">
+             <option value="All">All statuses</option>
+             <option>Published</option>
+             <option>Draft</option>
+             <option>Completed</option>
+         </select>
+         <span class="adm-result-count">@Filtered.Count() results</span>
+     </div>
+
+    <div class="adm-table-wrap">
+        <table class="adm-table">
+            <thead>
+                <tr>
+                    <th>Tournament</th>
+                    <th>Starts</th>
+                    <th>Registration</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var item in Filtered)
+                {
+                    <tr>
+                        <td>
+                            <strong>@item.Name</strong>
+                            <small>@item.Game</small>
+                        </td>
+
+                        <td>
+                            @item.StartsOn.ToString("dd MMM yyyy")
+                        </td>
+
+                        <td>
+                            <div class="adm-progress">
+                                <span style="@($"width:{Percent(item)}%")"></span>
+                            </div>
+
+                            <small>
+                                @item.Registered / @item.Capacity players
+                            </small>
+                        </td>
+
+                        <td>
+                            <span class="adm-status @item.Status.ToString().ToLowerInvariant()">
+                                @item.Status
+                            </span>
+                        </td>
+
+                        <td class="adm-row-actions">
+                            <button type="button"
+                                    @onclick="() => Edit(item)">
+                                Edit
+                            </button>
+
+                            <button type="button"
+                                    class="danger"
+                                    @onclick="() => Delete(item)">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
 </section>
-<AdminModal IsOpen="showModal" Title="@(editing.Id == 0 ? "Create tournament" : "Edit tournament")" OnClose="Close"><ChildContent><div class="adm-form-grid"><label class="span-2">Tournament name<input @bind="editing.Name" /></label><label>Game<input @bind="editing.Game" /></label><label>Status<select @bind="editing.Status"><option>Draft</option><option>Published</option><option>Completed</option></select></label><label>Start date<input type="date" @bind="editing.StartsOn" /></label><label>Player capacity<input type="number" min="2" @bind="editing.Capacity" /></label></div></ChildContent><Footer><button class="adm-button secondary" @onclick="Close">Cancel</button><button class="adm-button primary" @onclick="Save">Save tournament</button></Footer></AdminModal>
+
+<AdminModal IsOpen="showModal" Title="@(editing.Id == 0 ? "Create tournament" : "Edit tournament")" OnClose="Close"><ChildContent>
+    <div class="adm-form-grid">
+        <label class="span-2">Tournament name<input @bind="editing.Name" /></label>
+        <label>Game<input @bind="editing.Game" /></label>
+        <label>Status<select @bind="editing.Status">
+            <option>Draft</option>
+            <option>Published</option>
+            <option>Completed</option>
+        </select>
+        </label>
+        <label>Start date<input type="date" @bind="editing.StartsOn" /></label>
+        <label>Player capacity<input type="number" min="2" @bind="editing.Capacity" /></label>
+    </div>
+    </ChildContent>
+    <Footer>
+        <button class="adm-button secondary" @onclick="Close">Cancel</button>
+        <button class="adm-button primary" @onclick="Save">Save tournament</button>
+    </Footer>
+</AdminModal>
+
+
 @code {
- private string query="", statusFilter="All"; private bool showModal; private AdminTournamentItem editing=new();
- private readonly List<AdminTournamentItem> items=[new(){Id=1,Name="Valorant Masters",Game="Valorant",StartsOn=DateTime.Today.AddDays(4),Capacity=64,Registered=52,Status="Published"},new(){Id=2,Name="FIFA Elite Cup",Game="EA Sports FC 26",StartsOn=DateTime.Today.AddDays(9),Capacity=32,Registered=32,Status="Published"},new(){Id=3,Name="CODM Weekend League",Game="Call of Duty Mobile",StartsOn=DateTime.Today.AddDays(16),Capacity=128,Registered=18,Status="Draft"}];
- private IEnumerable<AdminTournamentItem> Filtered=>items.Where(x=>(statusFilter=="All"||x.Status==statusFilter)&&(string.IsNullOrWhiteSpace(query)||x.Name.Contains(query,StringComparison.OrdinalIgnoreCase)||x.Game.Contains(query,StringComparison.OrdinalIgnoreCase)));
- private static int Percent(AdminTournamentItem x)=>x.Capacity==0?0:(int)(100d*x.Registered/x.Capacity); private void Create(){editing=new(){StartsOn=DateTime.Today.AddDays(7),Capacity=32};showModal=true;} private void Edit(AdminTournamentItem x){editing=new(){Id=x.Id,Name=x.Name,Game=x.Game,StartsOn=x.StartsOn,Capacity=x.Capacity,Registered=x.Registered,Status=x.Status};showModal=true;} private void Save(){if(string.IsNullOrWhiteSpace(editing.Name))return;var old=items.FirstOrDefault(x=>x.Id==editing.Id);if(old is null){editing.Id=items.Max(x=>x.Id)+1;items.Insert(0,editing);}else{old.Name=editing.Name;old.Game=editing.Game;old.StartsOn=editing.StartsOn;old.Capacity=editing.Capacity;old.Status=editing.Status;}Close();} private void Delete(AdminTournamentItem x)=>items.Remove(x); private void Close()=>showModal=false;
+
+ private string query="", statusFilter="All"; 
+
+ private bool showModal; 
+
+ private AdminTournamentItem editing = new();
+
+ private readonly List<AdminTournamentItem> items = [new() {
+
+         Id=1,Name="Valorant Masters",Game="Valorant",StartsOn=DateTime.Today.AddDays(4),Capacity=64,Registered=52,Status="Published"},new(){Id=2,Name="FIFA Elite Cup",Game="EA Sports FC 26",StartsOn=DateTime.Today.AddDays(9),Capacity=32,Registered=32,Status="Published"},new(){Id=3,Name="CODM Weekend League",Game="Call of Duty Mobile",StartsOn=DateTime.Today.AddDays(16),Capacity=128,Registered=18,Status="Draft"}];
+ 
+private IEnumerable<AdminTournamentItem> Filtered=>items.Where(x=>(statusFilter=="All"||x.Status==statusFilter)&&(string.IsNullOrWhiteSpace(query)||x.Name.Contains(query,StringComparison.OrdinalIgnoreCase)||x.Game.Contains(query,StringComparison.OrdinalIgnoreCase)));
+ 
+private static int Percent(AdminTournamentItem x)=>x.Capacity==0?0:(int)(100d*x.Registered/x.Capacity); private void Create(){editing=new(){StartsOn=DateTime.Today.AddDays(7),Capacity=32};showModal=true;} private void Edit(AdminTournamentItem x){editing=new(){Id=x.Id,Name=x.Name,Game=x.Game,StartsOn=x.StartsOn,Capacity=x.Capacity,Registered=x.Registered,Status=x.Status};showModal=true;} private void Save(){if(string.IsNullOrWhiteSpace(editing.Name))return;var old=items.FirstOrDefault(x=>x.Id==editing.Id);if(old is null){editing.Id=items.Max(x=>x.Id)+1;items.Insert(0,editing);}else{old.Name=editing.Name;old.Game=editing.Game;old.StartsOn=editing.StartsOn;old.Capacity=editing.Capacity;old.Status=editing.Status;}Close();} private void Delete(AdminTournamentItem x)=>items.Remove(x); private void Close()=>showModal=false;
+
 }

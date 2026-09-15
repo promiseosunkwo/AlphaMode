@@ -23,6 +23,7 @@ builder.Services.AddCascadingAuthenticationState();
 
 // Keeps tournament registration UI state scoped to the signed-in user session.
 builder.Services.AddScoped<UserTournamentRegistrationState>();
+builder.Services.AddScoped<ToastService>();
 
 // Identity UI helpers (Blazor template)
 builder.Services.AddScoped<IdentityUserAccessor>();

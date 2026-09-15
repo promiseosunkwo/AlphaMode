@@ -1,0 +1,105 @@
+﻿@using AlphaMode.Services
+@implements IDisposable
+@inject ToastService ToastService
+
+<div class="toast-container">
+    @foreach (var toast in _toasts)
+    {
+        <div class="alpha-toast @GetCssClass(toast.Type)"
+             @key="toast.Id"
+             role="alert">
+
+            <div class="toast-icon">
+                @GetIcon(toast.Type)
+            </div>
+
+            <div class="toast-body">
+                @if (!string.IsNullOrWhiteSpace(toast.Title))
+                {
+                    <div class="toast-title">
+                        @toast.Title
+                    </div>
+                }
+
+                <div class="toast-message">
+                    @toast.Message
+                </div>
+            </div>
+
+            <button type="button"
+                    class="toast-close"
+                    aria-label="Close notification"
+                    @onclick="() => RemoveToast(toast.Id)">
+                ×
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<ToastMessage> _toasts = [];
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += HandleToast;
+    }
+
+    private void HandleToast(ToastMessage toast)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            _toasts.Add(toast);
+
+            StateHasChanged();
+
+            await Task.Delay(toast.Duration);
+
+            RemoveToast(toast.Id);
+        });
+    }
+
+    private void RemoveToast(Guid id)
+    {
+        var toast = _toasts.FirstOrDefault(x => x.Id == id);
+
+        if (toast is null)
+            return;
+
+        _toasts.Remove(toast);
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private static string GetCssClass(ToastType type)
+    {
+        return type switch
+        {
+            ToastType.Success => "toast-success",
+            ToastType.Error => "toast-error",
+            ToastType.Warning => "toast-warning",
+            ToastType.Info => "toast-info",
+            _ => "toast-info"
+        };
+    }
+
+    private static string GetIcon(ToastType type)
+    {
+        return type switch
+        {
+            ToastType.Success => "✓",
+            ToastType.Error => "×",
+            ToastType.Warning => "!",
+            ToastType.Info => "i",
+            _ => "i"
+        };
+    }
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= HandleToast;
+    }
+}
+
+@code {
+
+}

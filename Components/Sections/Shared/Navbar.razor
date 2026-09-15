@@ -1,4 +1,5 @@
-﻿<!-- NAVBAR -->
+﻿@using AlphaMode.Application.Common
+<!-- NAVBAR -->
 <header class="alpha-navbar">
     <div class="alpha-container nav-content">
         <a class="brand" href="/">
@@ -16,8 +17,15 @@
 
         <div class="nav-actions">
             <AuthorizeView>
-                <Authorized>
-                    <a class="btn btn-outline" href="/dashboard">
+                <Authorized Context="authContext">
+                    @{
+                        var dashboardUrl =
+                        authContext.User.IsInRole(Roles.Admin)
+                        ? "/admin/dashboard"
+                        : "/dashboard";
+                    }
+
+                    <a class="btn btn-outline" href="@dashboardUrl">
                         Dashboard
                     </a>
 

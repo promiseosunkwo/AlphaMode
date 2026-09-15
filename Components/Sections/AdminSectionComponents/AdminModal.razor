@@ -2,7 +2,13 @@
 {
     <div class="adm-modal-backdrop" @onclick="CloseAsync">
         <section class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" @onclick:stopPropagation="true">
-            <header class="adm-modal-header"><div><p class="adm-eyebrow">@Eyebrow</p><h2 id="admin-modal-title">@Title</h2></div><button type="button" class="adm-icon-button" aria-label="Close" @onclick="CloseAsync">✕</button></header>
+            <header class="adm-modal-header">
+                <div>
+                    <p class="adm-eyebrow">@Eyebrow</p>
+                    <h2 id="admin-modal-title">@Title</h2>
+                </div>
+                <button type="button" class="adm-icon-button" aria-label="Close" @onclick="CloseAsync">✕</button>
+            </header>
             <div class="adm-modal-body">@ChildContent</div>
             @if (Footer is not null) { <footer class="adm-modal-footer">@Footer</footer> }
         </section>
