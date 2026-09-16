@@ -73,21 +73,3 @@
         }
     }
 }
-
-
-@* @if (!string.IsNullOrWhiteSpace(errorMessage))
-{
-    <AlertMessage Title="Registration failed"
-                  Message="@errorMessage"
-                  Type="AlertType.Error"
-                  OnDismiss="ClearError" />
-}
-
-@if (!string.IsNullOrWhiteSpace(successMessage))
-{
-    <AlertMessage Title="You're registered"
-                  Message="@successMessage"
-                  Type="AlertType.Success"
-                  OnDismiss="ClearSuccess" />
-}
- *@

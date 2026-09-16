@@ -5,6 +5,8 @@
 @using AlphaMode.Application.Games.Interfaces
 @using AlphaMode.Components.Layout
 @using AlphaMode.Components.Sections.AdminSectionComponents
+@using AlphaMode.Components.Shared.ConfirmDialog
+@using AlphaMode.Components.Shared.Toast
 @using AlphaMode.Services
 
 @inject IGameService GameService
@@ -12,6 +14,7 @@
 
 @layout AdminLayout
 
+<ToastContainer />
 <PageTitle>Games · AlphaMode Admin</PageTitle>
 
 <AdminPageHeader Title="Game catalogue"
@@ -130,7 +133,7 @@
                         <button type="button"
                                 class="danger"
                                 disabled="@IsProcessing(game.Id)"
-                                @onclick="() => DeleteGameAsync(game.Id)">
+                                @onclick="() => RequestDelete(game)">
                             Delete
                         </button>
 
@@ -145,77 +148,57 @@
 </section>
 
 
+@* Add and Edit Form  *@
 <AdminModal IsOpen="@open"
             Title="@(IsEditing ? "Edit game" : "Add game")"
             OnClose="CloseModal">
 
     <ChildContent>
 
-        <EditForm id="game-form"
-                  Model="Model"
-                  OnValidSubmit="SaveGameAsync">
+        <EditForm id="game-form" Model="Model" OnValidSubmit="SaveGameAsync" Enhance="false">
 
             <DataAnnotationsValidator />
 
             <div class="adm-form-grid">
 
-                <label class="span-2">
-                    Game name
+                <label class="span-2"> Game name
 
-                    <InputText @bind-Value="Model.Name"
-                               placeholder="e.g. EA Sports FC 26" />
+                    <InputText @bind-Value="Model.Name" placeholder="e.g. EA Sports FC 26" />
 
                     <ValidationMessage For="@(() => Model.Name)" />
                 </label>
 
-                <label>
-                    Version
+                <label> Version
 
-                    <InputText @bind-Value="Model.Version"
-                               placeholder="e.g. FC 26" />
+                    <InputText @bind-Value="Model.Version" placeholder="e.g. FC 26" />
 
                     <ValidationMessage For="@(() => Model.Version)" />
                 </label>
 
-                <label>
-                    Platform
+                <label> Platform
 
                     <InputSelect @bind-Value="Model.Platform">
 
-                        <option value="">
-                            Select platform
-                        </option>
+                        <option value="">Select platform</option>
 
-                        <option value="PC">
-                            PC
-                        </option>
+                        <option value="PC">PC</option>
 
-                        <option value="PlayStation">
-                            PlayStation
-                        </option>
+                        <option value="PlayStation">PlayStation</option>
 
-                        <option value="Xbox">
-                            Xbox
-                        </option>
+                        <option value="Xbox">Xbox</option>
 
-                        <option value="Mobile">
-                            Mobile
-                        </option>
+                        <option value="Mobile">Mobile</option>
 
-                        <option value="Cross-platform">
-                            Cross-platform
-                        </option>
+                        <option value="Cross-platform">Cross-platform</option>
 
                     </InputSelect>
 
                     <ValidationMessage For="@(() => Model.Platform)" />
                 </label>
 
-                <label class="span-2">
-                    Image URL
+                <label class="span-2">Image URL
 
-                    <InputText @bind-Value="Model.ImageUrl"
-                               placeholder="https://..." />
+                    <InputText @bind-Value="Model.ImageUrl" placeholder="https://..." />
 
                     <ValidationMessage For="@(() => Model.ImageUrl)" />
                 </label>
@@ -265,7 +248,28 @@
 </AdminModal>
 
 
+<ConfirmDialog IsOpen="@showDeleteConfirmation"
+               Title="Delete game?"
+               Message="@deleteConfirmationMessage"
+               ConfirmText="Delete game"
+               ProcessingText="Deleting..."
+               IsProcessing="@isDeleting"
+               OnConfirm="ConfirmDeleteGameAsync"
+               OnCancel="CancelDelete" />
+
+
 @code {
+
+    private GameDto? gameToDelete;
+
+    private bool showDeleteConfirmation;
+
+    private bool isDeleting;
+
+    private string deleteConfirmationMessage =>
+        gameToDelete is null
+            ? "This action cannot be undone."
+            : $"You're about to permanently delete {gameToDelete.Name}. This action cannot be undone.";
 
     // -------------------------------------------------------
     // Data
@@ -383,10 +387,10 @@
 
         editIsActive = true;
 
-        Model = new CreateGameRequest
-        {
-            Platform = string.Empty
-        };
+        Model = new CreateGameRequest();
+        // {
+        //     Platform = string.Empty
+        // };
 
         open = true;
     }
@@ -420,11 +424,7 @@
 
     private async Task SaveGameAsync()
     {
-        if (Model.Name == null || Model.Version == null || Model.Platform == null)
-        {
-            Toast.Error("All Fields are required");
-            return;
-        }
+        
         if (isSubmitting)
             return;
 
@@ -448,6 +448,7 @@
     }
 
 
+
     // -------------------------------------------------------
     // Create
     // -------------------------------------------------------
@@ -466,6 +467,7 @@
 
             var result =
                 await GameService.CreateAsync(request);
+         
 
             if (!result.Succeeded)
             {
@@ -631,17 +633,17 @@
     // Delete
     // -------------------------------------------------------
 
-    private async Task DeleteGameAsync(Guid id)
+    private async Task ConfirmDeleteGameAsync()
     {
-        if (processingGameId.HasValue)
+        if (gameToDelete is null || isDeleting)
             return;
 
-        processingGameId = id;
+        isDeleting = true;
 
         try
         {
             var result =
-                await GameService.DeleteAsync(id);
+                await GameService.DeleteAsync(gameToDelete.Id);
 
             if (!result.Succeeded)
             {
@@ -652,20 +654,24 @@
                 return;
             }
 
+            showDeleteConfirmation = false;
+
             Toast.Success(
                 result.Message
                 ?? "Game deleted successfully.");
 
+            gameToDelete = null;
+
             await LoadGamesAsync();
         }
-        catch (Exception)
+        catch
         {
             Toast.Error(
                 "Something went wrong while deleting the game.");
         }
         finally
         {
-            processingGameId = null;
+            isDeleting = false;
         }
     }
 
@@ -703,5 +709,29 @@
         return name.Trim()[0]
             .ToString()
             .ToUpperInvariant();
+    }
+
+
+    // -------------------------------------------------------
+    // Confirm Delete Modal
+    // -------------------------------------------------------
+
+    private void RequestDelete(GameDto game)
+    {
+        if (processingGameId.HasValue || isDeleting)
+        return;
+        gameToDelete = game;
+
+        showDeleteConfirmation = true;
+    }
+
+    private void CancelDelete()
+    {
+        if (isDeleting)
+            return;
+
+        showDeleteConfirmation = false;
+
+        gameToDelete = null;
     }
 }

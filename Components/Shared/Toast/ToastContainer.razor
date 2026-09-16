@@ -46,28 +46,49 @@
 
     private void HandleToast(ToastMessage toast)
     {
-        _ = InvokeAsync(async () =>
+        _ = InvokeAsync(() =>
         {
             _toasts.Add(toast);
 
             StateHasChanged();
 
-            await Task.Delay(toast.Duration);
-
-            RemoveToast(toast.Id);
+            _ = RemoveAfterDelayAsync(
+                toast.Id,
+                toast.Duration);
         });
     }
 
+
+    private async Task RemoveAfterDelayAsync(
+    Guid id,
+    int duration)
+    {
+        try
+        {
+            await Task.Delay(duration);
+
+            await InvokeAsync(() =>
+            {
+                RemoveToast(id);
+                StateHasChanged();
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            // Component was disposed.
+        }
+    }
+
+
     private void RemoveToast(Guid id)
     {
-        var toast = _toasts.FirstOrDefault(x => x.Id == id);
+        var toast =
+            _toasts.FirstOrDefault(x => x.Id == id);
 
-        if (toast is null)
-            return;
-
-        _toasts.Remove(toast);
-
-        _ = InvokeAsync(StateHasChanged);
+        if (toast is not null)
+        {
+            _toasts.Remove(toast);
+        }
     }
 
     private static string GetCssClass(ToastType type)
@@ -98,8 +119,4 @@
     {
         ToastService.OnShow -= HandleToast;
     }
-}
-
-@code {
-
 }

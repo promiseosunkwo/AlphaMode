@@ -1,11 +1,16 @@
 @inherits LayoutComponentBase
 @using AlphaMode.Components.Sections.AdminSectionComponents
+@using AlphaMode.Components.Shared.Toast
 
 <div class="adm-shell">
     <input class="adm-nav-toggle" id="adm-nav-toggle" type="checkbox" />
+
     <AdminSidebar />
+
     <div class="adm-workspace">
+
         <AdminTopbar />
+
         <main class="adm-content">@Body</main>
     </div>
 </div>
