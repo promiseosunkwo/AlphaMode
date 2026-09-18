@@ -1,124 +1,1136 @@
+@* @page "/admin/tournaments" *@
 @rendermode InteractiveServer
-@using AlphaMode.ViewModels
-<AdminPageHeader Title="Tournaments" Description="Create competitions, control registration and manage their lifecycle.">
+
+@using AlphaMode.Application.Games.DTOs
+@using AlphaMode.Application.Games.Interfaces
+@using AlphaMode.Application.Tournaments.DTOs
+@using AlphaMode.Application.Tournaments.Interfaces
+@using AlphaMode.Components.Layout
+@using AlphaMode.Components.Sections.AdminSectionComponents
+@using AlphaMode.Components.Sections.AdminSectionComponents.Models
+@using AlphaMode.Components.Shared.ConfirmDialog
+@using AlphaMode.Components.Shared.Toast
+@using AlphaMode.Domain.Enums
+@using AlphaMode.Services
+
+@inject ITournamentService TournamentService
+@inject IGameService GameService
+@inject ToastService Toast
+
+@layout AdminLayout
+
+<PageTitle>Tournaments · AlphaMode Admin</PageTitle>
+
+<ToastContainer />
+
+
+<AdminPageHeader
+    Title="Tournaments"
+    Description="Create competitions, control registration and manage their lifecycle.">
+
     <Actions>
-        <button class="adm-button primary" @onclick="Create">＋ New tournament</button>
+        <button type="button"
+                class="adm-button primary"
+                @onclick="OpenCreateModal">
+            ＋ New tournament
+        </button>
     </Actions>
-    
+
 </AdminPageHeader>
 
+
 <section class="adm-panel">
-     <div class="adm-toolbar">
-         <label class="adm-search">
-             <span>⌕</span>
-             <input @bind="query" @bind:event="oninput" placeholder="Search tournaments…" />
-         </label>
-     
-         <select @bind="statusFilter">
-             <option value="All">All statuses</option>
-             <option>Published</option>
-             <option>Draft</option>
-             <option>Completed</option>
-         </select>
-         <span class="adm-result-count">@Filtered.Count() results</span>
-     </div>
 
-    <div class="adm-table-wrap">
-        <table class="adm-table">
-            <thead>
-                <tr>
-                    <th>Tournament</th>
-                    <th>Starts</th>
-                    <th>Registration</th>
-                    <th>Status</th>
-                    <th></th>
-                </tr>
-            </thead>
+    <div class="adm-toolbar">
 
-            <tbody>
-                @foreach (var item in Filtered)
-                {
-                    <tr>
-                        <td>
-                            <strong>@item.Name</strong>
-                            <small>@item.Game</small>
-                        </td>
+        <label class="adm-search">
 
-                        <td>
-                            @item.StartsOn.ToString("dd MMM yyyy")
-                        </td>
+            <span>⌕</span>
 
-                        <td>
-                            <div class="adm-progress">
-                                <span style="@($"width:{Percent(item)}%")"></span>
-                            </div>
+            <input placeholder="Search tournaments…"
+                   @bind="query"
+                   @bind:event="oninput" />
 
-                            <small>
-                                @item.Registered / @item.Capacity players
-                            </small>
-                        </td>
+        </label>
 
-                        <td>
-                            <span class="adm-status @item.Status.ToString().ToLowerInvariant()">
-                                @item.Status
-                            </span>
-                        </td>
 
-                        <td class="adm-row-actions">
-                            <button type="button"
-                                    @onclick="() => Edit(item)">
-                                Edit
-                            </button>
+        <select @bind="statusFilter">
 
-                            <button type="button"
-                                    class="danger"
-                                    @onclick="() => Delete(item)">
-                                Delete
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+            <option value="All">
+                All statuses
+            </option>
+
+            @foreach (var status in Enum.GetValues<TournamentStatus>())
+            {
+                <option value="@status.ToString()">
+                    @status
+                </option>
+            }
+
+        </select>
+
+
+        <span class="adm-result-count">
+            @FilteredTournaments.Count() results
+        </span>
+
     </div>
+
+
+    @if (isLoading)
+    {
+        <div class="adm-empty-state">
+            Loading tournaments...
+        </div>
+    }
+    else if (!FilteredTournaments.Any())
+    {
+        <div class="adm-empty-state">
+
+            @if (string.IsNullOrWhiteSpace(query)
+                 && statusFilter == "All")
+            {
+                <p>No tournaments have been created yet.</p>
+            }
+            else
+            {
+                <p>No tournaments match your filters.</p>
+            }
+
+        </div>
+    }
+    else
+    {
+        <div class="adm-table-wrap">
+
+            <table class="adm-table">
+
+                <thead>
+                    <tr>
+                        <th>Tournament</th>
+                        <th>Starts</th>
+                        <th>Registration</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @foreach (var tournament in FilteredTournaments)
+                    {
+                        <tr @key="tournament.Id">
+
+                            <td>
+
+                                <strong>
+                                    @tournament.Name
+                                </strong>
+
+                                <small>
+                                    @tournament.GameName
+                                </small>
+
+                            </td>
+
+
+                            <td>
+                                @tournament.StartDate.ToString("dd MMM yyyy")
+                            </td>
+
+
+                            <td>
+
+                                <div class="adm-progress">
+
+                                    <span style="@GetRegistrationProgressStyle(tournament)">
+                                    </span>
+
+                                </div>
+
+                                <small>
+                                    @* @tournament.RegisteredCount / *@
+                                    @tournament.MaxPlayers players
+                                </small>
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="adm-status @GetStatusCss(tournament.Status)">
+                                    @tournament.Status
+                                </span>
+
+                            </td>
+
+
+                            <td class="adm-row-actions">
+
+                                <button type="button"
+                                        disabled="@IsProcessing(tournament.Id)"
+                                        @onclick="() => OpenEditModal(tournament.Id)">
+                                    Edit
+                                </button>
+
+
+                                <button type="button"
+                                        class="danger"
+                                        disabled="@IsProcessing(tournament.Id)"
+                                        @onclick="() => RequestDelete(tournament)">
+                                    Delete
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+    }
 
 </section>
 
-<AdminModal IsOpen="showModal" Title="@(editing.Id == 0 ? "Create tournament" : "Edit tournament")" OnClose="Close"><ChildContent>
-    <div class="adm-form-grid">
-        <label class="span-2">Tournament name<input @bind="editing.Name" /></label>
-        <label>Game<input @bind="editing.Game" /></label>
-        <label>Status<select @bind="editing.Status">
-            <option>Draft</option>
-            <option>Published</option>
-            <option>Completed</option>
-        </select>
-        </label>
-        <label>Start date<input type="date" @bind="editing.StartsOn" /></label>
-        <label>Player capacity<input type="number" min="2" @bind="editing.Capacity" /></label>
-    </div>
+
+<AdminModal IsOpen="@showModal"
+            Title="@(IsEditing ? "Edit tournament" : "Create tournament")"
+            OnClose="CloseModal">
+
+    <ChildContent>
+
+        <EditForm id="tournament-form" Model="@model" OnValidSubmit="SaveTournamentAsync" Enhance="false">
+
+            <DataAnnotationsValidator />
+
+            <div class="adm-form-grid">
+
+                <label class="span-2"> Tournament name
+
+                    <InputText @bind-Value="model.Name" placeholder="e.g. AlphaMode FC Championship" />
+                    <ValidationMessage For="@(() => model.Name)" />
+
+                </label>
+
+
+                <label class="span-2"> Description
+                    <InputTextArea @bind-Value="model.Description" placeholder="Describe the tournament..." />
+
+                    <ValidationMessage For="@(() => model.Description)" />
+                </label>
+
+
+                <label> Game
+                    <InputSelect @bind-Value="model.GameId">
+                    <option value=""> Select game</option>
+
+                        @foreach (var game in activeGames)
+                        {
+                            <option value="@game.Id">
+                                @game.Name · @game.Version · @game.Platform
+                            </option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.GameId)" />
+
+                </label>
+
+
+                <label> Format
+                    <InputSelect @bind-Value="model.Format">
+
+                        <option value="">
+                            Select format
+                        </option>
+
+                        @foreach (var format in Enum.GetValues<TournamentFormat>())
+                        {
+                            <option value="@format">
+                                @format
+                            </option>
+                        }
+
+                    </InputSelect>
+
+                    <ValidationMessage For="@(() => model.Format)" />
+
+                </label>
+
+
+                <label>
+
+                    Tournament starts
+
+                    <InputDate @bind-Value="model.StartDate" />
+
+                    <ValidationMessage For="@(() => model.StartDate)" />
+
+                </label>
+
+
+                <label>
+
+                    Tournament ends
+
+                    <InputDate @bind-Value="model.EndDate" />
+
+                    <ValidationMessage For="@(() => model.EndDate)" />
+
+                </label>
+
+
+                <label>
+
+                    Registration opens
+
+                    <InputDate @bind-Value="model.RegistrationOpenDate" />
+
+                    <ValidationMessage For="@(() => model.StartDate)" />
+
+                </label>
+
+
+                <label>
+
+                    Registration closes
+
+                    <InputDate @bind-Value="model.RegistrationDeadline" />
+
+                    <ValidationMessage For="@(() => model.EndDate)" />
+
+                </label>
+
+
+                <label>
+
+                    Maximum players
+
+                    <InputNumber @bind-Value="model.MaxPlayers" />
+
+                    <ValidationMessage For="@(() => model.MaxPlayers)" />
+
+                </label>
+
+
+                <label>
+
+                    Entry fee
+
+                    <InputNumber @bind-Value="model.EntryFee" />
+
+                    <ValidationMessage For="@(() => model.EntryFee)" />
+
+                </label>
+
+
+                <label>
+
+                    Legs
+
+                    <InputNumber @bind-Value="model.Legs" />
+
+                    <ValidationMessage For="@(() => model.Legs)" />
+
+                </label>
+
+
+                <label>
+
+                    Points for win
+
+                    <InputNumber @bind-Value="model.PointsForWin" />
+
+                    <ValidationMessage For="@(() => model.PointsForWin)" />
+
+                </label>
+
+
+                <label>
+
+                    Points for draw
+
+                    <InputNumber @bind-Value="model.PointsForDraw" />
+
+                    <ValidationMessage For="@(() => model.PointsForDraw)" />
+
+                </label>
+
+
+                <label>
+
+                    Points for loss
+
+                    <InputNumber @bind-Value="model.PointsForLoss" />
+
+                    <ValidationMessage For="@(() => model.PointsForLoss)" />
+
+                </label>
+
+
+                <label class="span-2">
+
+                    Image URL
+
+                    <InputText @bind-Value="model.ImageUrl"
+                               placeholder="https://..." />
+
+                    <ValidationMessage For="@(() => model.ImageUrl)" />
+
+                </label>
+
+
+                @if (IsEditing)
+                {
+                    <label class="span-2">
+
+                        Status
+
+                        <InputSelect @bind-Value="model.Status">
+
+                            @foreach (var status in Enum.GetValues<TournamentStatus>())
+                            {
+                                <option value="@status">
+                                    @status
+                                </option>
+                            }
+
+                        </InputSelect>
+
+                    </label>
+                }
+
+            </div>
+
+        </EditForm>
+
     </ChildContent>
+
+
     <Footer>
-        <button class="adm-button secondary" @onclick="Close">Cancel</button>
-        <button class="adm-button primary" @onclick="Save">Save tournament</button>
+
+        <button type="button"
+                class="adm-button secondary"
+                disabled="@isSubmitting"
+                @onclick="CloseModal">
+            Cancel
+        </button>
+
+
+        <button type="submit"
+                form="tournament-form"
+                class="adm-button primary"
+                disabled="@isSubmitting">
+
+            @if (isSubmitting)
+            {
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>
+                    @(IsEditing
+                        ? "Save changes"
+                        : "Create tournament")
+                </span>
+            }
+
+        </button>
+
     </Footer>
+
 </AdminModal>
+
+
+<ConfirmDialog
+    IsOpen="@showDeleteConfirmation"
+    Title="Delete tournament?"
+    Message="@deleteConfirmationMessage"
+    ConfirmText="Delete tournament"
+    ProcessingText="Deleting..."
+    IsProcessing="@isDeleting"
+    OnConfirm="ConfirmDeleteTournamentAsync"
+    OnCancel="CancelDelete" />
 
 
 @code {
 
- private string query="", statusFilter="All"; 
+    // =======================================================
+    // DATA
+    // =======================================================
 
- private bool showModal; 
+    private IReadOnlyList<TournamentDto> tournaments = [];
 
- private AdminTournamentItem editing = new();
+    private IReadOnlyList<GameDto> activeGames = [];
 
- private readonly List<AdminTournamentItem> items = [new() {
 
-         Id=1,Name="Valorant Masters",Game="Valorant",StartsOn=DateTime.Today.AddDays(4),Capacity=64,Registered=52,Status="Published"},new(){Id=2,Name="FIFA Elite Cup",Game="EA Sports FC 26",StartsOn=DateTime.Today.AddDays(9),Capacity=32,Registered=32,Status="Published"},new(){Id=3,Name="CODM Weekend League",Game="Call of Duty Mobile",StartsOn=DateTime.Today.AddDays(16),Capacity=128,Registered=18,Status="Draft"}];
- 
-private IEnumerable<AdminTournamentItem> Filtered=>items.Where(x=>(statusFilter=="All"||x.Status==statusFilter)&&(string.IsNullOrWhiteSpace(query)||x.Name.Contains(query,StringComparison.OrdinalIgnoreCase)||x.Game.Contains(query,StringComparison.OrdinalIgnoreCase)));
- 
-private static int Percent(AdminTournamentItem x)=>x.Capacity==0?0:(int)(100d*x.Registered/x.Capacity); private void Create(){editing=new(){StartsOn=DateTime.Today.AddDays(7),Capacity=32};showModal=true;} private void Edit(AdminTournamentItem x){editing=new(){Id=x.Id,Name=x.Name,Game=x.Game,StartsOn=x.StartsOn,Capacity=x.Capacity,Registered=x.Registered,Status=x.Status};showModal=true;} private void Save(){if(string.IsNullOrWhiteSpace(editing.Name))return;var old=items.FirstOrDefault(x=>x.Id==editing.Id);if(old is null){editing.Id=items.Max(x=>x.Id)+1;items.Insert(0,editing);}else{old.Name=editing.Name;old.Game=editing.Game;old.StartsOn=editing.StartsOn;old.Capacity=editing.Capacity;old.Status=editing.Status;}Close();} private void Delete(AdminTournamentItem x)=>items.Remove(x); private void Close()=>showModal=false;
+    // =======================================================
+    // FORM
+    // =======================================================
+
+    private TournamentFormModel model = new();
+
+    private Guid? editingTournamentId;
+
+    private bool IsEditing =>
+        editingTournamentId.HasValue;
+
+
+    // =======================================================
+    // PAGE STATE
+    // =======================================================
+
+    private bool isLoading;
+
+    private bool isSubmitting;
+
+    private bool showModal;
+
+    private Guid? processingTournamentId;
+
+    private string query = string.Empty;
+
+    private string statusFilter = "All";
+
+
+    // =======================================================
+    // DELETE STATE
+    // =======================================================
+
+    private TournamentDto? tournamentToDelete;
+
+    private bool showDeleteConfirmation;
+
+    private bool isDeleting;
+
+
+    private string deleteConfirmationMessage => tournamentToDelete is null ? "This action cannot be undone." : $"You're about to permanently delete {tournamentToDelete.Name}. This action cannot be undone.";
+
+
+    // =======================================================
+    // FILTERING
+    // =======================================================
+
+    private IEnumerable<TournamentDto> FilteredTournaments =>
+        tournaments.Where(tournament =>
+            (statusFilter == "All"
+             || tournament.Status.ToString() == statusFilter)
+            &&
+            (
+                string.IsNullOrWhiteSpace(query)
+                ||
+                tournament.Name.Contains(
+                    query,
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                tournament.GameName.Contains(
+                    query,
+                    StringComparison.OrdinalIgnoreCase)
+            ));
+
+
+    // =======================================================
+    // INITIALIZATION
+    // =======================================================
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPageAsync();
+    }
+
+
+    private async Task LoadPageAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            // Load tournaments first
+            var tournamentResult = await TournamentService.GetAllAsync();
+
+            if (!tournamentResult.Succeeded)
+            {
+                tournaments = [];
+
+                Toast.Error(tournamentResult.Error ?? "Unable to load tournaments.");
+            }
+            else
+            {
+                tournaments = tournamentResult.Value ?? [];
+            }
+
+
+            // Then load active games
+            var gameResult = await GameService.GetActiveAsync();
+
+            if (!gameResult.Succeeded)
+            {
+                activeGames = [];
+
+                Toast.Error(gameResult.Error ?? "Unable to load games.");
+            }
+            else
+            {
+                activeGames = gameResult.Value ?? [];
+            }
+        }
+        catch (Exception ex)
+        {
+            tournaments = [];
+            activeGames = [];
+
+            Console.WriteLine(
+                $"Error loading tournament page: {ex}");
+
+            Toast.Error(
+                "Something went wrong while loading tournament data.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    // =======================================================
+    // CREATE
+    // =======================================================
+
+    private void OpenCreateModal()
+    {
+        editingTournamentId = null;
+
+        var today = DateTime.Today;
+
+        model = new TournamentFormModel
+        {
+            StartDate = today,
+            EndDate = today,
+
+            RegistrationOpenDate = today,
+            RegistrationDeadline = today,
+
+            MaxPlayers = 32,
+
+            Legs = 1,
+
+            PointsForWin = 3,
+            PointsForDraw = 1,
+            PointsForLoss = 0,
+
+            EntryFee = 0,
+
+            Status = TournamentStatus.Draft
+        };
+
+        showModal = true;
+    }
+
+
+    // =======================================================
+    // EDIT
+    // =======================================================
+
+    private async Task OpenEditModal(Guid id)
+    {
+        if (processingTournamentId.HasValue)
+            return;
+
+        processingTournamentId = id;
+
+        try
+        {
+            var result =
+                await TournamentService.GetByIdAsync(id);
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to load tournament.");
+
+                return;
+            }
+
+            var tournament = result.Value;
+
+            editingTournamentId = tournament.Id;
+
+
+            model = new TournamentFormModel
+            {
+                Name = tournament.Name,
+
+                Description = tournament.Description,
+
+                GameId = tournament.GameId,
+
+                Format = tournament.Format,
+
+                StartDate = tournament.StartDate,
+
+                EndDate = tournament.EndDate,
+
+                RegistrationOpenDate = tournament.RegistrationOpenDate,
+
+                RegistrationDeadline = tournament.RegistrationDeadline,
+
+                MaxPlayers = tournament.MaxPlayers,
+
+                EntryFee = tournament.EntryFee,
+
+                Legs = tournament.Legs,
+
+                PointsForWin = tournament.PointsForWin,
+
+                PointsForDraw = tournament.PointsForDraw,
+
+                PointsForLoss = tournament.PointsForLoss,
+
+                ImageUrl = tournament.ImageUrl,
+
+                Status = tournament.Status
+            };
+
+
+            showModal = true;
+        }
+        catch (Exception)
+        {
+            Toast.Error(
+                "Something went wrong while loading the tournament.");
+        }
+        finally
+        {
+            processingTournamentId = null;
+        }
+    }
+
+
+    // =======================================================
+    // SAVE
+    // =======================================================
+
+    private async Task SaveTournamentAsync()
+    {
+        if (isSubmitting)
+            return;
+
+
+        if (!ValidateDates())
+            return;
+
+
+        if (!model.GameId.HasValue ||
+            !model.Format.HasValue)
+        {
+            return;
+        }
+
+
+        isSubmitting = true;
+
+        try
+        {
+            if (IsEditing)
+            {
+                await UpdateTournamentAsync();
+            }
+            else
+            {
+                await CreateTournamentAsync();
+            }
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+
+    // =======================================================
+    // CREATE SERVICE CALL
+    // =======================================================
+
+    private async Task CreateTournamentAsync()
+    {
+        try
+        {
+            var request = new CreateTournamentRequest
+                {
+                    Name = model.Name,
+
+                    Description = model.Description,
+
+                    GameId = model.GameId!.Value,
+
+                    Format = model.Format!.Value,
+
+                    RegistrationOpenDate  = model.RegistrationOpenDate,
+
+                    RegistrationDeadline = model.RegistrationDeadline,
+
+                    StartDate = model.StartDate,
+
+                    EndDate = model.EndDate,
+
+                    MaxPlayers = model.MaxPlayers,
+
+                    EntryFee = model.EntryFee,
+
+                    Status = model.Status,
+
+                    Legs = model.Legs,
+
+                    PointsForWin = model.PointsForWin,
+
+                    PointsForDraw = model.PointsForDraw,
+
+                    PointsForLoss = model.PointsForLoss,
+
+                    ImageUrl = model.ImageUrl
+                };
+
+
+            var result = await TournamentService.CreateAsync(request);
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(result.Error ?? "Unable to create tournament.");
+                return;
+            }
+
+
+            Toast.Success(result.Message ?? "Tournament created successfully.");
+
+            CloseModal();
+
+            await LoadTournamentsAsync();
+        }
+        catch (Exception)
+        {
+            Toast.Error(
+                "Something went wrong while creating the tournament.");
+        }
+    }
+
+
+    // =======================================================
+    // UPDATE SERVICE CALL
+    // =======================================================
+
+    private async Task UpdateTournamentAsync()
+    {
+        if (!editingTournamentId.HasValue)
+            return;
+
+
+        try
+        {
+            var request =
+                new UpdateTournamentRequest
+                {
+                    Id = editingTournamentId.Value,
+
+                    Name = model.Name,
+
+                    Description = model.Description,
+
+                    GameId = model.GameId!.Value,
+
+                    Format = model.Format!.Value,
+
+                    TournamentStartDate = model.StartDate,
+
+                    TournamentEndDate = model.EndDate,
+
+                    RegistrationOpenDate = model.RegistrationOpenDate,
+
+                    RegistrationDeadline = model.RegistrationDeadline,
+
+                    MaxPlayers = model.MaxPlayers,
+
+                    EntryFee = model.EntryFee,
+
+                    Legs = model.Legs,
+
+                    PointsForWin = model.PointsForWin,
+
+                    PointsForDraw = model.PointsForDraw,
+
+                    PointsForLoss = model.PointsForLoss,
+
+                    ImageUrl = model.ImageUrl,
+
+                    Status = model.Status
+                };
+
+
+            var result = await TournamentService.UpdateAsync(request);
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to update tournament.");
+
+                return;
+            }
+
+
+            Toast.Success(
+                result.Message
+                ?? "Tournament updated successfully.");
+
+
+            CloseModal();
+
+            await LoadTournamentsAsync();
+        }
+        catch (Exception)
+        {
+            Toast.Error(
+                "Something went wrong while updating the tournament.");
+        }
+    }
+
+
+    // =======================================================
+    // DELETE
+    // =======================================================
+
+    private void RequestDelete(
+        TournamentDto tournament)
+    {
+        if (processingTournamentId.HasValue ||
+            isDeleting)
+        {
+            return;
+        }
+
+
+        tournamentToDelete =
+            tournament;
+
+        showDeleteConfirmation =
+            true;
+    }
+
+
+    private async Task ConfirmDeleteTournamentAsync()
+    {
+        if (tournamentToDelete is null ||
+            isDeleting)
+        {
+            return;
+        }
+
+
+        isDeleting = true;
+
+        try
+        {
+            var result =
+                await TournamentService.DeleteAsync(
+                    tournamentToDelete.Id);
+
+
+            showDeleteConfirmation =
+                false;
+
+
+            if (!result.Succeeded)
+            {
+                tournamentToDelete = null;
+
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to delete tournament.");
+
+                return;
+            }
+
+
+            tournamentToDelete = null;
+
+
+            Toast.Success(
+                result.Message
+                ?? "Tournament deleted successfully.");
+
+
+            await LoadTournamentsAsync();
+        }
+        catch (Exception)
+        {
+            showDeleteConfirmation = false;
+
+            tournamentToDelete = null;
+
+            Toast.Error(
+                "Something went wrong while deleting the tournament.");
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+
+    private void CancelDelete()
+    {
+        if (isDeleting)
+            return;
+
+
+        showDeleteConfirmation = false;
+
+        tournamentToDelete = null;
+    }
+
+
+    // =======================================================
+    // RELOAD TOURNAMENTS
+    // =======================================================
+
+    private async Task LoadTournamentsAsync()
+    {
+        try
+        {
+            var result =
+                await TournamentService.GetAllAsync();
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(
+                    result.Error
+                    ?? "Unable to reload tournaments.");
+
+                return;
+            }
+
+
+            tournaments =
+                result.Value ?? [];
+        }
+        catch (Exception)
+        {
+            Toast.Error(
+                "Something went wrong while refreshing tournaments.");
+        }
+    }
+
+
+    // =======================================================
+    // VALIDATION
+    // =======================================================
+
+    private bool ValidateDates()
+    {
+        // Registration deadline cannot be before registration opens
+        if (model.RegistrationOpenDate.HasValue &&
+            model.RegistrationDeadline.HasValue &&
+            model.RegistrationDeadline.Value.Date <
+            model.RegistrationOpenDate.Value.Date)
+        {
+            Toast.Warning(
+                "Registration closing date cannot be before the opening date.");
+
+            return false;
+        }
+
+
+        // Registration cannot close after the tournament starts
+        if (model.RegistrationDeadline.HasValue &&
+            model.RegistrationDeadline.Value.Date >
+            model.StartDate.Date)
+        {
+            Toast.Warning(
+                "Registration must close on or before the tournament begins.");
+
+            return false;
+        }
+
+
+        // Tournament cannot end before it starts
+        if (model.EndDate.Date <
+            model.StartDate.Date)
+        {
+            Toast.Warning(
+                "Tournament end date cannot be before the start date.");
+
+            return false;
+        }
+
+
+        return true;
+    }
+
+    // =======================================================
+    // MODAL
+    // =======================================================
+
+    private void CloseModal()
+    {
+        if (isSubmitting)
+            return;
+
+
+        showModal = false;
+
+        editingTournamentId = null;
+
+        model = new TournamentFormModel();
+    }
+
+
+    // =======================================================
+    // HELPERS
+    // =======================================================
+
+    private bool IsProcessing(Guid id)
+    {
+        return processingTournamentId == id;
+    }
+
+
+    private static int GetRegistrationPercent(TournamentDto tournament)
+    {
+        if (tournament.MaxPlayers <= 0)
+            return 0;
+
+        var percentage =
+            (int)Math.Round(
+                100d
+                * tournament.RegisteredPlayers
+                / tournament.MaxPlayers);
+
+        return Math.Clamp(
+            percentage,
+            0,
+            100);
+    }
+
+
+    private static string GetRegistrationProgressStyle(
+        TournamentDto tournament)
+    {
+        return $"width:{GetRegistrationPercent(tournament)}%";
+    }
+
+
+    private static string GetStatusCss(
+        TournamentStatus status)
+    {
+        return status
+            .ToString()
+            .ToLowerInvariant();
+    }
 
 }
