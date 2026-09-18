@@ -196,15 +196,14 @@
 </section>
 
 
-<AdminModal IsOpen="@showModal"
-            Title="@(IsEditing ? "Edit tournament" : "Create tournament")"
-            OnClose="CloseModal">
+    <AdminModal IsOpen="@showModal"
+                Eyebrow="Tournament management"
+                Title="@ModalTitle"
+                EditContext="@editContext"
+                OnValidSubmit="SaveTournamentAsync"
+                OnClose="CloseModal">
 
     <ChildContent>
-
-        <EditForm id="tournament-form" Model="@model" OnValidSubmit="SaveTournamentAsync" Enhance="false">
-
-            <DataAnnotationsValidator />
 
             <div class="adm-form-grid">
 
@@ -288,7 +287,7 @@
 
                     <InputDate @bind-Value="model.RegistrationOpenDate" />
 
-                    <ValidationMessage For="@(() => model.StartDate)" />
+                <ValidationMessage For="@(() => model.RegistrationOpenDate)" />
 
                 </label>
 
@@ -299,7 +298,7 @@
 
                     <InputDate @bind-Value="model.RegistrationDeadline" />
 
-                    <ValidationMessage For="@(() => model.EndDate)" />
+                <ValidationMessage For="@(() => model.RegistrationDeadline)" />
 
                 </label>
 
@@ -382,7 +381,7 @@
                 </label>
 
 
-                @if (IsEditing)
+                @if (isEditing)
                 {
                     <label class="span-2">
 
@@ -404,42 +403,34 @@
 
             </div>
 
-        </EditForm>
 
     </ChildContent>
 
 
-    <Footer>
+        <Footer>
 
-        <button type="button"
+            <button type="button"
                 class="adm-button secondary"
-                disabled="@isSubmitting"
-                @onclick="CloseModal">
-            Cancel
-        </button>
+                    @onclick="CloseModal">
+                Cancel
+            </button>
 
-
-        <button type="submit"
-                form="tournament-form"
+            <button type="submit"
                 class="adm-button primary"
-                disabled="@isSubmitting">
+                    disabled="@isSaving">
 
-            @if (isSubmitting)
-            {
-                <span>Saving...</span>
-            }
-            else
-            {
-                <span>
-                    @(IsEditing
-                        ? "Save changes"
-                        : "Create tournament")
-                </span>
-            }
+                @if (isSaving)
+                {
+                    <span>Saving...</span>
+                }
+                else
+                {
+                    <span>@(isEditing ? "Save changes" : "Create tournament")</span>
+                }
 
-        </button>
+            </button>
 
-    </Footer>
+        </Footer>
 
 </AdminModal>
 
@@ -474,17 +465,19 @@
 
     private Guid? editingTournamentId;
 
-    private bool IsEditing =>
-        editingTournamentId.HasValue;
+    private bool isEditing = false;
 
+    private bool isSaving = false;
+
+    private string ModalTitle => isEditing ? "Edit Tournament" : "Create Tournament";
+
+    private EditContext? editContext;
 
     // =======================================================
     // PAGE STATE
     // =======================================================
 
     private bool isLoading;
-
-    private bool isSubmitting;
 
     private bool showModal;
 
@@ -598,33 +591,24 @@
     // CREATE
     // =======================================================
 
+
     private void OpenCreateModal()
     {
-        editingTournamentId = null;
-
-        var today = DateTime.Today;
-
         model = new TournamentFormModel
         {
-            StartDate = today,
-            EndDate = today,
-
-            RegistrationOpenDate = today,
-            RegistrationDeadline = today,
-
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today,
             MaxPlayers = 32,
-
             Legs = 1,
-
             PointsForWin = 3,
             PointsForDraw = 1,
-            PointsForLoss = 0,
-
-            EntryFee = 0,
-
-            Status = TournamentStatus.Draft
+            PointsForLoss = 0
         };
 
+        editContext = new EditContext(model);
+
+        isEditing = false;
+        editingTournamentId = null;
         showModal = true;
     }
 
@@ -635,78 +619,43 @@
 
     private async Task OpenEditModal(Guid id)
     {
-        if (processingTournamentId.HasValue)
-            return;
+        var result = await TournamentService.GetByIdAsync(id);
 
-        processingTournamentId = id;
-
-        try
-        {
-            var result =
-                await TournamentService.GetByIdAsync(id);
-
-            if (!result.Succeeded ||
-                result.Value is null)
-            {
-                Toast.Warning(
-                    result.Error
-                    ?? "Unable to load tournament.");
-
-                return;
-            }
-
-            var tournament = result.Value;
-
-            editingTournamentId = tournament.Id;
-
-
-            model = new TournamentFormModel
-            {
-                Name = tournament.Name,
-
-                Description = tournament.Description,
-
-                GameId = tournament.GameId,
-
-                Format = tournament.Format,
-
-                StartDate = tournament.StartDate,
-
-                EndDate = tournament.EndDate,
-
-                RegistrationOpenDate = tournament.RegistrationOpenDate,
-
-                RegistrationDeadline = tournament.RegistrationDeadline,
-
-                MaxPlayers = tournament.MaxPlayers,
-
-                EntryFee = tournament.EntryFee,
-
-                Legs = tournament.Legs,
-
-                PointsForWin = tournament.PointsForWin,
-
-                PointsForDraw = tournament.PointsForDraw,
-
-                PointsForLoss = tournament.PointsForLoss,
-
-                ImageUrl = tournament.ImageUrl,
-
-                Status = tournament.Status
-            };
-
-
-            showModal = true;
-        }
-        catch (Exception)
+        if (!result.Succeeded || result.Value is null)
         {
             Toast.Error(
-                "Something went wrong while loading the tournament.");
+            result.Error ?? "Unable to load tournament.");
+
+            return;
         }
-        finally
+
+        var tournament = result.Value;
+
+        model = new TournamentFormModel
         {
-            processingTournamentId = null;
-        }
+            Name = tournament.Name,
+            Description = tournament.Description,
+            GameId = tournament.GameId,
+            Format = tournament.Format,
+            StartDate = tournament.StartDate,
+            EndDate = tournament.EndDate,
+            RegistrationOpenDate = tournament.RegistrationOpenDate,
+            RegistrationDeadline = tournament.RegistrationDeadline,
+            MaxPlayers = tournament.MaxPlayers,
+            EntryFee = tournament.EntryFee,
+            Legs = tournament.Legs,
+            PointsForWin = tournament.PointsForWin,
+            PointsForDraw = tournament.PointsForDraw,
+            PointsForLoss = tournament.PointsForLoss,
+            ImageUrl = tournament.ImageUrl,
+            Status = tournament.Status
+        };
+
+        editContext = new EditContext(model);
+
+        editingTournamentId = tournament.Id;
+        isEditing = true;
+        showModal = true;
     }
 
 
@@ -716,26 +665,14 @@
 
     private async Task SaveTournamentAsync()
     {
-        if (isSubmitting)
+        if (isSaving)
             return;
 
-
-        if (!ValidateDates())
-            return;
-
-
-        if (!model.GameId.HasValue ||
-            !model.Format.HasValue)
-        {
-            return;
-        }
-
-
-        isSubmitting = true;
+        isSaving = true;
 
         try
         {
-            if (IsEditing)
+            if (isEditing)
             {
                 await UpdateTournamentAsync();
             }
@@ -746,10 +683,9 @@
         }
         finally
         {
-            isSubmitting = false;
+            isSaving = false;
         }
     }
-
 
     // =======================================================
     // CREATE SERVICE CALL
@@ -831,8 +767,7 @@
 
         try
         {
-            var request =
-                new UpdateTournamentRequest
+            var request = new UpdateTournamentRequest
                 {
                     Id = editingTournamentId.Value,
 
@@ -904,8 +839,7 @@
     // DELETE
     // =======================================================
 
-    private void RequestDelete(
-        TournamentDto tournament)
+    private void RequestDelete(TournamentDto tournament)
     {
         if (processingTournamentId.HasValue ||
             isDeleting)
@@ -1031,46 +965,46 @@
     // VALIDATION
     // =======================================================
 
-    private bool ValidateDates()
-    {
-        // Registration deadline cannot be before registration opens
-        if (model.RegistrationOpenDate.HasValue &&
-            model.RegistrationDeadline.HasValue &&
-            model.RegistrationDeadline.Value.Date <
-            model.RegistrationOpenDate.Value.Date)
-        {
-            Toast.Warning(
-                "Registration closing date cannot be before the opening date.");
+    // private bool ValidateDates()
+    // {
+    //     // Registration deadline cannot be before registration opens
+    //     if (model.RegistrationOpenDate.HasValue &&
+    //         model.RegistrationDeadline.HasValue &&
+    //         model.RegistrationDeadline.Value.Date <
+    //         model.RegistrationOpenDate.Value.Date)
+    //     {
+    //         Toast.Warning(
+    //             "Registration closing date cannot be before the opening date.");
 
-            return false;
-        }
-
-
-        // Registration cannot close after the tournament starts
-        if (model.RegistrationDeadline.HasValue &&
-            model.RegistrationDeadline.Value.Date >
-            model.StartDate.Date)
-        {
-            Toast.Warning(
-                "Registration must close on or before the tournament begins.");
-
-            return false;
-        }
+    //         return false;
+    //     }
 
 
-        // Tournament cannot end before it starts
-        if (model.EndDate.Date <
-            model.StartDate.Date)
-        {
-            Toast.Warning(
-                "Tournament end date cannot be before the start date.");
+    //     // Registration cannot close after the tournament starts
+    //     if (model.RegistrationDeadline.HasValue &&
+    //         model.RegistrationDeadline.Value.Date >
+    //         model.StartDate.Date)
+    //     {
+    //         Toast.Warning(
+    //             "Registration must close on or before the tournament begins.");
 
-            return false;
-        }
+    //         return false;
+    //     }
 
 
-        return true;
-    }
+    //     // Tournament cannot end before it starts
+    //     if (model.EndDate.Date <
+    //         model.StartDate.Date)
+    //     {
+    //         Toast.Warning(
+    //             "Tournament end date cannot be before the start date.");
+
+    //         return false;
+    //     }
+
+
+    //     return true;
+    // }
 
     // =======================================================
     // MODAL
@@ -1078,13 +1012,13 @@
 
     private void CloseModal()
     {
-        if (isSubmitting)
-            return;
-
-
         showModal = false;
 
         editingTournamentId = null;
+
+        isEditing = false;
+
+        editContext = null;
 
         model = new TournamentFormModel();
     }
