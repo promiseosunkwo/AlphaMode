@@ -1,0 +1,1316 @@
+﻿@page "/admin/prize-pools"
+@rendermode InteractiveServer
+
+@using AlphaMode.Components.Sections.AdminSectionComponents.Models
+@using Microsoft.AspNetCore.Components.Forms
+
+@using AlphaMode.Application.PrizePools.DTOs
+@using AlphaMode.Application.PrizePools.Interfaces
+@using AlphaMode.Application.PrizePools.Models
+@using AlphaMode.Application.PrizePools.Requests
+
+@using AlphaMode.Application.Tournaments.DTOs
+@using AlphaMode.Application.Tournaments.Interfaces
+
+@using AlphaMode.Components.Layout
+@using AlphaMode.Components.Sections.AdminSectionComponents
+@using AlphaMode.Components.Shared.ConfirmDialog
+@using AlphaMode.Components.Shared.Toast
+
+@using AlphaMode.Services
+
+@inject IPrizePoolService PrizePoolService
+@inject ITournamentService TournamentService
+@inject ToastService Toast
+
+@layout AdminLayout
+
+
+<PageTitle>Prize Pools · AlphaMode Admin</PageTitle>
+
+<ToastContainer />
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<AdminPageHeader Title="Prize pools"
+                 Description="Configure tournament prize pools and control how prize money is distributed across finishing positions.">
+
+    <Actions>
+
+        <button type="button"
+                class="adm-button primary"
+                @onclick="OpenCreateModal">
+
+            ＋ Add prize pool
+
+        </button>
+
+    </Actions>
+
+</AdminPageHeader>
+
+
+@* =========================================================
+   MAIN PANEL
+   ========================================================= *@
+
+<section class="adm-panel">
+
+
+    @* =====================================================
+       TOOLBAR
+       ===================================================== *@
+
+    <div class="adm-toolbar">
+
+        <label class="adm-search">
+
+            <span>⌕</span>
+
+            <input placeholder="Search prize pools…" @bind="query" @bind:event="oninput" />
+
+        </label>
+
+
+        <span class="adm-result-count">
+
+            @FilteredPrizePools.Count()
+            @(FilteredPrizePools.Count() == 1
+                        ? "prize pool"
+                        : "prize pools")
+
+        </span>
+
+    </div>
+
+
+    @* =====================================================
+       LOADING
+       ===================================================== *@
+
+    @if (isLoading)
+    {
+        <div class="adm-empty-state">
+
+            Loading prize pools...
+
+        </div>
+    }
+
+
+    @* =====================================================
+       EMPTY STATE
+       ===================================================== *@
+
+    else if (!FilteredPrizePools.Any())
+    {
+        <div class="adm-empty-state">
+
+            @if (string.IsNullOrWhiteSpace(query))
+            {
+                <p>
+                    No prize pools have been configured yet.
+                </p>
+            }
+            else
+            {
+                <p>
+                    No prize pools match your search.
+                </p>
+            }
+
+        </div>
+    }
+
+
+    @* =====================================================
+       PRIZE POOL CARDS
+       ===================================================== *@
+
+    else
+    {
+        <div class="adm-card-grid">
+
+            @foreach (var prizePool in FilteredPrizePools)
+            {
+                <article class="adm-game-card"
+                         @key="prizePool.Id">
+
+
+                    @* -------------------------------------
+                       CARD ICON
+                       ------------------------------------- *@
+
+                    <div class="adm-game-art">
+                        <span>🏆</span>
+                    </div>
+
+
+                    @* -------------------------------------
+                       CARD INFORMATION
+                       ------------------------------------- *@
+
+            <div>
+
+                <span class="adm-status active">@prizePool.Currency</span>
+
+
+                <h3>
+                    @prizePool.TournamentName
+                </h3>
+
+                <p>
+                    Prize pool:
+                    <strong>
+                        @FormatMoney(prizePool.TotalPrize, prizePool.Currency)
+                    </strong>
+                </p>
+
+
+                <small>
+                    @prizePool.Distributions.Count
+                    @(prizePool.Distributions.Count == 1 ? "prize position" : "prize positions")
+                </small>
+
+                        <div class="prize-pool-summary">
+
+                <small>
+                    Allocated:
+                    @FormatMoney(prizePool.DistributedAmount, prizePool.Currency)
+                </small>
+
+
+                <small>
+                    Remaining:
+                    @FormatMoney(prizePool.RemainingAmount, prizePool.Currency)
+                </small>
+
+                </div>
+            </div>
+
+
+            @* -------------------------------------
+                       ACTIONS
+                       ------------------------------------- *@
+
+            <div class="adm-card-actions">
+
+                <button type="button" @onclick="() => OpenEditModal(prizePool.Id)">
+                    Edit
+                </button>
+
+
+                <button type="button" class="danger" @onclick="() => RequestDelete(prizePool)">
+                    Delete
+                </button>
+
+            </div>
+
+        </article>
+                }
+
+        </div>
+    }
+
+</section>
+
+
+@* =========================================================
+   CREATE / EDIT MODAL
+   ========================================================= *@
+
+<AdminModal IsOpen="@showModal"
+            Eyebrow="Prize management"
+            Title="@ModalTitle"
+            EditContext="@editContext"
+            OnValidSubmit="SavePrizePoolAsync"
+            OnClose="CloseModal">
+
+    <ChildContent>
+
+
+        @* =================================================
+           MAIN FORM
+           ================================================= *@
+
+        <div class="adm-form-grid">
+
+
+            @* ---------------------------------------------
+               TOURNAMENT
+               --------------------------------------------- *@
+
+            <label class="span-2">Tournament
+
+                <InputSelect @bind-Value="model.TournamentId" disabled="@isEditing">
+
+                    <option value="">
+                        Select tournament
+                    </option>
+
+                    @foreach (var tournament in AvailableTournaments)
+                    {
+                        <option value="@tournament.Id">@tournament.Name </option>
+                    }
+
+                </InputSelect>
+                <ValidationMessage For="@(() => model.TournamentId)" />
+
+            </label>
+
+
+            @* ---------------------------------------------
+               TOTAL PRIZE
+               --------------------------------------------- *@
+
+            <label>Total prize
+
+                <InputNumber @bind-Value="model.TotalPrize" min="0" step="0.01" />
+
+                <ValidationMessage For="@(() => model.TotalPrize)" />
+
+            </label>
+
+
+            @* ---------------------------------------------
+               CURRENCY
+               --------------------------------------------- *@
+
+            <label>Currency
+
+                <InputSelect @bind-Value="model.Currency">
+
+                    <option value="NGN"> NGN — Nigerian Naira </option>
+
+                    <option value="GBP"> GBP — British Pound </option>
+
+                    <option value="USD"> USD — US Dollar </option>
+
+                    <option value="EUR"> EUR — Euro </option>
+
+                </InputSelect>
+                <ValidationMessage For="@(() => model.Currency)" />
+
+            </label>
+        </div>
+
+
+        @* =================================================
+           DISTRIBUTION SECTION
+           ================================================= *@
+
+        <div class="prize-distribution-section">
+
+            <div class="prize-distribution-header">
+
+                <div>
+
+                    <p class="adm-eyebrow">Prize distribution</p>
+
+                    <h5>Finishing positions</h5>
+
+                    <small>
+                        Configure how the prize pool will be
+                        distributed among winning positions.
+                    </small>
+
+                </div>
+
+                <button type="button" class="adm-button secondary" @onclick="AddDistribution">＋ Add position </button>
+
+            </div>
+
+
+            @if (model.Distributions.Count == 0)
+            {
+                <div class="adm-empty-state">
+
+                    <p>
+                        No prize positions have been added.
+                    </p>
+
+                    <button type="button"
+                            class="adm-button secondary"
+                            @onclick="AddDistribution">
+
+                        Add first position
+
+                    </button>
+
+                </div>
+            }
+            else
+            {
+                <div class="prize-distribution-list">
+
+                    @for (var index = 0; index < model.Distributions.Count; index++)
+                    {
+                        var rowIndex = index;
+                        var distribution = model.Distributions[rowIndex];
+
+                        <div class="prize-distribution-row" @key="distribution">
+
+
+                            @* -----------------------------
+                               POSITION
+                               ----------------------------- *@
+
+                            <div class="prize-position">
+
+                                <span class="prize-position-number">@(rowIndex + 1)</span>
+
+                            <div>
+
+                            <strong>@GetPositionLabel(rowIndex + 1)</strong>
+
+                            <small>Place</small>
+
+                        </div>
+
+                    </div>
+
+
+                    @* -----------------------------
+                               AMOUNT
+                               ----------------------------- *@
+
+                    <label class="prize-amount">Amount
+
+                        <InputNumber @bind-Value="distribution.Amount" min="0" step="0.01" />
+
+                        <ValidationMessage For="@(() => distribution.Amount)" />
+
+                    </label>
+
+
+                    @* -----------------------------
+                               REMOVE
+                               ----------------------------- *@
+
+                    <button type="button"
+                            class="adm-button danger"
+                            title="Remove position"
+                            @onclick="() => RemoveDistribution(rowIndex)">
+
+                        Remove
+
+                    </button>
+
+                </div>
+                    }
+
+            </div>
+            }
+
+
+            @* =================================================
+               ALLOCATION SUMMARY
+               ================================================= *@
+
+            <div class="prize-allocation-summary"><div>
+
+               <small>Total prize</small>
+
+                <strong>@FormatMoney(model.TotalPrize, model.Currency)</strong>
+
+            </div>
+
+                <div>
+                    <small>Allocated</small>
+
+                    <strong>@FormatMoney(AllocatedAmount, model.Currency)</strong>
+
+                </div>
+
+                <div>
+
+                    <small>
+                        Remaining
+                    </small>
+
+                    <strong class="@(RemainingAmount < 0
+                        ? "amount-negative" : "")">
+
+                        @FormatMoney(
+                            RemainingAmount,
+                            model.Currency)
+                    </strong>
+                </div>
+            </div>
+
+
+            @if (RemainingAmount < 0)
+                        {
+            <div class="prize-validation-warning">
+
+                Prize distributions exceed the total prize
+                pool by
+
+                <strong>@FormatMoney(Math.Abs(RemainingAmount), model.Currency)</strong>.
+
+            </div>
+            }
+
+        </div>
+
+    </ChildContent>
+
+
+    @* =====================================================
+       MODAL FOOTER
+       ===================================================== *@
+
+    <Footer>
+
+        <button type="button"
+                class="adm-button secondary"
+                disabled="@isSaving"
+                @onclick="CloseModal">
+
+            Cancel
+        </button>
+
+
+        <button type="submit"
+                class="adm-button primary"
+                disabled="@isSaving">
+
+            @if (isSaving)
+            {
+                <span>
+                    Saving...
+                </span>
+            }
+            else
+            {
+                <span>
+
+                    @(isEditing
+                                    ? "Save changes"
+                                    : "Create prize pool")
+
+            </span>
+                        }
+
+        </button>
+
+    </Footer>
+
+</AdminModal>
+
+
+@* =========================================================
+   DELETE CONFIRMATION
+   ========================================================= *@
+
+<ConfirmDialog IsOpen="@showDeleteConfirmation"
+               Title="Delete prize pool?"
+               Message="@deleteConfirmationMessage"
+               ConfirmText="Delete prize pool"
+               ProcessingText="Deleting..."
+               IsProcessing="@isDeleting"
+               OnConfirm="ConfirmDeletePrizePoolAsync"
+               OnCancel="CancelDelete" />
+
+
+@code {
+
+    // =====================================================
+    // DATA
+    // =====================================================
+
+    private IReadOnlyList<PrizePoolDto> prizePools = [];
+
+    private IReadOnlyList<TournamentDto> tournaments = [];
+
+
+    // =====================================================
+    // FORM
+    // =====================================================
+
+    private PrizePoolFormModel model = new();
+
+    private EditContext? editContext;
+
+    private Guid? editingPrizePoolId;
+
+    private bool isEditing;
+
+    private bool isSaving;
+
+
+    private string ModalTitle =>
+        isEditing
+            ? "Edit prize pool"
+            : "Create prize pool";
+
+
+    // =====================================================
+    // PAGE STATE
+    // =====================================================
+
+    private bool isLoading;
+
+    private bool showModal;
+
+    private string query = string.Empty;
+
+
+    // =====================================================
+    // DELETE STATE
+    // =====================================================
+
+    private PrizePoolDto? prizePoolToDelete;
+
+    private bool showDeleteConfirmation;
+
+    private bool isDeleting;
+
+
+    private string deleteConfirmationMessage =>
+        prizePoolToDelete is null
+            ? "This action cannot be undone."
+            : $"You're about to permanently delete the prize pool for {prizePoolToDelete.TournamentName}. This action cannot be undone.";
+
+
+    // =====================================================
+    // FILTERING
+    // =====================================================
+
+    private IEnumerable<PrizePoolDto> FilteredPrizePools =>
+        prizePools.Where(prizePool =>
+            string.IsNullOrWhiteSpace(query)
+            ||
+            prizePool.TournamentName.Contains(
+                query,
+                StringComparison.OrdinalIgnoreCase)
+            ||
+            prizePool.Currency.Contains(
+                query,
+                StringComparison.OrdinalIgnoreCase));
+
+
+    // =====================================================
+    // AVAILABLE TOURNAMENTS
+    // =====================================================
+
+    private IEnumerable<TournamentDto> AvailableTournaments
+    {
+        get
+        {
+            if (isEditing)
+            {
+                return tournaments;
+            }
+
+
+            var tournamentIdsWithPrizePools =
+                prizePools
+                    .Select(x => x.TournamentId)
+                    .ToHashSet();
+
+
+            return tournaments
+                .Where(tournament =>
+                    !tournamentIdsWithPrizePools.Contains(
+                        tournament.Id));
+        }
+    }
+
+
+    // =====================================================
+    // CALCULATED VALUES
+    // =====================================================
+
+    private decimal AllocatedAmount =>
+        model.Distributions.Sum(
+            x => x.Amount);
+
+
+    private decimal RemainingAmount =>
+        model.TotalPrize - AllocatedAmount;
+
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPageAsync();
+    }
+
+
+    // =====================================================
+    // LOAD PAGE
+    // =====================================================
+
+    private async Task LoadPageAsync()
+    {
+        isLoading = true;
+
+
+        try
+        {
+            // ---------------------------------------------
+            // Prize pools
+            // ---------------------------------------------
+
+            var prizePoolResult =
+                await PrizePoolService.GetAllAsync();
+
+
+            if (!prizePoolResult.Succeeded)
+            {
+                prizePools = [];
+
+                Toast.Error(
+                    prizePoolResult.Error
+                    ?? "Unable to load prize pools.");
+            }
+            else
+            {
+                prizePools =
+                    prizePoolResult.Value ?? [];
+            }
+
+
+            // ---------------------------------------------
+            // Tournaments
+            // ---------------------------------------------
+
+            var tournamentResult =
+                await TournamentService.GetAllAsync();
+
+
+            if (!tournamentResult.Succeeded)
+            {
+                tournaments = [];
+
+                Toast.Error(
+                    tournamentResult.Error
+                    ?? "Unable to load tournaments.");
+            }
+            else
+            {
+                tournaments =
+                    tournamentResult.Value ?? [];
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Error loading prize pool page: {ex}");
+
+
+            prizePools = [];
+
+            tournaments = [];
+
+
+            Toast.Error(
+                "Something went wrong while loading prize pools.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    // =====================================================
+    // OPEN CREATE
+    // =====================================================
+
+    private void OpenCreateModal()
+    {
+        model = new PrizePoolFormModel
+        {
+            Currency = "NGN",
+
+            Distributions =
+            [
+                new PrizeDistributionFormModel
+                {
+                    Position = 1
+                },
+
+                new PrizeDistributionFormModel
+                {
+                    Position = 2
+                },
+
+                new PrizeDistributionFormModel
+                {
+                    Position = 3
+                }
+            ]
+        };
+
+
+        editContext =
+            new EditContext(model);
+
+
+        editingPrizePoolId = null;
+
+        isEditing = false;
+
+        showModal = true;
+    }
+
+
+    // =====================================================
+    // OPEN EDIT
+    // =====================================================
+
+    private async Task OpenEditModal(Guid id)
+    {
+        if (isSaving)
+            return;
+
+
+        try
+        {
+            var result =
+                await PrizePoolService.GetByIdAsync(id);
+
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to load prize pool.");
+
+                return;
+            }
+
+
+            var prizePool =
+                result.Value;
+
+
+            model = new PrizePoolFormModel
+            {
+                TournamentId =
+                    prizePool.TournamentId,
+
+                TotalPrize =
+                    prizePool.TotalPrize,
+
+                Currency =
+                    prizePool.Currency,
+
+                Distributions =
+                    prizePool.Distributions
+                        .OrderBy(x => x.Position)
+                        .Select(x =>
+                            new PrizeDistributionFormModel
+                            {
+                                Id = x.Id,
+
+                                Position =
+                                    x.Position,
+
+                                Amount =
+                                    x.Amount
+                            })
+                        .ToList()
+            };
+
+
+            NormalizePositions();
+
+
+            editContext =
+                new EditContext(model);
+
+
+            editingPrizePoolId =
+                prizePool.Id;
+
+
+            isEditing =
+                true;
+
+
+            showModal =
+                true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Error loading prize pool: {ex}");
+
+
+            Toast.Error(
+                "Something went wrong while loading the prize pool.");
+        }
+    }
+
+
+    // =====================================================
+    // SAVE
+    // =====================================================
+
+    private async Task SavePrizePoolAsync()
+    {
+        if (isSaving)
+            return;
+
+
+        if (model.Distributions.Count == 0)
+        {
+            Toast.Warning(
+                "Add at least one prize position.");
+
+            return;
+        }
+
+
+        NormalizePositions();
+
+
+        if (AllocatedAmount > model.TotalPrize)
+        {
+            Toast.Warning(
+                "Prize distributions cannot exceed the total prize pool.");
+
+            return;
+        }
+
+
+        isSaving = true;
+
+
+        try
+        {
+            if (isEditing)
+            {
+                await UpdatePrizePoolAsync();
+            }
+            else
+            {
+                await CreatePrizePoolAsync();
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+
+    // =====================================================
+    // CREATE
+    // =====================================================
+
+    private async Task CreatePrizePoolAsync()
+    {
+        if (!model.TournamentId.HasValue)
+        {
+            Toast.Warning(
+                "Please select a tournament.");
+
+            return;
+        }
+
+
+        try
+        {
+            var request =
+                new CreatePrizePoolRequest
+                {
+                    TournamentId =
+                        model.TournamentId.Value,
+
+                    TotalPrize =
+                        model.TotalPrize,
+
+                    Currency =
+                        model.Currency,
+
+                    Distributions =
+                        model.Distributions
+                            .Select(x =>
+                                new PrizeDistributionRequest
+                                {
+                                    Position =
+                                        x.Position,
+
+                                    Amount =
+                                        x.Amount
+                                })
+                            .ToList()
+                };
+
+
+            var result =
+                await PrizePoolService.CreateAsync(
+                    request);
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to create prize pool.");
+
+                return;
+            }
+
+
+            Toast.Success(
+                result.Message
+                ?? "Prize pool created successfully.");
+
+
+            CloseModal();
+
+
+            await LoadPageAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Error creating prize pool: {ex}");
+
+
+            Toast.Error(
+                "Something went wrong while creating the prize pool.");
+        }
+    }
+
+
+    // =====================================================
+    // UPDATE
+    // =====================================================
+
+    private async Task UpdatePrizePoolAsync()
+    {
+        if (!editingPrizePoolId.HasValue)
+        {
+            Toast.Warning(
+                "Unable to determine which prize pool is being edited.");
+
+            return;
+        }
+
+
+        try
+        {
+            var request =
+                new UpdatePrizePoolRequest
+                {
+                    Id =
+                        editingPrizePoolId.Value,
+
+                    TotalPrize =
+                        model.TotalPrize,
+
+                    Currency =
+                        model.Currency,
+
+                    Distributions =
+                        model.Distributions
+                            .Select(x =>
+                                new PrizeDistributionRequest
+                                {
+                                    Id =
+                                        x.Id,
+
+                                    Position =
+                                        x.Position,
+
+                                    Amount =
+                                        x.Amount
+                                })
+                            .ToList()
+                };
+
+
+            var result =
+                await PrizePoolService.UpdateAsync(
+                    request);
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to update prize pool.");
+
+                return;
+            }
+
+
+            Toast.Success(
+                result.Message
+                ?? "Prize pool updated successfully.");
+
+
+            CloseModal();
+
+
+            await LoadPageAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Error updating prize pool: {ex}");
+
+
+            Toast.Error(
+                "Something went wrong while updating the prize pool.");
+        }
+    }
+
+
+    // =====================================================
+    // ADD DISTRIBUTION
+    // =====================================================
+
+    private void AddDistribution()
+    {
+        model.Distributions.Add(
+            new PrizeDistributionFormModel
+            {
+                Position =
+                    model.Distributions.Count + 1
+            });
+
+
+        NotifyDistributionCollectionChanged();
+    }
+
+
+    // =====================================================
+    // REMOVE DISTRIBUTION
+    // =====================================================
+
+    private void RemoveDistribution(
+        int index)
+    {
+        if (index < 0 ||
+            index >= model.Distributions.Count)
+        {
+            return;
+        }
+
+
+        model.Distributions.RemoveAt(
+            index);
+
+
+        NormalizePositions();
+
+
+        NotifyDistributionCollectionChanged();
+    }
+
+
+    // =====================================================
+    // NORMALIZE POSITIONS
+    // =====================================================
+
+    private void NormalizePositions()
+    {
+        for (var index = 0;
+             index < model.Distributions.Count;
+             index++)
+        {
+            model.Distributions[index].Position =
+                index + 1;
+        }
+    }
+
+
+    // =====================================================
+    // EDIT CONTEXT NOTIFICATION
+    // =====================================================
+
+    private void NotifyDistributionCollectionChanged()
+    {
+        editContext?.NotifyFieldChanged(
+            new FieldIdentifier(
+                model,
+                nameof(model.Distributions)));
+    }
+
+
+    // =====================================================
+    // REQUEST DELETE
+    // =====================================================
+
+    private void RequestDelete(
+        PrizePoolDto prizePool)
+    {
+        if (isDeleting)
+            return;
+
+
+        prizePoolToDelete =
+            prizePool;
+
+
+        showDeleteConfirmation =
+            true;
+    }
+
+
+    // =====================================================
+    // CONFIRM DELETE
+    // =====================================================
+
+    private async Task ConfirmDeletePrizePoolAsync()
+    {
+        if (prizePoolToDelete is null ||
+            isDeleting)
+        {
+            return;
+        }
+
+
+        isDeleting =
+            true;
+
+
+        try
+        {
+            var result =
+                await PrizePoolService.DeleteAsync(
+                    prizePoolToDelete.Id);
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to delete prize pool.");
+
+                return;
+            }
+
+
+            showDeleteConfirmation =
+                false;
+
+
+            Toast.Success(
+                result.Message
+                ?? "Prize pool deleted successfully.");
+
+
+            prizePoolToDelete =
+                null;
+
+
+            await LoadPageAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Error deleting prize pool: {ex}");
+
+
+            Toast.Error(
+                "Something went wrong while deleting the prize pool.");
+        }
+        finally
+        {
+            isDeleting =
+                false;
+        }
+    }
+
+
+    // =====================================================
+    // CANCEL DELETE
+    // =====================================================
+
+    private void CancelDelete()
+    {
+        if (isDeleting)
+            return;
+
+
+        showDeleteConfirmation =
+            false;
+
+
+        prizePoolToDelete =
+            null;
+    }
+
+
+    // =====================================================
+    // CLOSE MODAL
+    // =====================================================
+
+    private void CloseModal()
+    {
+        showModal =
+            false;
+
+
+        editingPrizePoolId =
+            null;
+
+
+        isEditing =
+            false;
+
+
+        editContext =
+            null;
+
+
+        model =
+            new PrizePoolFormModel();
+    }
+
+
+    // =====================================================
+    // POSITION LABEL
+    // =====================================================
+
+    private static string GetPositionLabel(
+        int position)
+    {
+        return position switch
+        {
+            1 => "1st",
+            2 => "2nd",
+            3 => "3rd",
+            _ => $"{position}th"
+        };
+    }
+
+
+    // =====================================================
+    // MONEY FORMAT
+    // =====================================================
+
+    private static string FormatMoney(
+        decimal amount,
+        string? currency)
+    {
+        var symbol =
+            currency?.ToUpperInvariant() switch
+            {
+                "NGN" => "₦",
+                "GBP" => "£",
+                "USD" => "$",
+                "EUR" => "€",
+                _ => $"{currency} "
+            };
+
+
+        return $"{symbol}{amount:N2}";
+    }
+
+}

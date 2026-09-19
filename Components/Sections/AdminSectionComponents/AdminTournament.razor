@@ -569,13 +569,13 @@
                 activeGames = gameResult.Value ?? [];
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             tournaments = [];
             activeGames = [];
 
-            Console.WriteLine(
-                $"Error loading tournament page: {ex}");
+            // Console.WriteLine(
+            //     $"Error loading tournament page: {ex}");
 
             Toast.Error(
                 "Something went wrong while loading tournament data.");

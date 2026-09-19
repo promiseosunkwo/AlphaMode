@@ -24,14 +24,11 @@
 
             @if (EditContext is not null)
             {
-                <EditForm EditContext="EditContext"
-                          OnValidSubmit="HandleValidSubmitAsync">
+                <EditForm EditContext="EditContext" OnValidSubmit="HandleValidSubmitAsync" Enhance="false">
 
                     <DataAnnotationsValidator />
 
-                    <div class="adm-modal-body">
-                        @ChildContent
-                    </div>
+                    <div class="adm-modal-body"> @ChildContent </div>
 
                     @if (Footer is not null)
                     {
@@ -85,9 +82,7 @@
     [Parameter]
     public EventCallback OnClose { get; set; }
 
-    private Task CloseAsync()
-        => OnClose.InvokeAsync();
+    private Task CloseAsync()  => OnClose.InvokeAsync();
 
-    private Task HandleValidSubmitAsync()
-        => OnValidSubmit.InvokeAsync();
+    private Task HandleValidSubmitAsync() => OnValidSubmit.InvokeAsync();
 }
