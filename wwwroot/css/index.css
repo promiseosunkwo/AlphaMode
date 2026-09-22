@@ -209,7 +209,7 @@ body {
 
 .btn-outline:hover {
     background: rgba(255, 255, 255, 0.12);
-    border-color: var(--primary-soft);
+    border-color: var(--primary-soft); /*///come back here*/
 }
 
 .btn-large {

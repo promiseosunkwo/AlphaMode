@@ -1,0 +1,263 @@
+﻿/* =========================================================
+   REGISTRATIONS
+   ========================================================= */
+
+.registration-table td {
+    vertical-align: middle;
+}
+
+.registration-avatar {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    background: rgba(255,255,255,.055);
+    border: 1px solid rgba(255,255,255,.075);
+}
+
+    .registration-avatar.large {
+        width: 56px;
+        height: 56px;
+        min-width: 56px;
+    }
+
+    .registration-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+.registration-tournament,
+.registration-date {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+    .registration-tournament strong,
+    .registration-date strong {
+        font-size: .88rem;
+    }
+
+    .registration-tournament small,
+    .registration-date small {
+        font-size: .72rem;
+        opacity: .5;
+    }
+
+.registration-free {
+    font-size: .75rem;
+    font-weight: 700;
+    opacity: .7;
+}
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.registration-table .adm-status,
+.registration-details .adm-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+.registration-status-dot {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.adm-status.pending {
+    color: #fbbf24;
+    background: rgba(245,158,11,.08);
+    border-color: rgba(245,158,11,.15);
+}
+
+.adm-status.checked-in {
+    color: #60a5fa;
+    background: rgba(59,130,246,.08);
+    border-color: rgba(59,130,246,.15);
+}
+
+.adm-status.withdrawn {
+    color: #a1a1aa;
+    background: rgba(161,161,170,.07);
+    border-color: rgba(161,161,170,.12);
+}
+
+.adm-status.disqualified {
+    color: #f87171;
+    background: rgba(239,68,68,.08);
+    border-color: rgba(239,68,68,.15);
+}
+
+.adm-status.cancelled {
+    color: #a1a1aa;
+    background: rgba(161,161,170,.07);
+    border-color: rgba(161,161,170,.12);
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.registration-actions {
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.registration-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 16px 18px;
+    border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.registration-pagination-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+/* =========================================================
+   DETAILS
+   ========================================================= */
+
+.registration-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+}
+
+.registration-details-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.registration-detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+}
+
+.registration-section-title {
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .45;
+}
+
+.registration-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+    .registration-detail-grid > div {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.03);
+        border: 1px solid rgba(255,255,255,.055);
+    }
+
+    .registration-detail-grid span {
+        font-size: .7rem;
+        opacity: .5;
+    }
+
+    .registration-detail-grid strong {
+        font-size: .85rem;
+    }
+
+
+/* =========================================================
+   DISQUALIFICATION
+   ========================================================= */
+
+.registration-warning {
+    margin-bottom: 1rem;
+    padding: 14px;
+    border-radius: 10px;
+    background: rgba(239,68,68,.06);
+    border: 1px solid rgba(239,68,68,.12);
+}
+
+    .registration-warning strong {
+        color: #f87171;
+    }
+
+    .registration-warning p {
+        margin: 5px 0 0;
+        font-size: .82rem;
+        line-height: 1.5;
+        opacity: .7;
+    }
+
+.registration-disqualification {
+    padding: 14px;
+    border-radius: 10px;
+    background: rgba(239,68,68,.06);
+    border: 1px solid rgba(239,68,68,.12);
+}
+
+    .registration-disqualification strong {
+        color: #f87171;
+    }
+
+    .registration-disqualification p {
+        margin: 7px 0 0;
+        line-height: 1.55;
+        opacity: .75;
+    }
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 850px) {
+
+    .registration-pagination {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .registration-pagination-actions {
+        flex-wrap: wrap;
+    }
+
+    .registration-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .registration-details-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

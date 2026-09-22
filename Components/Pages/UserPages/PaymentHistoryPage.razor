@@ -1,0 +1,219 @@
+﻿@page "/dashboard/payments"
+@layout AlphaMode.Components.Layout.UserLayout
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+@using AlphaMode.Application.Payments.DTOs
+@using AlphaMode.Application.Payments.Interfaces
+@using AlphaMode.Domain.Enums
+@using AlphaMode.Components.Sections.UserSectionComponents
+@using AlphaMode.Services
+
+@inject IPaymentService PaymentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ToastService Toast
+
+<PageTitle>Payments | AlphaMode</PageTitle>
+
+<PortalPageHeader Eyebrow="Billing"
+                  Title="Payments"
+                  Description="View your tournament entry payments and transaction history." />
+
+
+@if (isLoading)
+{
+    <div class="portal-empty-state">
+        Loading payments...
+    </div>
+}
+else if (!payments.Any())
+{
+    <div class="portal-empty-state">
+
+        <h3>No payments yet</h3>
+
+        <p>
+            Your tournament entry payments will appear here.
+        </p>
+
+    </div>
+}
+else
+{
+    <div class="portal-table-wrap">
+
+        <table class="portal-table">
+
+            <thead>
+                <tr>
+                    <th>Tournament</th>
+                    <th>Reference</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var payment in payments)
+                {
+                    <tr>
+
+                        <td>
+                            <strong>
+                                @payment.TournamentName
+                            </strong>
+
+                            <small>
+                                @payment.GameName
+                            </small>
+                        </td>
+
+                        <td>
+                            @payment.TransactionReference
+                        </td>
+
+                        <td>
+                            @FormatMoney(
+                            payment.Amount,
+                                        payment.Currency)
+                </td>
+
+                <td>
+                    @payment.CreatedDate
+                    .ToLocalTime()
+                    .ToString("dd MMM yyyy")
+                </td>
+
+                <td>
+                    <span class="@GetStatusClass(payment.Status)">
+                        @payment.Status
+                    </span>
+                </td>
+
+                <td>
+
+                    @if (payment.Status ==
+                                        PaymentStatus.Pending &&
+                                        payment.TournamentRegistrationId.HasValue)
+                            {
+                                <button type="button"
+                                        class="portal-button primary"
+                                        @onclick="() => ContinuePayment(payment)">
+                                    Continue
+                                </button>
+                            }
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+}
+
+
+@code {
+
+    private List<PlayerPaymentDto> payments = new();
+
+    private bool isLoading = true;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var state =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var userId =
+                state.User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+                return;
+
+            var result =
+                await PaymentService
+                    .GetPlayerPaymentsAsync(userId);
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                Toast.Error(
+                    result.Error ??
+                    "Unable to load payments.");
+
+                return;
+            }
+
+            payments =
+                result.Value.ToList();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private void ContinuePayment(
+        PlayerPaymentDto payment)
+    {
+        if (!payment.TournamentRegistrationId.HasValue)
+            return;
+
+        Navigation.NavigateTo(
+            $"/dashboard/checkout/{payment.TournamentRegistrationId}");
+    }
+
+
+    private static string GetStatusClass(
+        PaymentStatus status)
+    {
+        return status switch
+        {
+            PaymentStatus.Completed =>
+                "portal-status open",
+
+            PaymentStatus.Pending =>
+                "portal-status pending",
+
+            PaymentStatus.Failed =>
+                "portal-status danger",
+
+            PaymentStatus.Refunded =>
+                "portal-status",
+
+            PaymentStatus.Cancelled =>
+                "portal-status",
+
+            _ =>
+                "portal-status"
+        };
+    }
+
+
+    private static string FormatMoney(
+        decimal amount,
+        string currency)
+    {
+        return currency.ToUpperInvariant() switch
+        {
+            "NGN" => $"₦{amount:N0}",
+            "GBP" => $"£{amount:N2}",
+            "USD" => $"${amount:N2}",
+            "EUR" => $"€{amount:N2}",
+            _ => $"{currency} {amount:N2}"
+        };
+    }
+}

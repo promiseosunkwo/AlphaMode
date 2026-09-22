@@ -1,0 +1,1364 @@
+﻿@page "/admin/registrations"
+@rendermode InteractiveServer
+
+@using AlphaMode.Components.Sections.AdminSectionComponents.Models
+@using Microsoft.AspNetCore.Components.Forms
+
+@using AlphaMode.Application.Common.Models
+@using AlphaMode.Application.TournamentRegistrations.DTOs
+@using AlphaMode.Application.TournamentRegistrations.Interfaces
+@using AlphaMode.Application.TournamentRegistrations.Requests
+
+@using AlphaMode.Domain.Enums
+
+@using AlphaMode.Components.Layout
+@using AlphaMode.Components.Sections.AdminSectionComponents
+@using AlphaMode.Components.Shared.ConfirmDialog
+@using AlphaMode.Components.Shared.Toast
+
+@using AlphaMode.Services
+
+@inject ITournamentRegistrationService RegistrationService
+@inject ToastService Toast
+
+@layout AdminLayout
+
+
+<PageTitle>Tournament Registrations · AlphaMode Admin</PageTitle>
+
+<ToastContainer />
+
+
+<AdminPageHeader Title="Registrations"
+                 Description="Manage tournament entrants, payment status, check-ins and eligibility.">
+
+    <Actions>
+
+        <span class="adm-result-count">
+            @pagedResult.TotalCount registrations
+        </span>
+
+    </Actions>
+
+</AdminPageHeader>
+
+
+<section class="adm-panel">
+
+
+    @* =====================================================
+       TOOLBAR
+       ===================================================== *@
+
+    <div class="adm-toolbar">
+
+
+        <label class="adm-search">
+            <span>⌕</span>
+            <input value="@search" @oninput="HandleSearchInput" placeholder="Search player, email or tournament…" />
+        </label>
+
+
+        <select value="@SelectedTournamentValue" @onchange="TournamentChangedAsync">
+
+            <option value=""> All tournaments </option>
+
+            @foreach (var tournament in tournaments)
+            {
+                <option value="@tournament.Id">
+                    @tournament.Name
+                </option>
+            }
+
+        </select>
+
+
+        <select value="@SelectedStatusValue"
+                @onchange="StatusChangedAsync">
+
+            <option value="">All statuses</option>
+
+            <option value="@((int)TournamentRegistrationStatus.PendingPayment)">
+                Pending payment
+            </option>
+
+            <option value="@((int)TournamentRegistrationStatus.Registered)">
+                Registered
+            </option>
+
+            <option value="@((int)TournamentRegistrationStatus.CheckedIn)">
+                Checked in
+            </option>
+
+            <option value="@((int)TournamentRegistrationStatus.Withdrawn)">
+                Withdrawn
+            </option>
+
+            <option value="@((int)TournamentRegistrationStatus.Disqualified)">
+                Disqualified
+            </option>
+
+            <option value="@((int)TournamentRegistrationStatus.Cancelled)">
+                Cancelled
+            </option>
+
+        </select>
+
+
+        <span class="adm-result-count"> @pagedResult.TotalCount results</span>
+
+    </div>
+
+
+    @* =====================================================
+       LOADING
+       ===================================================== *@
+
+    @if (isLoading)
+    {
+        <div class="adm-empty-state">Loading registrations...</div>
+    }
+
+    else if (pagedResult.Items.Count == 0)
+    {
+        <div class="adm-empty-state">
+
+            <p>
+                No tournament registrations found.
+            </p>
+
+            @if (HasFilters)
+            {
+                <button type="button"
+                        class="adm-button secondary"
+                        @onclick="ClearFiltersAsync">
+
+                    Clear filters
+
+                </button>
+            }
+
+        </div>
+    }
+
+    else
+    {
+        <div class="adm-table-wrap">
+
+            <table class="adm-table registration-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Player</th>
+
+                        <th>Tournament</th>
+
+                        <th>Entry Fee</th>
+
+                        <th>Registered</th>
+
+                        <th>Status</th>
+
+                        <th></th>
+
+                    </tr>
+
+                </thead>
+                <tbody>
+
+                    @foreach (var registration in pagedResult.Items)
+                    {
+                        <tr @key="registration.Id">
+
+
+                            @* =============================
+                               PLAYER
+                               ============================= *@
+
+                            <td>
+
+                                <div class="adm-person">
+
+
+                                    @if (!string.IsNullOrWhiteSpace(registration.AvatarUrl))
+                                    {
+                                        <span class="registration-avatar">
+
+                                            <img src="@registration.AvatarUrl"
+                                                 alt="@registration.GamerTag" />
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="registration-avatar">@Initials(registration.GamerTag)</span>
+                                    }
+                                    <div>
+
+                                        <strong>
+                                            @registration.GamerTag
+                                        </strong>
+
+                                        <small>
+                                            @registration.Email
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            @* =============================
+                               TOURNAMENT
+                               ============================= *@
+
+                            <td>
+
+                                <div class="registration-tournament">
+
+                                    <strong>
+                                        @registration.TournamentName
+                                    </strong>
+
+                                    <small>
+                                        @registration.GameName
+                                    </small>
+
+                                </div>
+
+                            </td>
+
+
+                            @* =============================
+                               ENTRY FEE
+                               ============================= *@
+
+                            <td>
+
+                                @if (registration.EntryFee <= 0)
+                                {
+                                    <span class="registration-free">
+                                        Free
+                                    </span>
+                                }
+                                else
+                                {
+                                    <strong>
+                                        ₦@registration.EntryFee.ToString("N0")
+                                    </strong>
+                                }
+
+                            </td>
+
+
+                            @* =============================
+                               DATE
+                               ============================= *@
+
+                            <td>
+
+                                <div class="registration-date">
+
+                                    <strong>
+                                        @registration.RegisteredAt.ToString("dd MMM yyyy")
+                                    </strong>
+
+                                    <small>
+                                        @registration.RegisteredAt.ToString("HH:mm")
+                                    </small>
+
+                                </div>
+                            </td>
+
+
+                            @* =============================
+                               STATUS
+                               ============================= *@
+
+                            <td>
+                                <span class="@GetStatusClass(registration.Status)">
+
+                                    <span class="registration-status-dot"></span>
+                                    @GetStatusText(registration.Status)
+                                </span>
+                            </td>
+
+
+                            @* =============================
+                               ACTIONS
+                               ============================= *@
+
+                            <td class="adm-row-actions registration-actions">
+
+                                <button type="button"
+                                        @onclick="() => OpenDetailsAsync(registration.Id)">
+                                    View
+                                </button>
+
+
+                                @if (registration.Status == TournamentRegistrationStatus.PendingPayment)
+                                {
+                                    <button type="button"
+                                            @onclick="() => RequestAction(
+                                            registration, RegistrationAction.Register)">
+                            Confirm
+                        </button>
+                                                }
+
+
+                                @if (registration.Status ==
+                                                        TournamentRegistrationStatus
+                                                        .Registered)
+                                {
+                                    <button type="button"
+                                            @onclick="() => RequestAction(
+                                            registration,
+                                                                                                                                                                                                                RegistrationAction.CheckIn)">
+
+                            Check in
+
+                        </button>
+                                                }
+
+
+                                @if (CanDisqualify(
+                                                        registration.Status))
+                                {
+                                    <button type="button"
+                                            class="danger"
+                                            @onclick="() =>
+                                            OpenDisqualifyModal(
+                                                registration)">
+
+                            Disqualify
+
+                                    </button>
+                                                }
+
+                            </td>
+
+                        </tr>
+                    }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    @* =================================================
+           PAGINATION
+           ================================================= *@
+
+    <div class="registration-pagination">
+
+
+        <span class="adm-result-count">
+
+            Showing
+            @pagedResult.FirstItemNumber–@pagedResult.LastItemNumber
+            of
+            @pagedResult.TotalCount
+
+        </span>
+
+
+        <div class="registration-pagination-actions">
+
+
+            <select value="@pageSize"
+                    @onchange="PageSizeChangedAsync">
+
+                <option value="25">
+                    25 per page
+                </option>
+
+                <option value="50">
+                    50 per page
+                </option>
+
+                <option value="100">
+                    100 per page
+                </option>
+
+            </select>
+
+
+            <button type="button"
+                    class="adm-button secondary"
+                    disabled="@(!pagedResult.HasPreviousPage)"
+                    @onclick="PreviousPageAsync">
+
+                ← Previous
+
+            </button>
+
+
+            <span class="adm-result-count">
+
+                Page @pagedResult.Page
+                of
+                @(pagedResult.TotalPages == 0
+                                ? 1
+                                : pagedResult.TotalPages)
+
+            </span>
+
+
+                <button type="button"
+                        class="adm-button secondary"
+                        disabled="@(!pagedResult.HasNextPage)"
+                        @onclick="NextPageAsync">
+
+                    Next →
+
+                </button>
+
+            </div>
+
+        </div>
+        }
+
+</section>
+
+
+@* =========================================================
+   DETAILS MODAL
+   ========================================================= *@
+
+<AdminModal IsOpen="@showDetailsModal"
+            Eyebrow="Tournament entry"
+            Title="Registration details"
+            OnClose="CloseDetails">
+
+    <ChildContent>
+
+        @if (selectedDetails is not null)
+        {
+            <div class="registration-details">
+
+
+                <div class="registration-details-hero">
+
+                    <div class="adm-person">
+
+
+                        @if (!string.IsNullOrWhiteSpace(selectedDetails.AvatarUrl))
+                        {
+                            <span class="registration-avatar large"><img src="@selectedDetails.AvatarUrl" alt="@selectedDetails.GamerTag" /></span>
+                        }
+                        else
+                        {
+                            <span class="registration-avatar large">@Initials(selectedDetails.GamerTag)</span>
+                        }
+                    <div>
+
+                            <strong>@selectedDetails.GamerTag</strong>
+
+                            <small>@selectedDetails.FullName</small>
+
+                            <small>@selectedDetails.Email</small>
+                    </div>
+
+               </div>
+
+
+                    <span class="@GetStatusClass(selectedDetails.Status)">
+
+                    <span class="registration-status-dot"></span> 
+                    
+                    @GetStatusText(selectedDetails.Status)</span>
+
+                </div>
+
+
+            <div class="registration-detail-section">
+
+                <span class="registration-section-title">
+                    Tournament
+                </span>
+
+
+                <div class="registration-detail-grid">
+
+                    <div>
+                        <span>Tournament</span>
+                        <strong>
+                            @selectedDetails.TournamentName
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Game</span>
+                        <strong>
+                            @selectedDetails.GameName
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Entry fee</span>
+                        <strong>
+                            @(selectedDetails.EntryFee <= 0 ? "Free" : $"₦{selectedDetails.EntryFee:N0}")
+                        </strong>
+                    </div>
+
+                        <div>
+                            <span>Starts</span>
+                            <strong>
+                                @selectedDetails.TournamentStartDate.ToString("dd MMM yyyy HH:mm")
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="registration-detail-section">
+
+                    <span class="registration-section-title">
+                        Player
+                    </span>
+
+
+                    <div class="registration-detail-grid">
+
+                        <div>
+                            <span>Ranking points</span>
+                            <strong>
+                                @selectedDetails.RankingPoints.ToString("N0")
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Player status</span>
+                            <strong>
+                                @(selectedDetails.PlayerIsActive ? "Active" : "Suspended")
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Registered</span>
+                            <strong>
+                                @selectedDetails.RegisteredAt.ToString("dd MMM yyyy HH:mm")
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Checked in</span>
+                            <strong>
+                                @(selectedDetails.CheckedInAt?.ToString("dd MMM yyyy HH:mm") ?? "Not checked in")
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            @if (selectedDetails.Status == TournamentRegistrationStatus.Disqualified)
+                {
+                    <div class="registration-disqualification">
+
+                        <strong>
+                            Disqualification reason
+                        </strong>
+
+                        <p>
+                            @selectedDetails.DisqualificationReason
+                        </p>
+                    </div>
+                }
+            </div>
+        }
+    </ChildContent>
+
+
+    <Footer>
+        <button type="button"  class="adm-button secondary" @onclick="CloseDetails">Close</button>
+
+    </Footer>
+
+</AdminModal>
+
+
+@* =========================================================
+   DISQUALIFICATION MODAL
+   ========================================================= *@
+
+<AdminModal IsOpen="@showDisqualifyModal"
+            Eyebrow="Competition action"
+            Title="Disqualify player"
+            EditContext="@disqualifyEditContext"
+            OnValidSubmit="DisqualifyAsync"
+            OnClose="CloseDisqualifyModal">
+
+    <ChildContent>
+
+        @if (selectedRegistration is not null)
+        {
+            <div class="registration-warning">
+
+                <strong>
+                    @selectedRegistration.GamerTag
+                </strong>
+
+                <p>
+                    This will disqualify the player from
+                    @selectedRegistration.TournamentName.
+                    The action will remain in their registration history.
+                </p>
+
+            </div>
+        }
+
+
+        <div class="adm-form-grid">
+
+            <label class="span-2">
+
+                Reason
+
+                <InputTextArea @bind-Value="disqualifyModel.Reason" rows="5" placeholder="Explain why the player is being disqualified…" />
+
+                <ValidationMessage For="@(() => disqualifyModel.Reason)" />
+
+            </label>
+
+        </div>
+
+    </ChildContent>
+
+
+    <Footer>
+
+        <button type="button"
+                class="adm-button secondary"
+                disabled="@isProcessing"
+                @onclick="CloseDisqualifyModal">
+
+            Cancel
+
+        </button>
+
+
+        <button type="submit"
+                class="adm-button danger"
+                disabled="@isProcessing">
+
+            @(isProcessing
+                        ? "Disqualifying..."
+                        : "Disqualify player")
+
+        </button>
+
+    </Footer>
+
+</AdminModal>
+
+
+@* =========================================================
+   ACTION CONFIRMATION
+   ========================================================= *@
+
+<ConfirmDialog IsOpen="@showConfirmation"
+               Title="@ConfirmationTitle"
+               Message="@ConfirmationMessage"
+               ConfirmText="@ConfirmationButtonText"
+               ProcessingText="Processing..."
+               IsProcessing="@isProcessing"
+               OnConfirm="ConfirmActionAsync"
+               OnCancel="CancelAction" />
+
+
+@code {
+
+    private PagedResult<TournamentRegistrationDto>
+        pagedResult = new();
+
+    private IReadOnlyList<TournamentRegistrationTournamentDto>
+        tournaments = [];
+
+
+    // FILTERS
+
+    private string search = string.Empty;
+
+    private Guid? tournamentId;
+
+    private TournamentRegistrationStatus? statusFilter;
+
+    private int currentPage = 1;
+
+    private int pageSize = 25;
+
+    private int searchVersion;
+
+
+    // STATE
+
+    private bool isLoading;
+
+    private bool isProcessing;
+
+
+    // DETAILS
+
+    private bool showDetailsModal;
+
+    private TournamentRegistrationDetailsDto?
+        selectedDetails;
+
+
+    // ACTION
+
+    private TournamentRegistrationDto?
+        selectedRegistration;
+
+    private RegistrationAction pendingAction;
+
+    private bool showConfirmation;
+
+
+    // DISQUALIFICATION
+
+    private bool showDisqualifyModal;
+
+    private DisqualifyRegistrationFormModel
+        disqualifyModel = new();
+
+    private EditContext?
+        disqualifyEditContext;
+
+
+    // =====================================================
+    // INITIALIZE
+    // =====================================================
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Sequential intentionally because scoped DbContext
+        // must not execute concurrent EF operations.
+
+        await LoadTournamentOptionsAsync();
+
+        await LoadRegistrationsAsync();
+    }
+
+
+    // =====================================================
+    // LOAD TOURNAMENTS
+    // =====================================================
+
+    private async Task LoadTournamentOptionsAsync()
+    {
+        var result =
+            await RegistrationService
+                .GetTournamentOptionsAsync();
+
+
+        if (result.Succeeded &&
+            result.Value is not null)
+        {
+            tournaments =
+                result.Value;
+        }
+    }
+
+
+    // =====================================================
+    // LOAD REGISTRATIONS
+    // =====================================================
+
+    private async Task LoadRegistrationsAsync()
+    {
+        isLoading = true;
+
+
+        try
+        {
+            var result =
+                await RegistrationService.GetPagedAsync(
+                    currentPage,
+                    pageSize,
+                    search,
+                    tournamentId,
+                    statusFilter);
+
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                pagedResult = new();
+
+                Toast.Error(
+                    result.Error ??
+                    "Unable to load registrations.");
+
+                return;
+            }
+
+
+            pagedResult =
+                result.Value;
+
+            currentPage =
+                pagedResult.Page;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            pagedResult = new();
+
+            Toast.Error(
+                "Something went wrong while loading registrations.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    // =====================================================
+    // SEARCH
+    // =====================================================
+
+    private async Task HandleSearchInput(
+        ChangeEventArgs args)
+    {
+        search =
+            args.Value?.ToString()
+            ?? string.Empty;
+
+        currentPage = 1;
+
+        var version =
+            ++searchVersion;
+
+        await Task.Delay(350);
+
+        if (version != searchVersion)
+            return;
+
+        await LoadRegistrationsAsync();
+    }
+
+
+    // =====================================================
+    // TOURNAMENT FILTER
+    // =====================================================
+
+    private string SelectedTournamentValue =>
+        tournamentId?.ToString() ?? string.Empty;
+
+
+    private async Task TournamentChangedAsync(
+        ChangeEventArgs args)
+    {
+        if (Guid.TryParse(
+                args.Value?.ToString(),
+                out var id))
+        {
+            tournamentId = id;
+        }
+        else
+        {
+            tournamentId = null;
+        }
+
+
+        currentPage = 1;
+
+        await LoadRegistrationsAsync();
+    }
+
+
+    // =====================================================
+    // STATUS FILTER
+    // =====================================================
+
+    private string SelectedStatusValue =>
+        statusFilter.HasValue
+            ? ((int)statusFilter.Value).ToString()
+            : string.Empty;
+
+
+    private async Task StatusChangedAsync(
+        ChangeEventArgs args)
+    {
+        if (int.TryParse(
+                args.Value?.ToString(),
+                out var value) &&
+            Enum.IsDefined(
+                typeof(TournamentRegistrationStatus),
+                value))
+        {
+            statusFilter =
+                (TournamentRegistrationStatus)value;
+        }
+        else
+        {
+            statusFilter = null;
+        }
+
+
+        currentPage = 1;
+
+        await LoadRegistrationsAsync();
+    }
+
+
+    private bool HasFilters =>
+        !string.IsNullOrWhiteSpace(search) ||
+        tournamentId.HasValue ||
+        statusFilter.HasValue;
+
+
+    private async Task ClearFiltersAsync()
+    {
+        search = string.Empty;
+
+        tournamentId = null;
+
+        statusFilter = null;
+
+        currentPage = 1;
+
+        searchVersion++;
+
+        await LoadRegistrationsAsync();
+    }
+
+
+    // =====================================================
+    // PAGINATION
+    // =====================================================
+
+    private async Task PageSizeChangedAsync(
+        ChangeEventArgs args)
+    {
+        if (!int.TryParse(
+                args.Value?.ToString(),
+                out var value))
+            return;
+
+
+        pageSize = value;
+
+        currentPage = 1;
+
+        await LoadRegistrationsAsync();
+    }
+
+
+    private async Task PreviousPageAsync()
+    {
+        if (!pagedResult.HasPreviousPage)
+            return;
+
+        currentPage--;
+
+        await LoadRegistrationsAsync();
+    }
+
+
+    private async Task NextPageAsync()
+    {
+        if (!pagedResult.HasNextPage)
+            return;
+
+        currentPage++;
+
+        await LoadRegistrationsAsync();
+    }
+
+
+    // =====================================================
+    // DETAILS
+    // =====================================================
+
+    private async Task OpenDetailsAsync(Guid id)
+    {
+        var result =
+            await RegistrationService
+                .GetByIdAsync(id);
+
+
+        if (!result.Succeeded ||
+            result.Value is null)
+        {
+            Toast.Warning(
+                result.Error ??
+                "Unable to load registration.");
+
+            return;
+        }
+
+
+        selectedDetails = result.Value;
+
+        showDetailsModal = true;
+    }
+
+
+    private void CloseDetails()
+    {
+        showDetailsModal = false;
+
+        selectedDetails = null;
+    }
+
+
+    // =====================================================
+    // ACTION
+    // =====================================================
+
+    private void RequestAction(
+        TournamentRegistrationDto registration,
+        RegistrationAction action)
+    {
+        selectedRegistration =
+            registration;
+
+        pendingAction =
+            action;
+
+        showConfirmation =
+            true;
+    }
+
+
+    private async Task ConfirmActionAsync()
+    {
+        if (selectedRegistration is null ||
+            isProcessing)
+            return;
+
+
+        isProcessing = true;
+
+
+        try
+        {
+            Result result =
+                pendingAction switch
+                {
+                    RegistrationAction.Register =>
+                        await RegistrationService
+                            .MarkRegisteredAsync(
+                                selectedRegistration.Id),
+
+                    RegistrationAction.CheckIn =>
+                        await RegistrationService
+                            .CheckInAsync(
+                                selectedRegistration.Id),
+
+                    RegistrationAction.Withdraw =>
+                        await RegistrationService
+                            .WithdrawAsync(
+                                selectedRegistration.Id),
+
+                    RegistrationAction.Cancel =>
+                        await RegistrationService
+                            .CancelAsync(
+                                selectedRegistration.Id),
+
+                    _ =>
+                        Result.Failure(
+                            "Unsupported action.")
+                };
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error ??
+                    "Unable to update registration.");
+
+                return;
+            }
+
+
+            Toast.Success(
+                result.Message ??
+                "Registration updated.");
+
+
+            showConfirmation = false;
+
+            selectedRegistration = null;
+
+
+            await LoadRegistrationsAsync();
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+
+    private void CancelAction()
+    {
+        if (isProcessing)
+            return;
+
+        showConfirmation = false;
+
+        selectedRegistration = null;
+    }
+
+
+    // =====================================================
+    // DISQUALIFY
+    // =====================================================
+
+    private void OpenDisqualifyModal(
+        TournamentRegistrationDto registration)
+    {
+        selectedRegistration =
+            registration;
+
+        disqualifyModel =
+            new DisqualifyRegistrationFormModel();
+
+        disqualifyEditContext =
+            new EditContext(disqualifyModel);
+
+        showDisqualifyModal =
+            true;
+    }
+
+
+    private async Task DisqualifyAsync()
+    {
+        if (selectedRegistration is null ||
+            isProcessing)
+            return;
+
+
+        isProcessing = true;
+
+
+        try
+        {
+            var result =
+                await RegistrationService
+                    .DisqualifyAsync(
+                        new DisqualifyRegistrationRequest
+                        {
+                            RegistrationId =
+                                selectedRegistration.Id,
+
+                            Reason =
+                                disqualifyModel.Reason
+                        });
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error ??
+                    "Unable to disqualify player.");
+
+                return;
+            }
+
+
+            Toast.Success(
+                result.Message ??
+                "Player disqualified.");
+
+
+            CloseDisqualifyModal();
+
+            await LoadRegistrationsAsync();
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+
+    private void CloseDisqualifyModal()
+    {
+        if (isProcessing)
+            return;
+
+        showDisqualifyModal = false;
+
+        selectedRegistration = null;
+
+        disqualifyModel = new();
+
+        disqualifyEditContext = null;
+    }
+
+
+    // =====================================================
+    // UI HELPERS
+    // =====================================================
+
+    private static bool CanDisqualify(
+        TournamentRegistrationStatus status)
+    {
+        return status is
+            TournamentRegistrationStatus.Registered or
+            TournamentRegistrationStatus.CheckedIn;
+    }
+
+
+    private static string GetStatusText(
+        TournamentRegistrationStatus status)
+    {
+        return status switch
+        {
+            TournamentRegistrationStatus.PendingPayment =>
+                "Pending payment",
+
+            TournamentRegistrationStatus.Registered =>
+                "Registered",
+
+            TournamentRegistrationStatus.CheckedIn =>
+                "Checked in",
+
+            TournamentRegistrationStatus.Withdrawn =>
+                "Withdrawn",
+
+            TournamentRegistrationStatus.Disqualified =>
+                "Disqualified",
+
+            TournamentRegistrationStatus.Cancelled =>
+                "Cancelled",
+
+            _ => status.ToString()
+        };
+    }
+
+
+    private static string GetStatusClass(
+        TournamentRegistrationStatus status)
+    {
+        return status switch
+        {
+            TournamentRegistrationStatus.PendingPayment =>
+                "adm-status pending",
+
+            TournamentRegistrationStatus.Registered =>
+                "adm-status active",
+
+            TournamentRegistrationStatus.CheckedIn =>
+                "adm-status checked-in",
+
+            TournamentRegistrationStatus.Withdrawn =>
+                "adm-status withdrawn",
+
+            TournamentRegistrationStatus.Disqualified =>
+                "adm-status disqualified",
+
+            TournamentRegistrationStatus.Cancelled =>
+                "adm-status cancelled",
+
+            _ => "adm-status"
+        };
+    }
+
+
+    private static string Initials(
+        string gamerTag)
+    {
+        if (string.IsNullOrWhiteSpace(gamerTag))
+            return "P";
+
+        var value =
+            gamerTag.Trim();
+
+        return value.Length >= 2
+            ? value[..2].ToUpperInvariant()
+            : value.ToUpperInvariant();
+    }
+
+
+    private string ConfirmationTitle =>
+        pendingAction switch
+        {
+            RegistrationAction.Register =>
+                "Confirm registration?",
+
+            RegistrationAction.CheckIn =>
+                "Check player in?",
+
+            RegistrationAction.Withdraw =>
+                "Withdraw player?",
+
+            RegistrationAction.Cancel =>
+                "Cancel registration?",
+
+            _ => "Confirm action?"
+        };
+
+
+    private string ConfirmationButtonText =>
+        pendingAction switch
+        {
+            RegistrationAction.Register =>
+                "Confirm registration",
+
+            RegistrationAction.CheckIn =>
+                "Check in",
+
+            RegistrationAction.Withdraw =>
+                "Withdraw",
+
+            RegistrationAction.Cancel =>
+                "Cancel registration",
+
+            _ => "Confirm"
+        };
+
+
+    private string ConfirmationMessage
+    {
+        get
+        {
+            if (selectedRegistration is null)
+                return "Are you sure?";
+
+
+            return pendingAction switch
+            {
+                RegistrationAction.Register =>
+                    $"Confirm {selectedRegistration.GamerTag} as a registered entrant for {selectedRegistration.TournamentName}?",
+
+                RegistrationAction.CheckIn =>
+                    $"Check {selectedRegistration.GamerTag} in for {selectedRegistration.TournamentName}?",
+
+                RegistrationAction.Withdraw =>
+                    $"Withdraw {selectedRegistration.GamerTag} from {selectedRegistration.TournamentName}?",
+
+                RegistrationAction.Cancel =>
+                    $"Cancel {selectedRegistration.GamerTag}'s registration for {selectedRegistration.TournamentName}?",
+
+                _ => "Are you sure?"
+            };
+        }
+    }
+
+
+    private enum RegistrationAction
+    {
+        None = 0,
+        Register = 1,
+        CheckIn = 2,
+        Withdraw = 3,
+        Cancel = 4
+    }
+}

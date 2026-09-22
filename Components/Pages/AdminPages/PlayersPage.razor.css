@@ -1,0 +1,295 @@
+﻿/* =========================================================
+   PLAYERS TABLE
+   ========================================================= */
+
+.player-table {
+    width: 100%;
+}
+
+    .player-table th {
+        white-space: nowrap;
+    }
+
+    .player-table tbody tr {
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+        .player-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+    .player-table td {
+        vertical-align: middle;
+    }
+
+
+/* =========================================================
+   PLAYER IDENTITY
+   ========================================================= */
+
+.player-identity {
+    min-width: 250px;
+}
+
+.adm-player-avatar {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+    .adm-player-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+.player-avatar-fallback {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.player-identity-text {
+    min-width: 0;
+}
+
+    .player-identity-text strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 0.94rem;
+        font-weight: 700;
+    }
+
+    .player-identity-text small {
+        display: block;
+        max-width: 260px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        opacity: 0.55;
+    }
+
+
+/* =========================================================
+   RANKING
+   ========================================================= */
+
+.player-ranking-cell {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+}
+
+    .player-ranking-cell strong {
+        font-size: 0.95rem;
+        font-weight: 750;
+    }
+
+    .player-ranking-cell small {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        opacity: 0.45;
+    }
+
+
+/* =========================================================
+   MATCH COUNT
+   ========================================================= */
+
+.player-match-count,
+.player-tournament-count {
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+
+
+/* =========================================================
+   RECORD
+
+   Always stays horizontally:
+       14 W   3 D   6 L
+   ========================================================= */
+
+.player-record {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.player-record-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 46px;
+    padding: 6px 9px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+    .player-record-item strong {
+        font-size: 0.82rem;
+        font-weight: 800;
+    }
+
+    .player-record-item span {
+        font-size: 0.68rem;
+        font-weight: 800;
+    }
+
+
+    /* WIN */
+
+    .player-record-item.win {
+        color: #4ade80;
+        background: rgba(34, 197, 94, 0.08);
+        border-color: rgba(34, 197, 94, 0.16);
+    }
+
+
+    /* DRAW */
+
+    .player-record-item.draw {
+        color: #a1a1aa;
+        background: rgba(161, 161, 170, 0.07);
+        border-color: rgba(161, 161, 170, 0.13);
+    }
+
+
+    /* LOSS */
+
+    .player-record-item.loss {
+        color: #f87171;
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.16);
+    }
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.player-table .adm-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+.player-status-dot {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.adm-status.suspended {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.14);
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.player-row-actions {
+    white-space: nowrap;
+}
+
+    .player-row-actions button {
+        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.adm-player-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 16px 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.adm-player-pagination-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+    .adm-player-pagination-actions select {
+        min-height: 36px;
+    }
+
+
+/* =========================================================
+   PLAYER MODAL STATS
+   ========================================================= */
+
+.adm-player-stats {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 1.25rem;
+}
+
+    .adm-player-stats > div {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(255, 255, 255, 0.055);
+    }
+
+    .adm-player-stats span {
+        font-size: 0.68rem;
+        font-weight: 600;
+        opacity: 0.5;
+    }
+
+    .adm-player-stats strong {
+        font-size: 1rem;
+        font-weight: 750;
+    }
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .adm-player-pagination {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .adm-player-pagination-actions {
+        flex-wrap: wrap;
+    }
+
+    .adm-player-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

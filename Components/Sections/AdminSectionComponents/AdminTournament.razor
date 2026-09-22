@@ -1,4 +1,3 @@
-@* @page "/admin/tournaments" *@
 @rendermode InteractiveServer
 
 @using AlphaMode.Application.Games.DTOs
@@ -959,52 +958,6 @@
                 "Something went wrong while refreshing tournaments.");
         }
     }
-
-
-    // =======================================================
-    // VALIDATION
-    // =======================================================
-
-    // private bool ValidateDates()
-    // {
-    //     // Registration deadline cannot be before registration opens
-    //     if (model.RegistrationOpenDate.HasValue &&
-    //         model.RegistrationDeadline.HasValue &&
-    //         model.RegistrationDeadline.Value.Date <
-    //         model.RegistrationOpenDate.Value.Date)
-    //     {
-    //         Toast.Warning(
-    //             "Registration closing date cannot be before the opening date.");
-
-    //         return false;
-    //     }
-
-
-    //     // Registration cannot close after the tournament starts
-    //     if (model.RegistrationDeadline.HasValue &&
-    //         model.RegistrationDeadline.Value.Date >
-    //         model.StartDate.Date)
-    //     {
-    //         Toast.Warning(
-    //             "Registration must close on or before the tournament begins.");
-
-    //         return false;
-    //     }
-
-
-    //     // Tournament cannot end before it starts
-    //     if (model.EndDate.Date <
-    //         model.StartDate.Date)
-    //     {
-    //         Toast.Warning(
-    //             "Tournament end date cannot be before the start date.");
-
-    //         return false;
-    //     }
-
-
-    //     return true;
-    // }
 
     // =======================================================
     // MODAL

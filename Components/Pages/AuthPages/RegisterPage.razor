@@ -142,7 +142,7 @@
         var player = new Player
         {
             UserId = user.Id,
-            GamerTag = user.GamerTag,
+            GamerTag = Input.GamerTag.Trim(),
             RankingPoints = 0,
             Wins = 0,
             Losses = 0,

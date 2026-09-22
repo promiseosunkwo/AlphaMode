@@ -1,11 +1,1714 @@
 @page "/admin/players"
 @rendermode InteractiveServer
+
+@using AlphaMode.Components.Sections.AdminSectionComponents.Models
+@using Microsoft.AspNetCore.Components.Forms
+
+@using AlphaMode.Application.Common.Models
+@using AlphaMode.Application.Players.DTOs
+@using AlphaMode.Application.Players.Interfaces
+@using AlphaMode.Application.Players.Requests
+
 @using AlphaMode.Components.Layout
 @using AlphaMode.Components.Sections.AdminSectionComponents
-@using AlphaMode.ViewModels
+@using AlphaMode.Components.Shared.ConfirmDialog
+@using AlphaMode.Components.Shared.Toast
+
+@using AlphaMode.Services
+
+@inject IPlayerService PlayerService
+@inject ToastService Toast
+
 @layout AdminLayout
+
+
 <PageTitle>Players · AlphaMode Admin</PageTitle>
-<AdminPageHeader Title="Players" Description="Manage player profiles, eligibility, account state and competitive standing."><Actions><button class="adm-button primary" @onclick="Create">＋ Add player</button></Actions></AdminPageHeader>
-<section class="adm-panel"><div class="adm-toolbar"><label class="adm-search"><span>⌕</span><input @bind="query" @bind:event="oninput" placeholder="Search gamer tag or email…" /></label><select @bind="filter"><option>All</option><option>Active</option><option>Pending</option><option>Suspended</option></select><span class="adm-result-count">@Filtered.Count() players</span></div><div class="adm-table-wrap"><table class="adm-table"><thead><tr><th>Player</th><th>Ranking</th><th>Matches</th><th>Status</th><th></th></tr></thead><tbody>@foreach(var p in Filtered){<tr><td><div class="adm-person"><span>@Initials(p.GamerTag)</span><div><strong>@p.GamerTag</strong><small>@p.Email</small></div></div></td><td>#@p.Ranking</td><td>@p.Matches</td><td><span class="adm-status @p.Status.ToLower()">@p.Status</span></td><td class="adm-row-actions"><button @onclick="()=>Edit(p)">Edit</button><button class="danger" @onclick="()=>items.Remove(p)">Delete</button></td></tr>}</tbody></table></div></section>
-<AdminModal IsOpen="open" Title="@(model.Id==0?"Add player":"Edit player")" OnClose="Close"><ChildContent><div class="adm-form-grid"><label>Gamer tag<input @bind="model.GamerTag" /></label><label>Email<input type="email" @bind="model.Email" /></label><label>Ranking<input type="number" min="1" @bind="model.Ranking" /></label><label>Status<select @bind="model.Status"><option>Active</option><option>Pending</option><option>Suspended</option></select></label></div></ChildContent><Footer><button class="adm-button secondary" @onclick="Close">Cancel</button><button class="adm-button primary" @onclick="Save">Save player</button></Footer></AdminModal>
-@code { private string query="",filter="All";private bool open;private AdminPlayerItem model=new();private readonly List<AdminPlayerItem> items=[new(){Id=1,GamerTag="NovaStrike",Email="nova@example.com",Ranking=1,Matches=84,Status="Active"},new(){Id=2,GamerTag="KingPromise",Email="promise@example.com",Ranking=4,Matches=71,Status="Active"},new(){Id=3,GamerTag="NightOwl",Email="night@example.com",Ranking=27,Matches=19,Status="Pending"}];private IEnumerable<AdminPlayerItem> Filtered=>items.Where(x=>(filter=="All"||x.Status==filter)&&(string.IsNullOrWhiteSpace(query)||x.GamerTag.Contains(query,StringComparison.OrdinalIgnoreCase)||x.Email.Contains(query,StringComparison.OrdinalIgnoreCase)));private static string Initials(string s)=>string.Join("",s.Split(' ',StringSplitOptions.RemoveEmptyEntries).Select(x=>x[0])).ToUpperInvariant()[..Math.Min(2,string.Join("",s.Split(' ',StringSplitOptions.RemoveEmptyEntries).Select(x=>x[0])).Length)];private void Create(){model=new();open=true;}private void Edit(AdminPlayerItem x){model=new(){Id=x.Id,GamerTag=x.GamerTag,Email=x.Email,Ranking=x.Ranking,Matches=x.Matches,Status=x.Status};open=true;}private void Save(){if(string.IsNullOrWhiteSpace(model.GamerTag))return;var x=items.FirstOrDefault(i=>i.Id==model.Id);if(x is null){model.Id=items.Max(i=>i.Id)+1;items.Insert(0,model);}else{x.GamerTag=model.GamerTag;x.Email=model.Email;x.Ranking=model.Ranking;x.Status=model.Status;}Close();}private void Close()=>open=false;}
+
+<ToastContainer />
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<AdminPageHeader Title="Players" Description="Manage player profiles, eligibility, account state and competitive standing.">
+
+    <Actions>
+        <span class="adm-result-count">
+            @TotalPlayersText
+        </span>
+
+    </Actions>
+
+</AdminPageHeader>
+
+@* =========================================================
+   MAIN PANEL
+   ========================================================= *@
+
+<section class="adm-panel">
+
+
+    @* =====================================================
+       TOOLBAR
+       ===================================================== *@
+
+    <div class="adm-toolbar">
+
+
+        @* -------------------------------------------------
+           SEARCH
+           ------------------------------------------------- *@
+
+        <label class="adm-search">
+
+            <span>⌕</span>
+
+            <input value="@query"
+                   @oninput="HandleSearchInput"
+                   placeholder="Search gamer tag, name or email…" />
+
+        </label>
+
+
+        @* -------------------------------------------------
+           STATUS FILTER
+           ------------------------------------------------- *@
+
+        <select value="@StatusFilterValue"
+                @onchange="HandleStatusFilterChanged">
+
+            <option value="All">
+                All
+            </option>
+
+            <option value="Active">
+                Active
+            </option>
+
+            <option value="Suspended">
+                Suspended
+            </option>
+
+        </select>
+
+
+        @* -------------------------------------------------
+           RESULT COUNT
+           ------------------------------------------------- *@
+
+        <span class="adm-result-count">
+
+            @pagedResult.TotalCount
+            @(pagedResult.TotalCount == 1
+                        ? "player"
+                        : "players")
+
+        </span>
+
+    </div>
+
+
+    @* =====================================================
+       LOADING
+       ===================================================== *@
+
+    @if (isLoading)
+    {
+        <div class="adm-empty-state">
+
+            Loading players...
+
+        </div>
+    }
+
+
+    @* =====================================================
+       EMPTY STATE
+       ===================================================== *@
+
+    else if (pagedResult.Items.Count == 0)
+    {
+        <div class="adm-empty-state">
+
+            @if (!string.IsNullOrWhiteSpace(query)
+                    || statusFilter.HasValue)
+            {
+                <p>
+                    No players match your current search.
+                </p>
+
+                <button type="button"
+                        class="adm-button secondary"
+                        @onclick="ClearFiltersAsync">
+
+                    Clear filters
+
+                </button>
+            }
+            else
+            {
+                <p>
+                    No registered players were found.
+                </p>
+            }
+
+        </div>
+    }
+
+
+    @* =====================================================
+       PLAYERS TABLE
+       ===================================================== *@
+
+    else
+    {
+        <div class="adm-table-wrap">
+
+            <table class="adm-table player-table">
+
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Ranking</th>
+                        <th>Matches</th>
+                        <th>Record</th>
+                        <th>Tournaments</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @foreach (var player in pagedResult.Items)
+                    {
+                        <tr @key="player.Id">
+
+                            @* PLAYER *@
+                            <td>
+                                <div class="adm-person player-identity">
+
+                                    @if (!string.IsNullOrWhiteSpace(player.AvatarUrl))
+                                    {
+                                        <span class="adm-player-avatar">
+                                            <img src="@player.AvatarUrl"
+                                                 alt="@player.GamerTag"
+                                                 loading="lazy" />
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="adm-player-avatar player-avatar-fallback">
+                                            @Initials(player)
+                                        </span>
+                                    }
+
+                                    <div class="player-identity-text">
+                                        <strong>@player.GamerTag</strong>
+
+                                        <small>
+                                            @if (!string.IsNullOrWhiteSpace(player.FullName))
+                                            {
+                                                <span>@player.FullName · </span>
+                                            }
+
+                                        @player.Email
+                                    </small>
+                                </div>
+
+                            </div>
+                        </td>
+
+
+                        @* RANKING *@
+                        <td>
+                            <div class="player-ranking-cell">
+
+                                <strong>
+                                    @player.RankingPoints.ToString("N0")
+                                </strong>
+
+                                <small>RP</small>
+
+                            </div>
+                        </td>
+
+
+                        @* MATCHES *@
+                        <td>
+                            <span class="player-match-count">
+                                @player.MatchesPlayed
+                            </span>
+                        </td>
+
+
+                        @* RECORD *@
+                        <td>
+
+                            <div class="player-record">
+
+                                <div class="player-record-item win">
+                                    <strong>@player.Wins</strong>
+                                    <span>W</span>
+                                </div>
+
+                                <div class="player-record-item draw">
+                                    <strong>@player.Draws</strong>
+                                    <span>D</span>
+                                </div>
+
+                                <div class="player-record-item loss">
+                                    <strong>@player.Losses</strong>
+                                    <span>L</span>
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        @* TOURNAMENTS *@
+                        <td>
+                            <span class="player-tournament-count">
+                                @player.TournamentCount
+                            </span>
+                        </td>
+
+
+                        @* STATUS *@
+                        <td>
+
+                            <span class="@GetStatusClass(player)">
+                                <span class="player-status-dot"></span>
+
+                                @(player.IsActive
+                                                            ? "Active"
+                                                            : "Suspended")
+                        </span>
+
+                            </td>
+
+
+                            @* ACTIONS *@
+                            <td class="adm-row-actions player-row-actions">
+
+                                <button type="button"
+                                        title="View player"
+                                        @onclick="() => OpenDetailsAsync(player.Id)">
+                                    View
+                                </button>
+
+                                <button type="button"
+                                        title="Edit player"
+                                        @onclick="() => OpenEditModalAsync(player.Id)">
+                                    Edit
+                                </button>
+
+                        @if (player.IsActive)
+                                {
+                                    <button type="button"
+                                            class="danger"
+                                            title="Suspend player"
+                                            @onclick="() => RequestSuspend(player)">
+                                        Suspend
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            title="Activate player"
+                                            @onclick="() => RequestActivate(player)">
+                                        Activate
+                                    </button>
+                                }
+
+                            </td>
+
+                        </tr>
+                    }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    @* =================================================
+           PAGINATION
+           ================================================= *@
+
+    <div class="adm-player-pagination">
+
+
+        <span class="adm-result-count">
+
+            Showing
+            @pagedResult.FirstItemNumber–@pagedResult.LastItemNumber
+            of
+            @pagedResult.TotalCount
+
+        </span>
+
+
+        <div class="adm-player-pagination-actions">
+
+
+            <select value="@pageSize"
+                    @onchange="ChangePageSizeAsync">
+
+                <option value="25">
+                    25 per page
+                </option>
+
+                <option value="50">
+                    50 per page
+                </option>
+
+                <option value="100">
+                    100 per page
+                </option>
+
+            </select>
+
+
+            <button type="button"
+                    class="adm-button secondary"
+                    disabled="@(!pagedResult.HasPreviousPage || isLoading)"
+                    @onclick="PreviousPageAsync">
+
+                ← Previous
+
+            </button>
+
+
+            <span class="adm-result-count">
+
+                Page
+                @pagedResult.Page
+                of
+                @(pagedResult.TotalPages == 0
+                                ? 1
+                                : pagedResult.TotalPages)
+
+            </span>
+
+
+                <button type="button"
+                        class="adm-button secondary"
+                        disabled="@(!pagedResult.HasNextPage || isLoading)"
+                        @onclick="NextPageAsync">
+
+                    Next →
+
+                </button>
+
+            </div>
+
+        </div>
+        }
+
+</section>
+
+
+@* =========================================================
+   EDIT PLAYER MODAL
+   ========================================================= *@
+
+<AdminModal IsOpen="@showEditModal"
+            Eyebrow="Player management"
+            Title="Edit player"
+            EditContext="@editContext"
+            OnValidSubmit="SavePlayerAsync"
+            OnClose="CloseEditModal">
+
+    <ChildContent>
+
+
+        @* -------------------------------------------------
+           PLAYER SUMMARY
+           ------------------------------------------------- *@
+
+        @if (selectedPlayer is not null)
+        {
+            <div class="adm-player-modal-profile">
+
+                <div class="adm-person">
+
+
+                    @if (!string.IsNullOrWhiteSpace(
+                                    selectedPlayer.AvatarUrl))
+                    {
+                        <span class="adm-player-avatar">
+
+                            <img src="@selectedPlayer.AvatarUrl"
+                                 alt="@selectedPlayer.GamerTag" />
+
+                        </span>
+                    }
+                    else
+                    {
+                        <span>
+
+                            @Initials(selectedPlayer)
+
+                        </span>
+                    }
+
+
+                    <div>
+
+                        <strong>
+                            @selectedPlayer.GamerTag
+                        </strong>
+
+                        <small>
+                            @selectedPlayer.Email
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+
+        @* -------------------------------------------------
+           EDIT FORM
+           ------------------------------------------------- *@
+
+        <div class="adm-form-grid">
+
+
+            <label>
+
+                First name
+
+                <InputText @bind-Value="model.FirstName" />
+
+                <ValidationMessage For="@(() => model.FirstName)" />
+
+            </label>
+
+
+            <label>
+
+                Last name
+
+                <InputText @bind-Value="model.LastName" />
+
+                <ValidationMessage For="@(() => model.LastName)" />
+
+            </label>
+
+
+            <label class="span-2">
+
+                Gamer tag
+
+                <InputText @bind-Value="model.GamerTag" />
+
+                <small>
+                    Letters, numbers, underscores and hyphens only.
+                </small>
+
+                <ValidationMessage For="@(() => model.GamerTag)" />
+
+            </label>
+
+        </div>
+
+
+        @* -------------------------------------------------
+           COMPETITIVE RECORD
+           ------------------------------------------------- *@
+
+        @if (selectedPlayer is not null)
+        {
+            <div class="adm-player-stats">
+
+                <div>
+
+                    <span>
+                        Ranking
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.RankingPoints.ToString("N0")
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Matches
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.MatchesPlayed
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Wins
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.Wins
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Draws
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.Draws
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Losses
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.Losses
+                    </strong>
+
+                </div>
+
+            </div>
+        }
+
+    </ChildContent>
+
+
+    <Footer>
+
+        <button type="button"
+                class="adm-button secondary"
+                disabled="@isSaving"
+                @onclick="CloseEditModal">
+
+            Cancel
+
+        </button>
+
+
+        <button type="submit"
+                class="adm-button primary"
+                disabled="@isSaving">
+
+            @if (isSaving)
+            {
+                <span>
+                    Saving...
+                </span>
+            }
+            else
+            {
+                <span>
+                    Save player
+                </span>
+            }
+
+        </button>
+
+    </Footer>
+
+</AdminModal>
+
+
+@* =========================================================
+   PLAYER DETAILS MODAL
+   ========================================================= *@
+
+<AdminModal IsOpen="@showDetailsModal"
+            Eyebrow="Player profile"
+            Title="Player details"
+            OnClose="CloseDetailsModal">
+
+    <ChildContent>
+
+        @if (selectedPlayer is not null)
+        {
+            <div class="adm-player-details">
+
+
+                @* -------------------------------------------------
+                   IDENTITY
+                   ------------------------------------------------- *@
+
+                <div class="adm-player-details-header">
+
+                    <div class="adm-person">
+
+
+                        @if (!string.IsNullOrWhiteSpace(
+                                            selectedPlayer.AvatarUrl))
+                        {
+                            <span class="adm-player-avatar large">
+
+                                <img src="@selectedPlayer.AvatarUrl"
+                                     alt="@selectedPlayer.GamerTag" />
+
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="adm-player-avatar large">
+
+                                @Initials(selectedPlayer)
+
+                            </span>
+                        }
+
+
+                    <div>
+
+                        <strong>
+                            @selectedPlayer.GamerTag
+                        </strong>
+
+                        <small>
+                            @selectedPlayer.FullName
+                        </small>
+
+                        <small>
+                            @selectedPlayer.Email
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <span class="@GetStatusClass(selectedPlayer)">
+
+                    @(selectedPlayer.IsActive
+                                        ? "Active"
+                                        : "Suspended")
+
+                </span>
+
+            </div>
+
+
+            @* -------------------------------------------------
+                   COMPETITIVE STATS
+                   ------------------------------------------------- *@
+
+            <div class="adm-player-stats">
+
+                <div>
+
+                    <span>
+                        Ranking points
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.RankingPoints.ToString("N0")
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Matches
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.MatchesPlayed
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Wins
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.Wins
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Draws
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.Draws
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Losses
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.Losses
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Win rate
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.WinRate.ToString("0.#")%
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Tournaments
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.TournamentCount
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            @* -------------------------------------------------
+                   ACCOUNT DETAILS
+                   ------------------------------------------------- *@
+
+            <div class="adm-player-account">
+
+                <div>
+
+                    <span>
+                        Email
+                    </span>
+
+                    <strong>
+                        @selectedPlayer.Email
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Email verified
+                    </span>
+
+                    <strong>
+
+                        @(selectedPlayer.EmailConfirmed
+                                                ? "Yes"
+                                                : "No")
+
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Phone
+                    </span>
+
+                    <strong>
+
+                        @(string.IsNullOrWhiteSpace(
+                                                selectedPlayer.PhoneNumber)
+                                                ? "Not provided"
+                                                : selectedPlayer.PhoneNumber)
+
+                    </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Joined
+                        </span>
+
+                        <strong>
+                            @selectedPlayer.JoinedDate.ToString("dd MMM yyyy")
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+                }
+
+    </ChildContent>
+
+
+    <Footer>
+
+        <button type="button"
+                class="adm-button secondary"
+                @onclick="CloseDetailsModal">
+
+            Close
+
+        </button>
+
+
+        @if (selectedPlayer is not null)
+        {
+            <button type="button"
+                    class="adm-button primary"
+                    @onclick="EditSelectedPlayer">
+
+                Edit player
+
+            </button>
+        }
+
+    </Footer>
+
+</AdminModal>
+
+
+@* =========================================================
+   SUSPEND / ACTIVATE CONFIRMATION
+   ========================================================= *@
+
+<ConfirmDialog IsOpen="@showStatusConfirmation"
+               Title="@StatusConfirmationTitle"
+               Message="@StatusConfirmationMessage"
+               ConfirmText="@StatusConfirmationButtonText"
+               ProcessingText="@StatusProcessingText"
+               IsProcessing="@isChangingStatus"
+               OnConfirm="ConfirmStatusChangeAsync"
+               OnCancel="CancelStatusChange" />
+
+
+@code {
+
+    // =====================================================
+    // DATA
+    // =====================================================
+
+    private PagedResult<PlayerDto> pagedResult = new();
+
+
+    // =====================================================
+    // SEARCH / FILTER
+    // =====================================================
+
+    private string query = string.Empty;
+
+    private bool? statusFilter;
+
+    private int currentPage = 1;
+
+    private int pageSize = 25;
+
+    private int searchVersion;
+
+
+    // =====================================================
+    // PAGE STATE
+    // =====================================================
+
+    private bool isLoading;
+
+
+    // =====================================================
+    // EDIT STATE
+    // =====================================================
+
+    private PlayerFormModel model = new();
+
+    private EditContext? editContext;
+
+    private PlayerDetailsDto? selectedPlayer;
+
+    private Guid? editingPlayerId;
+
+    private bool showEditModal;
+
+    private bool isSaving;
+
+
+    // =====================================================
+    // DETAILS
+    // =====================================================
+
+    private bool showDetailsModal;
+
+
+    // =====================================================
+    // STATUS CHANGE
+    // =====================================================
+
+    private PlayerDto? playerForStatusChange;
+
+    private bool? requestedActiveStatus;
+
+    private bool showStatusConfirmation;
+
+    private bool isChangingStatus;
+
+
+    // =====================================================
+    // DISPLAY PROPERTIES
+    // =====================================================
+
+    private string TotalPlayersText =>
+        pagedResult.TotalCount == 1
+            ? "1 player"
+            : $"{pagedResult.TotalCount:N0} players";
+
+
+    private string StatusFilterValue =>
+        statusFilter switch
+        {
+            true => "Active",
+            false => "Suspended",
+            _ => "All"
+        };
+
+
+    private string StatusConfirmationTitle =>
+        requestedActiveStatus == true
+            ? "Activate player?"
+            : "Suspend player?";
+
+
+    private string StatusConfirmationButtonText =>
+        requestedActiveStatus == true
+            ? "Activate player"
+            : "Suspend player";
+
+
+    private string StatusProcessingText =>
+        requestedActiveStatus == true
+            ? "Activating..."
+            : "Suspending...";
+
+
+    private string StatusConfirmationMessage
+    {
+        get
+        {
+            if (playerForStatusChange is null)
+            {
+                return "Are you sure you want to change this player's status?";
+            }
+
+
+            return requestedActiveStatus == true
+                ? $"{playerForStatusChange.GamerTag} will be allowed to participate in AlphaMode competitions again."
+                : $"{playerForStatusChange.GamerTag} will no longer be allowed to participate in AlphaMode competitions until reactivated.";
+        }
+    }
+
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPlayersAsync();
+    }
+
+
+    // =====================================================
+    // LOAD
+    // =====================================================
+
+    private async Task LoadPlayersAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            var result = await PlayerService.GetPagedAsync(currentPage, pageSize, query, statusFilter);
+
+            if (!result.Succeeded || result.Value is null)
+            {
+                pagedResult = new PagedResult<PlayerDto>();
+
+                Toast.Error(result.Error ?? "Unable to load players.");
+
+                return;
+            }
+
+            pagedResult = result.Value;
+
+            currentPage = pagedResult.Page;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading players: {ex}");
+
+            pagedResult = new PagedResult<PlayerDto>();
+
+            Toast.Error("Something went wrong while loading players.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    // =====================================================
+    // SEARCH
+    // =====================================================
+
+    private async Task HandleSearchInput(
+        ChangeEventArgs args)
+    {
+        query =
+            args.Value?.ToString()
+            ?? string.Empty;
+
+
+        currentPage = 1;
+
+
+        var version =
+            ++searchVersion;
+
+
+        await Task.Delay(350);
+
+
+        if (version != searchVersion)
+        {
+            return;
+        }
+
+
+        await LoadPlayersAsync();
+    }
+
+
+    // =====================================================
+    // STATUS FILTER
+    // =====================================================
+
+    private async Task HandleStatusFilterChanged(
+        ChangeEventArgs args)
+    {
+        var value =
+            args.Value?.ToString();
+
+
+        statusFilter =
+            value switch
+            {
+                "Active" => true,
+                "Suspended" => false,
+                _ => null
+            };
+
+
+        currentPage = 1;
+
+
+        await LoadPlayersAsync();
+    }
+
+
+    // =====================================================
+    // CLEAR FILTERS
+    // =====================================================
+
+    private async Task ClearFiltersAsync()
+    {
+        query = string.Empty;
+
+        statusFilter = null;
+
+        currentPage = 1;
+
+        searchVersion++;
+
+
+        await LoadPlayersAsync();
+    }
+
+
+    // =====================================================
+    // PAGE SIZE
+    // =====================================================
+
+    private async Task ChangePageSizeAsync(
+        ChangeEventArgs args)
+    {
+        if (!int.TryParse(
+                args.Value?.ToString(),
+                out var newPageSize))
+        {
+            return;
+        }
+
+
+        pageSize = newPageSize;
+
+        currentPage = 1;
+
+
+        await LoadPlayersAsync();
+    }
+
+
+    // =====================================================
+    // PREVIOUS PAGE
+    // =====================================================
+
+    private async Task PreviousPageAsync()
+    {
+        if (!pagedResult.HasPreviousPage ||
+            isLoading)
+        {
+            return;
+        }
+
+
+        currentPage--;
+
+
+        await LoadPlayersAsync();
+    }
+
+
+    // =====================================================
+    // NEXT PAGE
+    // =====================================================
+
+    private async Task NextPageAsync()
+    {
+        if (!pagedResult.HasNextPage ||
+            isLoading)
+        {
+            return;
+        }
+
+
+        currentPage++;
+
+
+        await LoadPlayersAsync();
+    }
+
+
+    // =====================================================
+    // DETAILS
+    // =====================================================
+
+    private async Task OpenDetailsAsync(
+        Guid id)
+    {
+        try
+        {
+            var result =
+                await PlayerService.GetByIdAsync(id);
+
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to load player.");
+
+
+                return;
+            }
+
+
+            selectedPlayer =
+                result.Value;
+
+
+            showDetailsModal =
+                true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Error loading player details: {ex}");
+
+
+            Toast.Error(
+                "Something went wrong while loading the player.");
+        }
+    }
+
+
+    private void CloseDetailsModal()
+    {
+        showDetailsModal = false;
+
+        selectedPlayer = null;
+    }
+
+
+    // =====================================================
+    // OPEN EDIT
+    // =====================================================
+
+    private async Task OpenEditModalAsync(
+        Guid id)
+    {
+        try
+        {
+            var result =
+                await PlayerService.GetByIdAsync(id);
+
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to load player.");
+
+
+                return;
+            }
+
+
+            selectedPlayer =
+                result.Value;
+
+
+            OpenEditModalFromSelectedPlayer();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Error loading player for edit: {ex}");
+
+
+            Toast.Error(
+                "Something went wrong while loading the player.");
+        }
+    }
+
+
+    private void EditSelectedPlayer()
+    {
+        if (selectedPlayer is null)
+        {
+            return;
+        }
+
+
+        showDetailsModal = false;
+
+
+        OpenEditModalFromSelectedPlayer();
+    }
+
+
+    private void OpenEditModalFromSelectedPlayer()
+    {
+        if (selectedPlayer is null)
+        {
+            return;
+        }
+
+
+        model =
+            new PlayerFormModel
+            {
+                FirstName =
+                    selectedPlayer.FirstName,
+
+                LastName =
+                    selectedPlayer.LastName,
+
+                GamerTag =
+                    selectedPlayer.GamerTag
+            };
+
+
+        editContext =
+            new EditContext(model);
+
+
+        editingPlayerId =
+            selectedPlayer.Id;
+
+
+        showEditModal =
+            true;
+    }
+
+
+    // =====================================================
+    // SAVE
+    // =====================================================
+
+    private async Task SavePlayerAsync()
+    {
+        if (isSaving ||
+            !editingPlayerId.HasValue)
+        {
+            return;
+        }
+
+
+        isSaving = true;
+
+
+        try
+        {
+            var request =
+                new UpdatePlayerRequest
+                {
+                    Id =
+                        editingPlayerId.Value,
+
+                    FirstName =
+                        model.FirstName,
+
+                    LastName =
+                        model.LastName,
+
+                    GamerTag =
+                        model.GamerTag
+                };
+
+
+            var result =
+                await PlayerService.UpdateAsync(
+                    request);
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to update player.");
+
+
+                return;
+            }
+
+
+            Toast.Success(
+                result.Message
+                ?? "Player updated successfully.");
+
+
+            CloseEditModal();
+
+
+            await LoadPlayersAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Error updating player: {ex}");
+
+
+            Toast.Error(
+                "Something went wrong while updating the player.");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+
+    // =====================================================
+    // CLOSE EDIT
+    // =====================================================
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+
+        editingPlayerId = null;
+
+        selectedPlayer = null;
+
+        editContext = null;
+
+        model = new PlayerFormModel();
+    }
+
+
+    // =====================================================
+    // REQUEST SUSPEND
+    // =====================================================
+
+    private void RequestSuspend(
+        PlayerDto player)
+    {
+        if (isChangingStatus)
+        {
+            return;
+        }
+
+
+        playerForStatusChange =
+            player;
+
+
+        requestedActiveStatus =
+            false;
+
+
+        showStatusConfirmation =
+            true;
+    }
+
+
+    // =====================================================
+    // REQUEST ACTIVATE
+    // =====================================================
+
+    private void RequestActivate(
+        PlayerDto player)
+    {
+        if (isChangingStatus)
+        {
+            return;
+        }
+
+
+        playerForStatusChange =
+            player;
+
+
+        requestedActiveStatus =
+            true;
+
+
+        showStatusConfirmation =
+            true;
+    }
+
+
+    // =====================================================
+    // CONFIRM STATUS CHANGE
+    // =====================================================
+
+    private async Task ConfirmStatusChangeAsync()
+    {
+        if (playerForStatusChange is null ||
+            !requestedActiveStatus.HasValue ||
+            isChangingStatus)
+        {
+            return;
+        }
+
+
+        isChangingStatus = true;
+
+
+        try
+        {
+            Result result;
+
+
+            if (requestedActiveStatus.Value)
+            {
+                result =
+                    await PlayerService.ActivateAsync(
+                        playerForStatusChange.Id);
+            }
+            else
+            {
+                result =
+                    await PlayerService.SuspendAsync(
+                        playerForStatusChange.Id);
+            }
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error
+                    ?? "Unable to change player status.");
+
+
+                return;
+            }
+
+
+            Toast.Success(
+                result.Message
+                ?? "Player status updated successfully.");
+
+
+            showStatusConfirmation = false;
+
+            playerForStatusChange = null;
+
+            requestedActiveStatus = null;
+
+
+            await LoadPlayersAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Error changing player status: {ex}");
+
+
+            Toast.Error(
+                "Something went wrong while changing the player status.");
+        }
+        finally
+        {
+            isChangingStatus = false;
+        }
+    }
+
+
+    // =====================================================
+    // CANCEL STATUS CHANGE
+    // =====================================================
+
+    private void CancelStatusChange()
+    {
+        if (isChangingStatus)
+        {
+            return;
+        }
+
+
+        showStatusConfirmation = false;
+
+        playerForStatusChange = null;
+
+        requestedActiveStatus = null;
+    }
+
+
+    // =====================================================
+    // INITIALS
+    // =====================================================
+
+    private static string Initials(
+        PlayerDto player)
+    {
+        return Initials(
+            player.FirstName,
+            player.LastName,
+            player.GamerTag);
+    }
+
+
+    private static string Initials(
+        PlayerDetailsDto player)
+    {
+        return Initials(
+            player.FirstName,
+            player.LastName,
+            player.GamerTag);
+    }
+
+
+    private static string Initials(
+        string firstName,
+        string lastName,
+        string gamerTag)
+    {
+        var first =
+            string.IsNullOrWhiteSpace(firstName)
+                ? string.Empty
+                : firstName.Trim()[0].ToString();
+
+
+        var last =
+            string.IsNullOrWhiteSpace(lastName)
+                ? string.Empty
+                : lastName.Trim()[0].ToString();
+
+
+        var initials =
+            $"{first}{last}";
+
+
+        if (!string.IsNullOrWhiteSpace(initials))
+        {
+            return initials.ToUpperInvariant();
+        }
+
+
+        if (string.IsNullOrWhiteSpace(gamerTag))
+        {
+            return "P";
+        }
+
+
+        return gamerTag
+            .Trim()[0]
+            .ToString()
+            .ToUpperInvariant();
+    }
+
+
+    // =====================================================
+    // STATUS CSS
+    // =====================================================
+
+    private static string GetStatusClass(
+        PlayerDto player)
+    {
+        return player.IsActive
+            ? "adm-status active"
+            : "adm-status suspended";
+    }
+
+
+    private static string GetStatusClass(
+        PlayerDetailsDto player)
+    {
+        return player.IsActive
+            ? "adm-status active"
+            : "adm-status suspended";
+    }
+}

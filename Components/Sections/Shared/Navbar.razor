@@ -19,37 +19,24 @@
             <AuthorizeView>
                 <Authorized Context="authContext">
                     @{
-                        var dashboardUrl =
-                        authContext.User.IsInRole(Roles.Admin)
-                        ? "/admin/dashboard"
-                        : "/dashboard";
+                        var dashboardUrl = authContext.User.IsInRole(Roles.Admin) ? "/admin/dashboard": "/dashboard";
                     }
 
-                    <a class="btn btn-outline" href="@dashboardUrl">
-                        Dashboard
-                    </a>
+                    <a class="btn btn-outline" href="@dashboardUrl">Dashboard</a>
 
                     <form action="/Account/Logout" method="post">
                         <AntiforgeryToken />
 
-                        <input type="hidden"
-                               name="ReturnUrl"
-                               value="" />
+                        <input type="hidden" name="ReturnUrl" value="" />
 
-                        <button type="submit" class="btn btn-primary">
-                            Logout
-                        </button>
+                        <button type="submit" class="btn btn-primary">Logout</button>
                     </form>
                 </Authorized>
 
                 <NotAuthorized>
-                    <a class="btn btn-outline" href="/login">
-                        Login
-                    </a>
+                    <a class="btn btn-outline" href="/login">Login</a>
 
-                    <a class="btn btn-primary" href="/register">
-                        Join Now
-                    </a>
+                    <a class="btn btn-primary" href="/register">Join Now</a>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
