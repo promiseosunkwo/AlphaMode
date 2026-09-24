@@ -1,0 +1,537 @@
+@page "/dashboard/tournaments"
+@layout AlphaMode.Components.Layout.UserLayout
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+@using AlphaMode.Application.TournamentRegistration.DTOs
+@using AlphaMode.Application.TournamentRegistration.Requests
+@using AlphaMode.Application.TournamentRegistrations.DTOs
+@using AlphaMode.Application.TournamentRegistrations.Interfaces
+@using AlphaMode.Application.TournamentRegistrations.Requests
+@using AlphaMode.Domain.Enums
+@using AlphaMode.Components.Sections.UserSectionComponents
+@using AlphaMode.Components.Shared.Toast
+@using AlphaMode.Services
+
+@inject ITournamentRegistrationService RegistrationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ToastService Toast
+
+<PageTitle>Tournaments | AlphaMode</PageTitle>
+
+<ToastContainer />
+
+<PortalPageHeader Eyebrow="Competition hub"
+                  Title="Available tournaments"
+                  Description="Discover competitions, secure your place, and track registrations." />
+
+
+<div class="portal-filter-row">
+
+    <button type="button"
+            class="@(selectedGameId is null ? "active" : null)"
+            @onclick="() => SelectGame(null)">
+        All games
+    </button>
+
+    @foreach (var game in GameFilters)
+    {
+        <button type="button"
+                class="@(selectedGameId == game.Id ? "active" : null)"
+                @onclick="() => SelectGame(game.Id)">
+            @game.Name
+        </button>
+    }
+
+</div>
+
+
+@if (isLoading)
+{
+    <div class="portal-empty-state">
+        Loading tournaments...
+    </div>
+}
+else if (!FilteredTournaments.Any())
+{
+    <div class="portal-empty-state">
+
+        <h3>No tournaments available</h3>
+
+        <p>
+            There are currently no tournaments matching this filter.
+        </p>
+
+    </div>
+}
+else
+{
+    <section class="tournament-browser">
+
+        @foreach (var tournament in FilteredTournaments)
+        {
+            <article class="portal-tournament-card"
+                     @key="tournament.Id">
+
+                <div class="tournament-cover"
+                     style="@GetCoverStyle(tournament)">
+
+                    <span>
+                        @tournament.Game
+                    </span>
+
+                    <b>
+                        @FormatMoney(
+                        tournament.PrizePool,
+                                tournament.Currency)
+            </b>
+
+        </div>
+
+
+        <div class="tournament-card-body">
+
+            <span class="@GetTournamentStatusClass(tournament)">
+                @GetTournamentStatusText(tournament)
+            </span>
+
+
+            <h2>
+                @tournament.Name
+            </h2>
+
+
+            <div class="tournament-details">
+
+                <span>
+                    <small>Starts</small>
+
+                    @tournament.StartsAt.ToLocalTime().ToString("dd MMM, HH:mm")
+                </span>
+
+
+                <span>
+                    <small>Players</small>
+
+                    @tournament.RegisteredPlayers
+                    /
+                    @tournament.Capacity
+                </span>
+
+            </div>
+
+
+            <progress value="@tournament.RegisteredPlayers"
+                      max="@Math.Max(tournament.Capacity, 1)">
+            </progress>
+
+
+            @if (tournament.RegistrationStatus == TournamentRegistrationStatus.PendingPayment)
+                    {
+                        <button type="button" class="portal-button primary" @onclick="() => ContinuePayment(tournament)">
+                            Continue payment
+                        </button>
+                    }
+                    else if (tournament.RegistrationStatus == TournamentRegistrationStatus.Registered)
+                    {
+                        <button type="button" class="portal-button subtle" disabled> Registered ✓ </button>
+                    }
+                    else if (tournament.RegistrationStatus == TournamentRegistrationStatus.CheckedIn)
+                    {
+                        <button type="button" class="portal-button subtle" disabled> Checked in ✓ </button>
+                    }
+                    else if (tournament.RegistrationStatus == TournamentRegistrationStatus.Disqualified)
+                    {
+                        <button type="button" class="portal-button subtle" disabled> Disqualified </button>
+                    }
+                    else if (tournament.RegistrationStatus == TournamentRegistrationStatus.Withdrawn)
+                    {
+                        <button type="button" class="portal-button subtle" disabled>
+                            Withdrawn
+                        </button>
+                    }
+                    else if (tournament.RegistrationStatus == TournamentRegistrationStatus.Cancelled)
+                    {
+                        <button type="button"
+                                class="portal-button subtle"
+                                disabled>
+
+                            Registration cancelled
+
+                        </button>
+                    }
+                    else if (!CanRegister(tournament))
+                    {
+                        <button type="button"
+                                class="portal-button subtle"
+                                disabled>
+
+                            @GetUnavailableText(tournament)
+
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="portal-button primary" disabled="@(registeringTournamentId == tournament.Id)"
+                        @onclick="() => RegisterAsync(tournament)">
+
+                        @(registeringTournamentId == tournament.Id
+                                ? "Registering..."
+                                : tournament.EntryFee > 0
+                                ? $"Register · {FormatMoney(tournament.EntryFee, "NGN")}"
+                                : "Register now")
+
+            </button>
+                    }
+                </div>
+
+            </article>
+        }
+
+    </section>
+}
+
+
+@code {
+
+    private List<UserTournamentDto> tournaments = new();
+
+    private bool isLoading;
+
+    private Guid? registeringTournamentId;
+
+    private Guid? selectedGameId;
+
+    private string? currentUserId;
+
+
+    // =====================================================
+    // INITIALISE
+    // =====================================================
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUserAsync();
+
+        await LoadTournamentsAsync();
+    }
+
+
+    private async Task LoadCurrentUserAsync()
+    {
+        var authenticationState =
+            await AuthenticationStateProvider
+                .GetAuthenticationStateAsync();
+
+        var user =
+            authenticationState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            currentUserId = null;
+            return;
+        }
+
+        currentUserId =
+            user.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+    }
+
+
+    private async Task LoadTournamentsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            Toast.Error(
+                "Your account could not be identified.");
+
+            return;
+        }
+
+        isLoading = true;
+
+        try
+        {
+            var result =
+                await RegistrationService
+                    .GetAvailableForUserAsync(
+                        currentUserId);
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                tournaments.Clear();
+
+                Toast.Error(
+                    result.Error ??
+                    "Unable to load tournaments.");
+
+                return;
+            }
+
+            tournaments =
+                result.Value.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            tournaments.Clear();
+
+            Toast.Error(
+                "Something went wrong while loading tournaments.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    // =====================================================
+    // REGISTER
+    // =====================================================
+
+    private async Task RegisterAsync(
+        UserTournamentDto tournament)
+    {
+        if (registeringTournamentId.HasValue)
+            return;
+
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            Toast.Error(
+                "Your account could not be identified.");
+
+            return;
+        }
+
+        registeringTournamentId =
+            tournament.Id;
+
+        try
+        {
+            var result =
+                await RegistrationService
+                    .RegisterForTournamentAsync(
+                        new RegisterForTournamentRequest
+                        {
+                            TournamentId =
+                                tournament.Id,
+
+                            UserId =
+                                currentUserId
+                        });
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                Toast.Warning(
+                    result.Error ??
+                    "Unable to register for this tournament.");
+
+                return;
+            }
+
+            var registration =
+                result.Value;
+
+            if (registration.PaymentRequired)
+            {
+                Toast.Success(
+                    $"Registration started. {FormatMoney(registration.AmountDue, registration.Currency)} payment is required.");
+
+                /*
+                 * Payment initiation comes next.
+                 *
+                 * registration.PaymentId now contains the
+                 * Payment record to send to the payment page.
+                 */
+            }
+            else
+            {
+                Toast.Success(
+                    result.Message ??
+                    "Tournament registration successful.");
+            }
+
+            await LoadTournamentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "Something went wrong while registering.");
+        }
+        finally
+        {
+            registeringTournamentId = null;
+        }
+    }
+
+
+    // =====================================================
+    // PAYMENT
+    // =====================================================
+
+    private void ContinuePayment(UserTournamentDto tournament)
+    {
+        if (!tournament.RegistrationId.HasValue)
+            {
+                Toast.Warning(
+                    "Tournament registration could not be found.");
+
+                return;
+            }
+
+        Navigation.NavigateTo($"/dashboard/checkout/{tournament.RegistrationId}");
+    }
+
+
+    // =====================================================
+    // FILTERS
+    // =====================================================
+
+    private IEnumerable<UserTournamentDto>FilteredTournaments => selectedGameId.HasValue ? tournaments.Where(x => x.GameId == selectedGameId.Value) : tournaments;
+
+
+    private IEnumerable<GameFilterItem>
+        GameFilters =>
+            tournaments
+                .GroupBy(x =>
+                    new
+                    {
+                        x.GameId,
+                        x.Game
+                    })
+                .Select(x =>
+                    new GameFilterItem(
+                        x.Key.GameId,
+                        x.Key.Game))
+                .OrderBy(x => x.Name);
+
+
+    private void SelectGame(Guid? gameId)
+    {
+        selectedGameId = gameId;
+    }
+
+
+    // =====================================================
+    // ELIGIBILITY DISPLAY
+    // =====================================================
+
+    private static bool CanRegister(
+        UserTournamentDto tournament)
+    {
+        var now = DateTime.UtcNow;
+
+        if (tournament.HasRegistration)
+            return false;
+
+        if (tournament.IsFull)
+            return false;
+
+        if (tournament.StartsAt <= now)
+            return false;
+
+        if (tournament.RegistrationOpenDate.HasValue &&
+            now < tournament.RegistrationOpenDate.Value)
+            return false;
+
+        if (tournament.RegistrationDeadline.HasValue &&
+            now > tournament.RegistrationDeadline.Value)
+            return false;
+
+        return true;
+    }
+
+
+    private static string GetUnavailableText(
+        UserTournamentDto tournament)
+    {
+        var now = DateTime.UtcNow;
+
+        if (tournament.IsFull)
+            return "Tournament full";
+
+        if (tournament.StartsAt <= now)
+            return "Tournament started";
+
+        if (tournament.RegistrationOpenDate.HasValue &&
+            now < tournament.RegistrationOpenDate.Value)
+            return "Registration opens soon";
+
+        if (tournament.RegistrationDeadline.HasValue &&
+            now > tournament.RegistrationDeadline.Value)
+            return "Registration closed";
+
+        return "Unavailable";
+    }
+
+
+    // =====================================================
+    // DISPLAY
+    // =====================================================
+
+    private static string GetTournamentStatusText(
+        UserTournamentDto tournament)
+    {
+        if (tournament.IsFull)
+            return "Full";
+
+        if (tournament.RegistrationDeadline.HasValue &&
+            DateTime.UtcNow >
+            tournament.RegistrationDeadline.Value)
+            return "Registration closed";
+
+        return "Registration open";
+    }
+
+
+    private static string GetTournamentStatusClass(
+        UserTournamentDto tournament)
+    {
+        if (!CanRegister(tournament) &&
+            !tournament.HasRegistration)
+        {
+            return "portal-status";
+        }
+
+        return "portal-status open";
+    }
+
+
+    private static string FormatMoney(
+        decimal amount,
+        string currency)
+    {
+        return currency.ToUpperInvariant() switch
+        {
+            "NGN" => $"₦{amount:N0}",
+            "GBP" => $"£{amount:N2}",
+            "USD" => $"${amount:N2}",
+            "EUR" => $"€{amount:N2}",
+            _ => $"{currency} {amount:N2}"
+        };
+    }
+
+
+    private static string GetCoverStyle(
+        UserTournamentDto tournament)
+    {
+        if (string.IsNullOrWhiteSpace(
+                tournament.ImageUrl))
+        {
+            return string.Empty;
+        }
+
+        return
+            $"background-image: linear-gradient(rgba(7,10,18,.28), rgba(7,10,18,.78)), url('{tournament.ImageUrl}'); background-size: cover; background-position: center;";
+    }
+
+
+    private sealed record GameFilterItem(Guid Id, string Name);
+}

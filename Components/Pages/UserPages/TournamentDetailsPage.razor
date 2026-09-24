@@ -1,0 +1,1036 @@
+﻿@page "/dashboard/my-tournaments/{TournamentId:guid}"
+
+@layout AlphaMode.Components.Layout.UserLayout
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+@using AlphaMode.Application.TournamentRegistrations.DTOs
+@using AlphaMode.Application.TournamentRegistrations.Interfaces
+@using AlphaMode.Domain.Entities
+@using AlphaMode.Domain.Enums
+@using AlphaMode.Components.Sections.UserSectionComponents
+@using AlphaMode.Services
+
+@inject ITournamentRegistrationService RegistrationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ToastService Toast
+
+<PageTitle>
+    @(tournament is null ? "Tournament | AlphaMode" : $"{tournament.TournamentName} | AlphaMode")
+</PageTitle>
+
+
+@if (isLoading)
+{
+    <div class="portal-empty-state">
+        Loading tournament...
+    </div>
+}
+else if (tournament is null)
+{
+    <div class="portal-empty-state">
+
+        <h2>Tournament unavailable</h2>
+
+        <p>
+            @errorMessage
+        </p>
+
+        <button type="button" class="portal-button primary"
+                @onclick="BackToMyTournaments">
+            Back to my tournaments
+        </button>
+
+    </div>
+}
+else
+{
+    <section class="competition-centre">
+
+        @* ============================================= *@
+        @* HERO                                          *@
+        @* ============================================= *@
+
+        <header class="competition-hero" style="@GetHeroStyle()">
+
+            <div class="competition-hero-overlay">
+
+                <button type="button" class="competition-back"
+                        @onclick="BackToMyTournaments">
+                    ← My tournaments
+                </button>
+
+
+                <div class="competition-hero-content">
+
+                    <div>
+
+                        <span class="competition-game">
+                            @tournament.GameName
+                        </span>
+
+                        <h1>
+                            @tournament.TournamentName
+                        </h1>
+
+                        <div class="competition-hero-meta">
+
+                            <span>
+                                @FormatTournamentFormat(tournament.Format)
+                        </span>
+
+                        <span>•</span>
+
+                        <span>
+                            @tournament.RegisteredPlayers/@tournament.MaxPlayers
+                            players
+                        </span>
+
+                        <span>•</span>
+
+                        <span>
+                            @tournament.StartDate.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <span class="@GetRegistrationStatusClass()">
+                    @GetRegistrationStatusText()
+                </span>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    @* ============================================= *@
+    @* TABS                                          *@
+    @* ============================================= *@
+
+    <nav class="competition-tabs">
+
+        <button type="button"
+                class="@GetTabClass(CompetitionTab.Overview)"
+                @onclick="() => SelectTab(CompetitionTab.Overview)">
+            Overview
+        </button>
+
+        <button type="button"
+                class="@GetTabClass(CompetitionTab.Players)"
+                @onclick="() => SelectTab(CompetitionTab.Players)">
+            Players
+            <span>
+                @tournament.RegisteredPlayers
+            </span>
+        </button>
+
+        <button type="button"
+                class="@GetTabClass(CompetitionTab.Fixtures)"
+                @onclick="() => SelectTab(CompetitionTab.Fixtures)">
+            Fixtures
+        </button>
+
+        <button type="button"
+                class="@GetTabClass(CompetitionTab.Standings)"
+                @onclick="() => SelectTab(CompetitionTab.Standings)">
+            Standings
+        </button>
+
+    </nav>
+
+
+    @* ============================================= *@
+    @* TAB CONTENT                                   *@
+    @* ============================================= *@
+
+    <div class="competition-content">
+
+        @if (selectedTab == CompetitionTab.Overview)
+            {
+                <div class="competition-overview">
+
+                    <div class="competition-main-column">
+
+                        <section class="competition-panel">
+
+                            <div class="competition-panel-heading">
+                                <div>
+                                    <span class="competition-eyebrow">
+                                        Your participation
+                                    </span>
+
+                                    <h2>Tournament journey</h2>
+                                </div>
+
+                                <span class="@GetRegistrationStatusClass()">
+                                    @GetRegistrationStatusText()
+                                </span>
+                            </div>
+
+
+                            <div class="competition-journey">
+
+                                <div class="journey-step complete">
+                                    <span>✓</span>
+
+                                    <div>
+                                        <strong>Joined</strong>
+                                        <small>Tournament entry created</small>
+                                    </div>
+                                </div>
+
+
+                                <div class="@GetJourneyLineClass(2)"></div>
+
+
+                                <div class="@GetJourneyStepClass(2)">
+                                    <span>
+                                        @(HasConfirmedRegistration() ? "✓" : "2")
+                                    </span>
+
+                                    <div>
+                                        <strong>Registered</strong>
+
+                                        <small>
+                                            @(HasConfirmedRegistration()
+                                            ? "Place confirmed"
+                                            : "Awaiting confirmation")
+                                        </small>
+                                    </div>
+                                </div>
+
+
+                                <div class="@GetJourneyLineClass(3)"></div>
+
+
+                                <div class="@GetJourneyStepClass(3)">
+                                    <span>
+                                        @(tournament.RegistrationStatus == TournamentRegistrationStatus.CheckedIn
+                                                                        ? "✓"
+                                                                        : "3")
+                            </span>
+
+                                    <div>
+                                        <strong>Check-in</strong>
+                                        <small>@GetCheckInShortText()</small>
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+                    @if (tournament.RegistrationStatus ==
+                                        TournamentRegistrationStatus.PendingPayment)
+                            {
+                                <div class="competition-action-box warning">
+
+                                    <div>
+                                        <strong>Payment required</strong>
+
+                                        <p>
+                                            Your place will be confirmed when your
+                                            tournament entry payment is completed.
+                                        </p>
+                                    </div>
+
+                                    <button type="button"
+                                            class="portal-button primary"
+                                            @onclick="ContinuePayment">
+                                        Continue payment
+                                    </button>
+
+                                </div>
+                            }
+                            else if (CanCheckIn())
+                            {
+                                <div class="competition-action-box success">
+
+                                    <div>
+                                        <strong>Check-in is open</strong>
+
+                                        <p>
+                                            Confirm that you're ready to participate
+                                            in this tournament.
+                                        </p>
+                                    </div>
+
+                                    <button type="button"
+                                            class="portal-button primary"
+                                            disabled="@isCheckingIn"
+                                            @onclick="CheckInAsync">
+
+                                        @(isCheckingIn
+                                        ? "Checking in..."
+                                        : "Check in now")
+
+                        </button>
+
+                                </div>
+                        }
+                            else if (tournament.RegistrationStatus == TournamentRegistrationStatus.Registered)
+                            {
+                                <div class="competition-action-box">
+
+                                    <div>
+                                        <strong>You're registered</strong>
+                                        <p>@GetCheckInMessage()</p>
+                                    </div>
+
+                                </div>
+                            }
+                            else if (tournament.RegistrationStatus == TournamentRegistrationStatus.CheckedIn)
+                            {
+                                <div class="competition-action-box success">
+
+                                    <div>
+                                        <strong>You're checked in ✓</strong>
+
+                                        <p>
+                                            You're ready to compete. Fixtures will
+                                            appear here when they are available.
+                                        </p>
+                                    </div>
+
+                                </div>
+                            }
+
+                        </section>
+
+
+                        <section class="competition-panel">
+
+                            <div class="competition-panel-heading">
+                                <div>
+                                    <span class="competition-eyebrow">
+                                        About
+                                    </span>
+
+                                    <h2>Tournament information</h2>
+                                </div>
+                            </div>
+
+
+                            @if (string.IsNullOrWhiteSpace(tournament.Description))
+                            {
+                                <p class="competition-muted">
+                                    No tournament description has been provided.
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="competition-description">
+                                    @tournament.Description
+                                </p>
+                            }
+
+                </section>
+
+            </div>
+
+
+            <aside class="competition-side-column">
+
+                <section class="competition-panel">
+
+                    <span class="competition-eyebrow">
+                        Tournament
+                    </span>
+
+                    <div class="competition-info-grid">
+
+                        <div>
+                            <small>Game</small>
+                            <strong>@tournament.GameName</strong>
+                        </div>
+
+                        <div>
+                            <small>Format</small>
+                            <strong>
+                                @FormatTournamentFormat(tournament.Format)
+                            </strong>
+                        </div>
+
+                        <div>
+                            <small>Starts</small>
+
+                            <strong>
+                                @tournament.StartDate.ToLocalTime().ToString("dd MMM yyyy")
+                            </strong>
+
+                            <span>
+                                @tournament.StartDate.ToLocalTime().ToString("HH:mm")
+                            </span>
+                        </div>
+
+                        <div>
+                            <small>Ends</small>
+
+                            <strong>
+                                @tournament.EndDate.ToLocalTime().ToString("dd MMM yyyy")
+                            </strong>
+
+                            <span>
+                                @tournament.EndDate.ToLocalTime().ToString("HH:mm")
+                            </span>
+                        </div>
+
+                        <div>
+                            <small>Entry fee</small>
+
+                            <strong>
+                                @(tournament.EntryFee <= 0
+                                ? "Free"
+                                : FormatMoney(
+                                tournament.EntryFee,
+                                "NGN"))
+                            </strong>
+                        </div>
+
+                                <div>
+                                    <small>Prize pool</small>
+
+                                    <strong>
+                                        @FormatMoney(
+                                    tournament.PrizePool,
+                                    tournament.Currency)
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <section class="competition-panel">
+
+                    <span class="competition-eyebrow">
+                        Players
+                    </span>
+
+                    <div class="competition-player-summary">
+
+                        <strong>
+                            @tournament.RegisteredPlayers /
+                            @tournament.MaxPlayers
+                        </strong>
+
+                        <span>confirmed players</span>
+
+                        <progress value="@tournament.RegisteredPlayers"
+                                  max="@tournament.MaxPlayers">
+                        </progress>
+
+                        <div class="competition-checkin-count">
+                            <span>Checked in</span>
+                            <strong>@tournament.CheckedInPlayers</strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <section class="competition-panel">
+
+                    <span class="competition-eyebrow">
+                        Scoring
+                    </span>
+
+                    <div class="competition-score-rules">
+
+                        <div>
+                            <small>Win</small>
+                            <strong>@tournament.PointsForWin pts</strong>
+                        </div>
+
+                        <div>
+                            <small>Draw</small>
+                            <strong>@tournament.PointsForDraw pts</strong>
+                        </div>
+
+                        <div>
+                            <small>Loss</small>
+                            <strong>@tournament.PointsForLoss pts</strong>
+                        </div>
+
+                    </div>
+
+                    <div class="competition-legs">
+                        <span>Legs</span>
+                        <strong>@tournament.Legs</strong>
+                    </div>
+
+                </section>
+
+            </aside>
+
+        </div>
+            }
+            else if (selectedTab == CompetitionTab.Players)
+            {
+                <section class="competition-panel">
+
+                    <div class="competition-panel-heading">
+
+                        <div>
+                            <span class="competition-eyebrow">
+                                Participants
+                            </span>
+
+                            <h2>Tournament players</h2>
+                        </div>
+
+                        <span class="competition-count">
+                            @tournament.Participants.Count players
+                        </span>
+
+                    </div>
+
+
+                    @if (!tournament.Participants.Any())
+                    {
+                        <div class="portal-empty-state">
+                            No confirmed players yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="competition-player-list">
+
+                            @for (var i = 0; i < tournament.Participants.Count; i++)
+                            {
+                                var participant = tournament.Participants[i];
+
+                                <div class="competition-player-row"
+                                     @key="participant.PlayerId">
+
+                                    <span class="competition-player-position">
+                                        @(i + 1)
+                                    </span>
+
+
+                                    <div class="competition-avatar">
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                                                participant.AvatarUrl))
+                                        {
+                                            <img src="@participant.AvatarUrl"
+                                                 alt="@participant.GamerTag" />
+                                        }
+                                        else
+                                        {
+                                            <span>
+                                                @GetInitials(
+                                                participant.GamerTag)
+                        </span>
+                                                }
+
+                            </div>
+
+
+                            <div class="competition-player-name">
+
+                                <strong>
+                                    @participant.GamerTag
+                                </strong>
+
+                                <span>
+                                    @participant.RankingPoints
+                                    ranking points
+                                </span>
+
+                            </div>
+
+
+                            <div class="competition-player-state">
+
+                                @if (participant.Status == TournamentRegistrationStatus.CheckedIn)
+                                {
+                                    <span class="portal-status open">
+                                        Checked in
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="portal-status">
+                                        Registered
+                                    </span>
+                                }
+
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </section>
+         }else if (selectedTab == CompetitionTab.Fixtures)
+            {
+            <section class="competition-panel">
+
+                <div class="competition-feature-empty">
+
+                    <div class="competition-feature-icon">
+                        ⚔
+                    </div>
+
+                    <h2>Fixtures aren't available yet</h2>
+
+                    <p>
+                        Match fixtures will appear here once the
+                        tournament organiser generates them.
+                    </p>
+
+                    <span>
+                        @tournament.CheckedInPlayers
+                        players currently checked in
+                    </span>
+
+                </div>
+
+            </section>
+        }
+        else if (selectedTab == CompetitionTab.Standings)
+        {
+            <section class="competition-panel">
+
+                <div class="competition-feature-empty">
+
+                    <div class="competition-feature-icon">
+                        🏆
+                    </div>
+
+                    <h2>Standings aren't available yet</h2>
+
+                    <p>
+                        Tournament standings will appear here as
+                        match results are recorded.
+                    </p>
+
+                </div>
+
+            </section>
+        }
+
+    </div>
+
+</section>
+}
+
+
+
+
+
+@code {
+
+    [Parameter]
+    public Guid TournamentId { get; set; }
+
+    private MyTournamentDetailsDto? tournament;
+
+    private string? currentUserId;
+
+    private string errorMessage = "The tournament could not be loaded.";
+
+    private bool isLoading = true;
+
+    private bool isCheckingIn;
+
+    private CompetitionTab selectedTab = CompetitionTab.Overview;
+
+
+    // =====================================================
+    // LIFECYCLE
+    // =====================================================
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadCurrentUserAsync();
+
+        await LoadTournamentAsync();
+    }
+
+
+    // =====================================================
+    // AUTHENTICATION
+    // =====================================================
+
+    private async Task LoadCurrentUserAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        currentUserId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    }
+
+
+    // =====================================================
+    // LOAD TOURNAMENT
+    // =====================================================
+
+    private async Task LoadTournamentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            errorMessage = "Your account could not be identified.";
+
+            isLoading = false;
+
+            return;
+        }
+
+        isLoading = true;
+
+        try
+        {
+            var result = await RegistrationService.GetPlayerTournamentDetailsAsync(TournamentId, currentUserId);
+
+            if (!result.Succeeded || result.Value is null)
+            {
+                tournament = null;
+
+                errorMessage = result.Error ?? "Tournament could not be loaded.";
+
+                return;
+            }
+
+            tournament = result.Value;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            tournament = null;
+
+            errorMessage = "Something went wrong while loading the tournament.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    // =====================================================
+    // OVERVIEW
+    // =====================================================
+
+
+
+
+    // =====================================================
+    // CHECK-IN
+    // =====================================================
+
+    private bool CanCheckIn()
+    {
+        if (tournament is null) return false;
+
+        if (tournament.RegistrationStatus != TournamentRegistrationStatus.Registered)
+        {
+            return false;
+        }
+
+        var now = DateTime.UtcNow;
+
+        var opens = tournament.StartDate.AddMinutes(-30);
+
+        return now >= opens && now < tournament.StartDate;
+    }
+
+
+    private async Task CheckInAsync()
+    {
+        if (tournament is null || isCheckingIn || string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return;
+        }
+
+        isCheckingIn = true;
+
+        try
+        {
+            var result = await RegistrationService.PlayerCheckInAsync(tournament.RegistrationId, currentUserId);
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(result.Error ?? "Unable to check in.");
+
+                return;
+            }
+
+            Toast.Success(result.Message ?? "You have successfully checked in.");
+
+            await LoadTournamentAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "Something went wrong while checking in.");
+        }
+        finally
+        {
+            isCheckingIn = false;
+        }
+    }
+
+
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
+
+    private void BackToMyTournaments()
+    {
+        Navigation.NavigateTo("/dashboard/my-tournaments");
+    }
+
+
+    private void ContinuePayment()
+    {
+        if (tournament is null) return;
+
+        Navigation.NavigateTo($"/dashboard/checkout/{tournament.RegistrationId}");
+    }
+
+
+    // =====================================================
+    // TABS
+    // =====================================================
+
+    private void SelectTab(CompetitionTab tab)
+    {
+        selectedTab = tab;
+    }
+
+
+    private string GetTabClass(CompetitionTab tab)
+    {
+        return selectedTab == tab ? "competition-tab active" : "competition-tab";
+    }
+
+
+    // =====================================================
+    // DISPLAY HELPERS
+    // =====================================================
+
+    private bool HasConfirmedRegistration()
+    {
+        if (tournament is null) return false;
+
+        return tournament.RegistrationStatus == TournamentRegistrationStatus.Registered || tournament.RegistrationStatus == TournamentRegistrationStatus.CheckedIn;
+    }
+
+
+    private string GetRegistrationStatusText()
+    {
+        if (tournament is null)
+            return string.Empty;
+
+        return tournament.RegistrationStatus switch
+        {
+            TournamentRegistrationStatus.PendingPayment =>
+                "Payment pending",
+
+            TournamentRegistrationStatus.Registered =>
+                "Registered",
+
+            TournamentRegistrationStatus.CheckedIn =>
+                "Checked in",
+
+            TournamentRegistrationStatus.Withdrawn =>
+                "Withdrawn",
+
+            TournamentRegistrationStatus.Disqualified =>
+                "Disqualified",
+
+            TournamentRegistrationStatus.Cancelled =>
+                "Cancelled",
+
+            _ =>
+                tournament.RegistrationStatus.ToString()
+        };
+    }
+
+
+    private string GetRegistrationStatusClass()
+    {
+        if (tournament is null)
+            return "portal-status";
+
+        return tournament.RegistrationStatus switch
+        {
+            TournamentRegistrationStatus.Registered =>
+                "portal-status open",
+
+            TournamentRegistrationStatus.CheckedIn =>
+                "portal-status open",
+
+            TournamentRegistrationStatus.PendingPayment =>
+                "portal-status pending",
+
+            TournamentRegistrationStatus.Disqualified =>
+                "portal-status danger",
+
+            TournamentRegistrationStatus.Cancelled =>
+                "portal-status danger",
+
+            _ =>
+                "portal-status"
+        };
+    }
+
+
+    private string GetJourneyStepClass(int step)
+    {
+        if (tournament is null) return "journey-step";
+
+        var complete = step switch
+        {
+            2 => HasConfirmedRegistration(),
+
+            3 => tournament.RegistrationStatus == TournamentRegistrationStatus.CheckedIn,
+
+            _ => false
+        };
+
+        return complete
+            ? "journey-step complete"
+            : "journey-step";
+    }
+
+
+    private string GetJourneyLineClass(int step)
+    {
+        if (tournament is null) return "journey-line";
+
+        var complete = step switch
+        {
+            2 =>
+                HasConfirmedRegistration(),
+
+            3 =>
+                tournament.RegistrationStatus ==
+                TournamentRegistrationStatus.CheckedIn,
+
+            _ =>
+                false
+        };
+
+        return complete
+            ? "journey-line complete"
+            : "journey-line";
+    }
+
+
+    private string GetCheckInShortText()
+    {
+        if (tournament is null) return string.Empty;
+
+        if (tournament.RegistrationStatus == TournamentRegistrationStatus.CheckedIn)
+        {
+            return "Completed";
+        }
+
+        if (tournament.RegistrationStatus == TournamentRegistrationStatus.PendingPayment)
+        {
+            return "Payment required first";
+        }
+
+        return "30 min before start";
+    }
+
+
+    private string GetCheckInMessage()
+    {
+        if (tournament is null)
+            return string.Empty;
+
+        var opens = tournament.StartDate.AddMinutes(-30);
+
+        if (DateTime.UtcNow < opens)
+        {
+            return $"Check-in opens {opens.ToLocalTime():dd MMM 'at' HH:mm}.";
+        }
+
+        if (DateTime.UtcNow >= tournament.StartDate)
+        {
+            return "The tournament has already started.";
+        }
+
+        return "Check-in is now available.";
+    }
+
+
+    private string GetHeroStyle()
+    {
+        if (tournament is null || string.IsNullOrWhiteSpace(tournament.ImageUrl))
+        {
+            return string.Empty;
+        }
+
+        return $"background-image: url('{tournament.ImageUrl}');";
+    }
+
+
+    private static string FormatTournamentFormat(TournamentFormat format)
+    {
+        return format.ToString();
+    }
+
+
+    private static string FormatMoney(
+        decimal amount,
+        string currency)
+    {
+        return currency.ToUpperInvariant() switch
+        {
+            "NGN" =>
+                $"₦{amount:N0}",
+
+            "GBP" =>
+                $"£{amount:N2}",
+
+            "USD" =>
+                $"${amount:N2}",
+
+            "EUR" =>
+                $"€{amount:N2}",
+
+            _ =>
+                $"{currency} {amount:N2}"
+        };
+    }
+
+
+    private static string GetInitials(
+        string gamerTag)
+    {
+        if (string.IsNullOrWhiteSpace(gamerTag))
+            return "?";
+
+        var value =
+            gamerTag.Trim();
+
+        return value.Length == 1
+            ? value.ToUpperInvariant()
+            : value[..2].ToUpperInvariant();
+    }
+
+
+    private enum CompetitionTab
+    {
+        Overview,
+        Players,
+        Fixtures,
+        Standings
+    }
+}

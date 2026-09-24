@@ -1,0 +1,1248 @@
+﻿@page "/admin/tournaments/{TournamentId:guid}/participants"
+
+@layout AlphaMode.Components.Layout.AdminLayout
+@rendermode InteractiveServer
+
+@using AlphaMode.Application.Common.Models
+@using AlphaMode.Application.TournamentRegistrationAdminDisplay.DTOs
+@using AlphaMode.Application.TournamentRegistrations.DTOs
+@using AlphaMode.Application.TournamentRegistrations.Interfaces
+@using AlphaMode.Application.TournamentRegistrations.Requests
+@using AlphaMode.Components.Sections.AdminSectionComponents
+@using AlphaMode.Components.Sections.Shared
+@using AlphaMode.Components.Shared.ConfirmDialog
+@using AlphaMode.Domain.Enums
+@using AlphaMode.Services
+@using System.ComponentModel.DataAnnotations
+
+@inject ITournamentRegistrationService RegistrationService
+@inject NavigationManager Navigation
+@inject ToastService Toast
+
+<PageTitle>Tournament Participants | AlphaMode</PageTitle>
+
+
+@if (isLoading)
+{
+    <div class="adm-empty-state">
+        Loading tournament participants...
+    </div>
+}
+else if (pageData is null)
+{
+    <div class="adm-empty-state">
+
+        <h3>Tournament unavailable</h3>
+
+        <p>@errorMessage</p>
+
+        <button type="button"
+                class="adm-button secondary"
+                @onclick="BackToTournaments">
+            Back to tournaments
+        </button>
+
+    </div>
+}
+else
+{
+    <AdminPageHeader
+        Eyebrow="Tournament management"
+        Title="@pageData.Tournament.TournamentName"
+        Description="@GetTournamentDescription()">
+
+        <Actions>
+
+            <button type="button"
+                    class="adm-button secondary"
+                    @onclick="BackToTournaments">
+                Back
+            </button>
+
+            <button type="button"
+                    class="adm-button primary"
+                    disabled="@(!CanPrepareFixtures())"
+                    @onclick="PrepareFixtures">
+                Generate fixtures
+            </button>
+
+        </Actions>
+
+    </AdminPageHeader>
+
+
+    @* ============================================= *@
+    @* READINESS SUMMARY                             *@
+    @* ============================================= *@
+
+    <section class="participant-summary-grid">
+
+        <article class="adm-panel participant-summary-card">
+            <span>Total registrations</span>
+            <strong>@pageData.Tournament.TotalRegistrations</strong>
+            <small>all registration records</small>
+        </article>
+
+        <article class="adm-panel participant-summary-card">
+            <span>Confirmed</span>
+            <strong>@pageData.Tournament.ConfirmedPlayers</strong>
+            <small>registered + checked in</small>
+        </article>
+
+        <article class="adm-panel participant-summary-card">
+            <span>Checked in</span>
+            <strong>@pageData.Tournament.CheckedIn</strong>
+            <small>eligible for fixtures</small>
+        </article>
+
+        <article class="adm-panel participant-summary-card">
+            <span>Available</span>
+            <strong>@pageData.Tournament.AvailablePlaces</strong>
+            <small>
+                of @pageData.Tournament.MaxPlayers places
+            </small>
+        </article>
+
+    </section>
+
+    @* ============================================= *@
+    @* READINESS                                     *@
+    @* ============================================= *@
+
+    <section class="adm-panel participant-readiness">
+
+        <div class="participant-readiness-heading">
+
+            <div>
+
+                <span class="adm-eyebrow">Tournament readiness</span>
+
+                <h2>
+                    @GetReadinessTitle()
+                </h2>
+
+                <p>
+                    @GetReadinessDescription()
+                </p>
+
+            </div>
+
+
+            <div class="readiness-number">
+
+                <strong>
+                    @pageData.Tournament.EligiblePlayers
+                </strong>
+
+                <span>
+                    eligible
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="readiness-progress">
+
+            <div class="readiness-progress-heading">
+
+                <span>
+                    Player check-in
+                </span>
+
+                <strong>
+                    @GetCheckInPercentage()%
+                </strong>
+
+            </div>
+
+            <progress value="@pageData.Tournament.CheckedIn"
+                      max="@GetConfirmedProgressMaximum()">
+            </progress>
+
+        </div>
+
+
+        <div class="readiness-breakdown">
+
+            <span>
+                <b>@pageData.Tournament.PendingPayment</b>
+                Payment pending
+            </span>
+
+            <span>
+                <b>@pageData.Tournament.Registered</b>
+                Awaiting check-in
+            </span>
+
+            <span>
+                <b>@pageData.Tournament.CheckedIn</b>
+                Checked in
+            </span>
+
+            <span>
+                <b>@pageData.Tournament.Disqualified</b>
+                Disqualified
+            </span>
+
+        </div>
+
+    </section>
+
+
+    @* ============================================= *@
+    @* TOOLBAR                                       *@
+    @* ============================================= *@
+
+    <div class="adm-toolbar">
+
+        <div class="adm-search">
+
+            <input type="search"
+                   placeholder="Search gamer tag, name or email..."
+                   @bind="searchTerm"
+                   @bind:event="oninput" />
+
+        </div>
+
+
+        <select class="participant-filter"
+                @bind="selectedStatus">
+
+            <option value="">All statuses</option>
+
+            @foreach (var status in
+                Enum.GetValues<TournamentRegistrationStatus>())
+            {
+                <option value="@status.ToString()">
+                    @FormatStatus(status)
+                </option>
+            }
+
+        </select>
+
+
+        <span class="adm-result-count">
+            @FilteredParticipants.Count()
+            participant(s)
+        </span>
+
+    </div>
+
+
+    @* ============================================= *@
+    @* TABLE                                         *@
+    @* ============================================= *@
+
+    <section class="adm-panel">
+
+        @if (!FilteredParticipants.Any())
+        {
+            <div class="adm-empty-state">
+
+                <h3>No participants found</h3>
+
+                <p>
+                    No registrations match the current
+                    search and filter.
+                </p>
+
+            </div>
+        }
+        else
+        {
+            <div class="adm-table-wrap">
+
+                <table class="adm-table">
+
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Ranking</th>
+                            <th>Status</th>
+                            <th>Registered</th>
+                            <th>Check-in</th>
+                            <th>Eligibility</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var participant in FilteredParticipants)
+                        {
+                            <tr @key="participant.RegistrationId">
+
+                                <td>
+
+                                    <div class="adm-person">
+
+                                        <div class="participant-avatar">
+
+                                            @if (!string.IsNullOrWhiteSpace(participant.AvatarUrl))
+                                            {
+                                                <img src="@participant.AvatarUrl" alt="@participant.GamerTag" />
+                                            }
+                                            else
+                                            {
+                                                <span>
+                                                    @GetInitials(participant.GamerTag)
+                                                </span>
+                                            }
+
+                                        </div>
+
+
+                                        <div class="participant-identity">
+
+                                            <strong>
+                                                @participant.GamerTag
+                                            </strong>
+
+                                            @if (!string.IsNullOrWhiteSpace(participant.FullName))
+                                            {
+                                                <span>
+                                                    @participant.FullName
+                                                </span>
+                                            }
+
+                                            <small>
+                                                @participant.Email
+                                            </small>
+
+                                            @if (!participant.IsPlayerActive)
+                                            {
+                                                <span class="participant-inactive">
+                                                    Player inactive
+                                                </span>
+                                            }
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    <strong>
+                                        @participant.RankingPoints.ToString("N0")
+                                    </strong>
+
+                                    <small class="participant-cell-muted">
+                                        points
+                                    </small>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="@GetStatusClass(
+                                        participant.Status)">
+                                        @FormatStatus(
+                                            participant.Status)
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="participant-date">
+                                        @participant.RegisteredAt.ToLocalTime().ToString("dd MMM yyyy")
+                                    </span>
+
+                                    <small class="participant-cell-muted">
+                                        @participant.RegisteredAt.ToLocalTime().ToString("HH:mm")
+                                    </small>
+
+                                </td>
+
+
+                                <td>
+
+                                    @if (participant.CheckedInAt.HasValue)
+                                    {
+                                        <span class="participant-checkin-time">
+
+                                            @participant.CheckedInAt.Value.ToLocalTime().ToString("dd MMM, HH:mm")
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="participant-cell-muted">
+                                            —
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <td>
+
+                                    @if (participant.IsEligibleForFixtures)
+                                    {
+                                        <span class="participant-eligible">
+                                            ✓ Ready
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="participant-not-ready">
+                                            Not ready
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <td>
+
+                                    <div class="adm-row-actions">
+
+                                        @if (participant.Status == TournamentRegistrationStatus.PendingPayment)
+                                        {
+                                            <button type="button"
+                                                    class="adm-button small"
+                                                    disabled="@IsProcessing(
+                                                        participant.RegistrationId)"
+                                                    @onclick="() => AskMarkRegistered(participant)">
+                                                Mark registered
+                                            </button>
+                                        }
+
+
+                                        @if (participant.Status == TournamentRegistrationStatus.Registered)
+                                        {
+                                            <button type="button"
+                                                    class="adm-button small"
+                                                    disabled="@IsProcessing(
+                                                        participant.RegistrationId)"
+                                                    @onclick="() => AskCheckIn(
+                                                        participant)">
+                                                Check in
+                                            </button>
+                                        }
+
+
+                                        @if (CanDisqualify(participant))
+                                        {
+                                            <button type="button"
+                                                    class="adm-button small danger"
+                                                    disabled="@IsProcessing(
+                                                        participant.RegistrationId)"
+                                                    @onclick="() => OpenDisqualify(
+                                                        participant)">
+                                                Disqualify
+                                            </button>
+                                        }
+
+
+                                        @if (CanCancel(participant))
+                                        {
+                                            <button type="button"
+                                                    class="adm-button small subtle"
+                                                    disabled="@IsProcessing(
+                                                        participant.RegistrationId)"
+                                                    @onclick="() => AskCancel(
+                                                        participant)">
+                                                Cancel
+                                            </button>
+                                        }
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+
+                            @if (participant.Status == TournamentRegistrationStatus.Disqualified && !string.IsNullOrWhiteSpace(participant.DisqualificationReason))
+                            {
+                                <tr class="participant-reason-row">
+
+                                    <td colspan="7">
+
+                                        <strong>
+                                            Disqualification reason:
+                                        </strong>
+
+                                        @participant.DisqualificationReason
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+        }
+
+    </section>
+}
+
+
+@* ================================================= *@
+@* CONFIRM DIALOG                                    *@
+@* ================================================= *@
+
+<ConfirmDialog
+    IsOpen="@isConfirmOpen"
+    Title="@confirmTitle"
+    Message="@confirmMessage"
+    ConfirmText="@confirmButtonText"
+    CancelText="Cancel"
+    ProcessingText="Processing..."
+    IsProcessing="@isActionProcessing"
+    OnConfirm="ExecuteConfirmedActionAsync"
+    OnCancel="CloseConfirm" />
+
+
+@* ================================================= *@
+@* DISQUALIFY MODAL                                  *@
+@* ================================================= *@
+
+<AdminModal
+    IsOpen="@isDisqualifyOpen"
+    Eyebrow="Participant action"
+    Title="Disqualify player"
+    EditContext="@disqualifyEditContext"
+    OnValidSubmit="DisqualifyAsync"
+    OnClose="CloseDisqualify">
+
+    <ChildContent>
+    <div class="participant-disqualify-content">
+
+        @if (selectedParticipant is not null)
+        {
+            <div class="participant-selected-player">
+
+                <span>Player</span>
+
+                <strong>
+                    @selectedParticipant.GamerTag
+                </strong>
+
+            </div>
+        }
+
+
+        <div class="adm-form-grid">
+            <div class="adm-field full">
+
+                <label for="disqualificationReason">Reason</label>
+
+                <InputTextArea
+                    id="disqualificationReason"
+                    class="adm-input participant-reason-input"
+                    @bind-Value="disqualifyModel.Reason"
+                    placeholder="Explain why this player is being disqualified..." />
+
+                <ValidationMessage
+                    For="@(() => disqualifyModel.Reason)" />
+
+            </div>
+        </div>
+    </div>
+    </ChildContent>
+
+    <Footer>
+
+        <button type="button"
+                class="adm-button secondary"
+                disabled="@isActionProcessing"
+                @onclick="CloseDisqualify">
+            Cancel
+        </button>
+
+        <button type="submit"
+                class="adm-button danger"
+                disabled="@isActionProcessing">
+
+            @(isActionProcessing
+                ? "Disqualifying..."
+                : "Disqualify player")
+
+        </button>
+
+    </Footer>
+
+</AdminModal>
+
+
+@code {
+
+    [Parameter]
+    public Guid TournamentId { get; set; }
+
+
+    private AdminTournamentRegisteredParticipantsDto? pageData;
+
+    private bool isLoading = true;
+
+    private string errorMessage = "Tournament could not be loaded.";
+
+
+    // =====================================================
+    // FILTERS
+    // =====================================================
+
+    private string searchTerm = string.Empty;
+
+    private string selectedStatus = string.Empty;
+
+
+    private IEnumerable<AdminTournamentRegisteredParticipantDto>
+        FilteredParticipants
+    {
+        get
+        {
+            if (pageData is null)
+            {
+                return Enumerable.Empty<AdminTournamentRegisteredParticipantDto>();
+            }
+
+            IEnumerable<AdminTournamentRegisteredParticipantDto> query = pageData.Participants;
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term =
+                    searchTerm.Trim();
+
+                query =
+                    query.Where(x =>
+                        x.GamerTag.Contains(
+                            term,
+                            StringComparison.OrdinalIgnoreCase) ||
+                        x.FullName.Contains(
+                            term,
+                            StringComparison.OrdinalIgnoreCase) ||
+                        x.Email.Contains(
+                            term,
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedStatus) &&
+                Enum.TryParse<TournamentRegistrationStatus>(
+                    selectedStatus,
+                    out var status))
+            {
+                query =
+                    query.Where(x =>
+                        x.Status == status);
+            }
+
+            return query;
+        }
+    }
+
+
+    // =====================================================
+    // ACTION STATE
+    // =====================================================
+
+    private Guid? processingRegistrationId;
+
+    private bool isActionProcessing;
+
+
+    // =====================================================
+    // CONFIRM DIALOG
+    // =====================================================
+
+    private bool isConfirmOpen;
+
+    private string confirmTitle = string.Empty;
+
+    private string confirmMessage =
+        string.Empty;
+
+    private string confirmButtonText = "Confirm";
+
+    private AdminTournamentRegisteredParticipantDto? selectedParticipant;
+
+    private ParticipantAction pendingAction =
+        ParticipantAction.None;
+
+
+    // =====================================================
+    // DISQUALIFICATION
+    // =====================================================
+
+    private bool isDisqualifyOpen;
+
+    private DisqualifyFormModel disqualifyModel =
+        new();
+
+    private EditContext? disqualifyEditContext;
+
+
+    // =====================================================
+    // LIFECYCLE
+    // =====================================================
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+
+    // =====================================================
+    // LOAD
+    // =====================================================
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            var result =
+                await RegistrationService
+                    .GetAdminTournamentParticipantsAsync(
+                        TournamentId);
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                pageData = null;
+
+                errorMessage =
+                    result.Error ??
+                    "Tournament could not be loaded.";
+
+                return;
+            }
+
+            pageData =
+                result.Value;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            pageData = null;
+
+            errorMessage =
+                "Something went wrong while loading participants.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    // =====================================================
+    // CONFIRM ACTIONS
+    // =====================================================
+
+    private void AskMarkRegistered(AdminTournamentRegisteredParticipantDto participant)
+    {
+        selectedParticipant = participant;
+
+        pendingAction = ParticipantAction.MarkRegistered;
+
+        confirmTitle = "Mark player as registered?";
+
+        confirmMessage = $"This will confirm {participant.GamerTag}'s tournament place.";
+
+        confirmButtonText = "Mark registered";
+
+        isConfirmOpen = true;
+    }
+
+
+    private void AskCheckIn(AdminTournamentRegisteredParticipantDto participant)
+    {
+        selectedParticipant = participant;
+
+        pendingAction = ParticipantAction.CheckIn;
+
+        confirmTitle = "Check in player?";
+
+        confirmMessage = $"This will mark {participant.GamerTag} as checked in and eligible for fixture generation.";
+
+        confirmButtonText = "Check in";
+
+        isConfirmOpen = true;
+    }
+
+
+    private void AskCancel(AdminTournamentRegisteredParticipantDto participant)
+    {
+        selectedParticipant = participant;
+
+        pendingAction = ParticipantAction.Cancel;
+
+        confirmTitle = "Cancel registration?";
+
+        confirmMessage = $"This will cancel {participant.GamerTag}'s tournament registration.";
+
+        confirmButtonText = "Cancel registration";
+
+        isConfirmOpen = true;
+    }
+
+
+    private async Task ExecuteConfirmedActionAsync()
+    {
+        if (selectedParticipant is null || pendingAction == ParticipantAction.None || isActionProcessing)
+        {
+            return;
+        }
+
+        isActionProcessing = true;
+
+        processingRegistrationId = selectedParticipant.RegistrationId;
+
+        try
+        {
+            Result result;
+
+            switch (pendingAction)
+            {
+                case ParticipantAction.MarkRegistered:
+
+                    result = await RegistrationService.MarkRegisteredAsync(selectedParticipant.RegistrationId);
+
+                    break;
+
+                case ParticipantAction.CheckIn:
+
+                    result = await RegistrationService.CheckInAsync(selectedParticipant.RegistrationId);
+
+                    break;
+
+
+                case ParticipantAction.Cancel:
+
+                    result = await RegistrationService.CancelAsync(selectedParticipant.RegistrationId);
+
+                    break;
+
+                default:
+
+                    return;
+            }
+
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(
+                    result.Error ?? "The action could not be completed.");
+
+                return;
+            }
+
+
+            Toast.Success(result.Message ?? "Participant updated successfully.");
+
+            CloseConfirm();
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error("Something went wrong while updating the participant.");
+        }
+        finally
+        {
+            isActionProcessing = false;
+
+            processingRegistrationId = null;
+        }
+    }
+
+
+    private void CloseConfirm()
+    {
+        if (isActionProcessing)
+            return;
+
+        isConfirmOpen = false;
+
+        selectedParticipant = null;
+
+        pendingAction = ParticipantAction.None;
+
+        confirmTitle = string.Empty;
+
+        confirmMessage = string.Empty;
+
+        confirmButtonText = "Confirm";
+    }
+
+
+    // =====================================================
+    // DISQUALIFY
+    // =====================================================
+
+    private void OpenDisqualify(
+        AdminTournamentRegisteredParticipantDto participant)
+    {
+        selectedParticipant = participant;
+
+        disqualifyModel = new DisqualifyFormModel();
+
+        disqualifyEditContext = new EditContext(disqualifyModel);
+
+        isDisqualifyOpen = true;
+    }
+
+
+    private void CloseDisqualify()
+    {
+        if (isActionProcessing)
+            return;
+
+        isDisqualifyOpen = false;
+
+        selectedParticipant = null;
+
+        disqualifyModel = new DisqualifyFormModel();
+
+        disqualifyEditContext = null;
+    }
+
+
+    private async Task DisqualifyAsync()
+    {
+        if (selectedParticipant is null || isActionProcessing)
+        {
+            return;
+        }
+
+        isActionProcessing = true;
+
+        processingRegistrationId = selectedParticipant.RegistrationId;
+
+        try
+        {
+            var request = new DisqualifyRegistrationRequest
+                {
+                    RegistrationId = selectedParticipant.RegistrationId,
+
+                    Reason = disqualifyModel.Reason.Trim()
+                };
+
+            var result = await RegistrationService.DisqualifyAsync(request);
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(result.Error ?? "The player could not be disqualified.");
+
+                return;
+            }
+
+
+            Toast.Success(
+                result.Message ??
+                "Player disqualified successfully.");
+
+            CloseDisqualifyAfterSuccess();
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "Something went wrong while disqualifying the player.");
+        }
+        finally
+        {
+            isActionProcessing = false;
+
+            processingRegistrationId = null;
+        }
+    }
+
+
+    private void CloseDisqualifyAfterSuccess()
+    {
+        isDisqualifyOpen =
+            false;
+
+        selectedParticipant =
+            null;
+
+        disqualifyModel =
+            new DisqualifyFormModel();
+
+        disqualifyEditContext =
+            null;
+    }
+
+
+    // =====================================================
+    // ACTION RULES
+    // =====================================================
+
+    private static bool CanDisqualify(
+        AdminTournamentRegisteredParticipantDto participant)
+    {
+        return participant.Status is
+            TournamentRegistrationStatus.Registered or
+            TournamentRegistrationStatus.CheckedIn;
+    }
+
+
+    private static bool CanCancel(
+        AdminTournamentRegisteredParticipantDto participant)
+    {
+        return participant.Status is
+            TournamentRegistrationStatus.PendingPayment or
+            TournamentRegistrationStatus.Registered;
+    }
+
+
+    private bool IsProcessing(
+        Guid registrationId)
+    {
+        return isActionProcessing &&
+               processingRegistrationId ==
+               registrationId;
+    }
+
+
+    // =====================================================
+    // FIXTURE READINESS
+    // =====================================================
+
+    private bool CanPrepareFixtures()
+    {
+        if (pageData is null)
+            return false;
+
+        // This is only a UI readiness rule.
+        // The actual fixture service will perform
+        // authoritative validation later.
+        return pageData.Tournament.EligiblePlayers >= 2;
+    }
+
+
+    private void PrepareFixtures()
+    {
+        if (!CanPrepareFixtures())
+        {
+            Toast.Warning(
+                "At least two checked-in players are required.");
+
+            return;
+        }
+
+        // This route will become functional when
+        // we build the fixture generator next.
+        Navigation.NavigateTo(
+            $"/admin/tournaments/{TournamentId}/fixtures");
+    }
+
+
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
+
+    private void BackToTournaments()
+    {
+        Navigation.NavigateTo(
+            "/admin/tournaments");
+    }
+
+
+    // =====================================================
+    // DISPLAY
+    // =====================================================
+
+    private string GetTournamentDescription()
+    {
+        if (pageData is null)
+            return string.Empty;
+
+        return
+            $"{pageData.Tournament.GameName} • " +
+            $"{FormatTournamentFormat(pageData.Tournament.Format)} • " +
+            $"Starts {pageData.Tournament.StartDate.ToLocalTime():dd MMM yyyy, HH:mm}";
+    }
+
+
+    private string GetReadinessTitle()
+    {
+        if (pageData is null)
+            return string.Empty;
+
+        if (pageData.Tournament.EligiblePlayers == 0)
+        {
+            return "No players are ready yet";
+        }
+
+        if (pageData.Tournament.AwaitingCheckIn > 0)
+        {
+            return
+                $"{pageData.Tournament.EligiblePlayers} players ready to compete";
+        }
+
+        return
+            $"{pageData.Tournament.EligiblePlayers} players ready";
+    }
+
+
+    private string GetReadinessDescription()
+    {
+        if (pageData is null)
+            return string.Empty;
+
+        if (pageData.Tournament.EligiblePlayers == 0 &&
+            pageData.Tournament.Registered > 0)
+        {
+            return
+                $"{pageData.Tournament.Registered} confirmed players are still awaiting check-in.";
+        }
+
+        if (pageData.Tournament.EligiblePlayers == 0)
+        {
+            return
+                "Checked-in players will become eligible for fixture generation.";
+        }
+
+        if (pageData.Tournament.AwaitingCheckIn > 0)
+        {
+            return
+                $"{pageData.Tournament.AwaitingCheckIn} confirmed players have not checked in yet.";
+        }
+
+        return
+            "All currently confirmed players have checked in.";
+    }
+
+
+    private int GetConfirmedProgressMaximum()
+    {
+        if (pageData is null)
+            return 1;
+
+        return Math.Max(
+            1,
+            pageData.Tournament.ConfirmedPlayers);
+    }
+
+
+    private int GetCheckInPercentage()
+    {
+        if (pageData is null ||
+            pageData.Tournament.ConfirmedPlayers == 0)
+        {
+            return 0;
+        }
+
+        return (int)Math.Round(
+            (decimal)pageData.Tournament.CheckedIn /
+            pageData.Tournament.ConfirmedPlayers *
+            100);
+    }
+
+
+    private static string FormatStatus(
+        TournamentRegistrationStatus status)
+    {
+        return status switch
+        {
+            TournamentRegistrationStatus.PendingPayment =>
+                "Payment pending",
+
+            TournamentRegistrationStatus.Registered =>
+                "Registered",
+
+            TournamentRegistrationStatus.CheckedIn =>
+                "Checked in",
+
+            TournamentRegistrationStatus.Withdrawn =>
+                "Withdrawn",
+
+            TournamentRegistrationStatus.Disqualified =>
+                "Disqualified",
+
+            TournamentRegistrationStatus.Cancelled =>
+                "Cancelled",
+
+            _ =>
+                status.ToString()
+        };
+    }
+
+
+    private static string GetStatusClass(
+        TournamentRegistrationStatus status)
+    {
+        return status switch
+        {
+            TournamentRegistrationStatus.Registered => "adm-status active",
+
+            TournamentRegistrationStatus.CheckedIn => "adm-status active",
+
+            TournamentRegistrationStatus.PendingPayment => "adm-status pending",
+
+            TournamentRegistrationStatus.Withdrawn => "adm-status",
+
+            TournamentRegistrationStatus.Disqualified => "adm-status danger",
+
+            TournamentRegistrationStatus.Cancelled => "adm-status danger",
+
+            _ => "adm-status"
+        };
+    }
+
+
+    private static string FormatTournamentFormat(
+        TournamentFormat format)
+    {
+        return format.ToString();
+    }
+
+
+    private static string GetInitials(
+        string gamerTag)
+    {
+        if (string.IsNullOrWhiteSpace(gamerTag))
+            return "?";
+
+        var value =
+            gamerTag.Trim();
+
+        return value.Length == 1
+            ? value.ToUpperInvariant()
+            : value[..2].ToUpperInvariant();
+    }
+
+
+    // =====================================================
+    // LOCAL TYPES
+    // =====================================================
+
+    private enum ParticipantAction
+    {
+        None,
+        MarkRegistered,
+        CheckIn,
+        Cancel
+    }
+
+
+    private sealed class DisqualifyFormModel
+    {
+        [Required(ErrorMessage ="Please provide a disqualification reason.")]
+        [StringLength(500, MinimumLength = 5, ErrorMessage = "The reason must be between 5 and 500 characters.")]
+        public string Reason { get; set; } = string.Empty;
+    }
+}

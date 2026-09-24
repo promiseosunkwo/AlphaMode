@@ -1,0 +1,864 @@
+﻿@page "/dashboard/my-tournaments"
+@layout AlphaMode.Components.Layout.UserLayout
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+@using AlphaMode.Application.TournamentRegistrationAdminDisplay.DTOs
+@using AlphaMode.Application.TournamentRegistrations.DTOs
+@using AlphaMode.Application.TournamentRegistrations.Interfaces
+@using AlphaMode.Domain.Enums
+@using AlphaMode.Components.Sections.UserSectionComponents
+@using AlphaMode.Services
+
+@inject ITournamentRegistrationService RegistrationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ToastService Toast
+
+<PageTitle>My Tournaments | AlphaMode</PageTitle>
+
+<PortalPageHeader Eyebrow="Competition hub"
+                  Title="My tournaments"
+                  Description="Track your registrations, payments, check-ins and upcoming competitions." />
+
+
+<div class="portal-filter-row">
+
+    <button type="button"
+            class="@(selectedFilter == TournamentFilter.All ? "active" : null)"
+            @onclick="() => SelectFilter(TournamentFilter.All)">
+        All
+    </button>
+
+    <button type="button"
+            class="@(selectedFilter == TournamentFilter.Upcoming ? "active" : null)"
+            @onclick="() => SelectFilter(TournamentFilter.Upcoming)">
+        Upcoming
+    </button>
+
+    <button type="button"
+            class="@(selectedFilter == TournamentFilter.PaymentPending ? "active" : null)"
+            @onclick="() => SelectFilter(TournamentFilter.PaymentPending)">
+        Payment pending
+    </button>
+
+    <button type="button"
+            class="@(selectedFilter == TournamentFilter.CheckedIn ? "active" : null)"
+            @onclick="() => SelectFilter(TournamentFilter.CheckedIn)">
+        Checked in
+    </button>
+
+    <button type="button"
+            class="@(selectedFilter == TournamentFilter.Completed ? "active" : null)"
+            @onclick="() => SelectFilter(TournamentFilter.Completed)">
+        Completed
+    </button>
+
+</div>
+
+
+@if (isLoading)
+{
+    <div class="portal-empty-state">
+        Loading your tournaments...
+    </div>
+}
+else if (!FilteredTournaments.Any())
+{
+    <div class="portal-empty-state">
+
+        <h3>@GetEmptyTitle()</h3>
+
+        <p>
+            @GetEmptyMessage()
+        </p>
+
+        @if (selectedFilter == TournamentFilter.All)
+        {
+            <button type="button"
+                    class="portal-button primary"
+                    @onclick="BrowseTournaments">
+                Browse tournaments
+            </button>
+        }
+
+    </div>
+}
+else
+{
+    <section class="my-tournament-grid">
+
+        @foreach (var tournament in FilteredTournaments)
+        {
+            <article class="my-tournament-card"
+                     @key="tournament.RegistrationId">
+
+                <div class="my-tournament-cover"
+                     style="@GetCoverStyle(tournament)">
+
+                    <div class="my-tournament-cover-top">
+
+                        <span class="my-game-label">
+                            @tournament.GameName
+                        </span>
+
+                        <span class="@GetRegistrationStatusClass(tournament.RegistrationStatus)">
+                            @GetRegistrationStatusText(tournament.RegistrationStatus)
+                        </span>
+
+                    </div>
+
+
+                    <div class="my-tournament-cover-bottom">
+
+                        <span>
+                            Prize pool
+                        </span>
+
+                        <strong>
+                            @FormatMoney(tournament.PrizePool, tournament.Currency)
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="my-tournament-body">
+
+            <div class="my-tournament-heading">
+
+                <div>
+
+                    <span class="my-tournament-format">
+                        @FormatTournamentFormat(tournament.Format)
+                    </span>
+
+                    <h2>
+                        @tournament.TournamentName
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="my-tournament-meta">
+
+                <div>
+                    <small>Starts</small>
+
+                    <strong>
+                        @tournament.StartDate.ToLocalTime().ToString("dd MMM yyyy")
+                    </strong>
+
+                    <span>
+                        @tournament.StartDate.ToLocalTime().ToString("HH:mm")
+                    </span>
+                </div>
+
+
+                <div>
+                    <small>Players</small>
+
+                    <strong>
+                        @tournament.RegisteredPlayers/@tournament.MaxPlayers
+                    </strong>
+
+                    <span>
+                        registered
+                    </span>
+                </div>
+
+
+                <div>
+                    <small>Entry</small>
+
+                    <strong>
+                        @(tournament.EntryFee <= 0
+                                                ? "Free"
+                                                : FormatMoney(
+                                                tournament.EntryFee,
+                                                "NGN"))
+                    </strong>
+
+                            <span>
+                                tournament fee
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="my-tournament-progress">
+
+                        <div class="my-tournament-progress-heading">
+
+                            <span>Participation</span>
+
+                            <strong>
+                                @GetParticipationLabel(tournament)
+                            </strong>
+
+                        </div>
+
+                        <div class="participation-steps">
+
+                            <div class="@GetStepClass(tournament, 1)">
+                                <span>1</span>
+                                <small>Joined</small>
+                            </div>
+
+                            <div class="participation-line @GetLineClass(tournament, 1)"></div>
+
+                            <div class="@GetStepClass(tournament, 2)">
+                                <span>2</span>
+                                <small>Registered</small>
+                            </div>
+
+                            <div class="participation-line @GetLineClass(tournament, 2)"></div>
+
+                            <div class="@GetStepClass(tournament, 3)">
+                                <span>3</span>
+                                <small>Check-in</small>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+            @if (tournament.RegistrationStatus == TournamentRegistrationStatus.PendingPayment)
+                    {
+                        <div class="my-tournament-notice warning">
+
+                            <div>
+                                <strong>Payment required</strong>
+
+                                <span>
+                                    Complete your entry payment to confirm your place.
+                                </span>
+                            </div>
+
+                        </div>
+                    }
+                    else if (CanCheckIn(tournament))
+                    {
+                        <div class="my-tournament-notice success">
+
+                            <div>
+                                <strong>Check-in is open</strong>
+
+                                <span>
+                                    Confirm that you're ready to compete.
+                                </span>
+                            </div>
+
+                        </div>
+                    }
+                    else if (tournament.RegistrationStatus ==
+                    TournamentRegistrationStatus.Registered &&
+                    !tournament.IsFinished)
+                    {
+                        <div class="my-tournament-notice">
+
+                            <div>
+                                <strong>You're registered</strong>
+
+                                <span>
+                                    @GetCheckInMessage(tournament)
+                                </span>
+                            </div>
+
+                        </div>
+                    }
+                    else if (tournament.RegistrationStatus ==
+                    TournamentRegistrationStatus.CheckedIn)
+                    {
+                        <div class="my-tournament-notice success">
+
+                            <div>
+                                <strong>You're checked in</strong>
+
+                                <span>
+                                    You're ready for this tournament.
+                                </span>
+                            </div>
+
+                        </div>
+                    }
+
+
+                    <div class="my-tournament-actions">
+
+                        <button type="button"
+                                class="portal-button subtle"
+                                @onclick="() => ViewTournament(tournament)">
+                            View tournament
+                        </button>
+
+
+                        @if (tournament.RegistrationStatus ==
+                                        TournamentRegistrationStatus.PendingPayment)
+                        {
+                            <button type="button"
+                                    class="portal-button primary"
+                                    @onclick="() => ContinuePayment(tournament)">
+                                Continue payment
+                            </button>
+                        }
+                        else if (CanCheckIn(tournament))
+                        {
+                            <button type="button"
+                                    class="portal-button primary"
+                                    disabled="@(checkingInRegistrationId ==
+                                                                                   tournament.RegistrationId)"
+                                                                                                             @onclick="() => CheckInAsync(tournament)">
+
+                                @(checkingInRegistrationId ==
+                                                    tournament.RegistrationId
+                                                    ? "Checking in..."
+                                                    : "Check in")
+
+                </button>
+                                }
+                        else if (tournament.RegistrationStatus ==
+                        TournamentRegistrationStatus.CheckedIn)
+                        {
+                            <button type="button"
+                                    class="portal-button subtle"
+                                    disabled>
+                                Checked in ✓
+                            </button>
+                        }
+
+                    </div>
+
+                </div>
+
+            </article>
+        }
+
+    </section>
+}
+
+
+@code {
+
+    private List<MyTournamentDto> tournaments = new();
+
+    private bool isLoading = true;
+
+    private Guid? checkingInRegistrationId;
+
+    private string? currentUserId;
+
+    private TournamentFilter selectedFilter =
+        TournamentFilter.All;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUserAsync();
+
+        await LoadTournamentsAsync();
+    }
+
+
+    // =====================================================
+    // AUTHENTICATION
+    // =====================================================
+
+    private async Task LoadCurrentUserAsync()
+    {
+        var state =
+            await AuthenticationStateProvider
+                .GetAuthenticationStateAsync();
+
+        currentUserId =
+            state.User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+    }
+
+
+    // =====================================================
+    // LOAD
+    // =====================================================
+
+    private async Task LoadTournamentsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            Toast.Error(
+                "Your account could not be identified.");
+
+            isLoading = false;
+
+            return;
+        }
+
+        isLoading = true;
+
+        try
+        {
+            var result =
+                await RegistrationService
+                    .GetMyTournamentsAsync(
+                        currentUserId);
+
+            if (!result.Succeeded ||
+                result.Value is null)
+            {
+                tournaments.Clear();
+
+                Toast.Error(
+                    result.Error ??
+                    "Unable to load your tournaments.");
+
+                return;
+            }
+
+            tournaments =
+                result.Value.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            tournaments.Clear();
+
+            Toast.Error(
+                "Something went wrong while loading your tournaments.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    // =====================================================
+    // FILTERING
+    // =====================================================
+
+    private IEnumerable<MyTournamentDto>
+        FilteredTournaments
+    {
+        get
+        {
+            var now =
+                DateTime.UtcNow;
+
+            return selectedFilter switch
+            {
+                TournamentFilter.Upcoming =>
+                    tournaments.Where(x =>
+                        x.StartDate > now &&
+                        x.RegistrationStatus !=
+                            TournamentRegistrationStatus.Cancelled &&
+                        x.RegistrationStatus !=
+                            TournamentRegistrationStatus.Withdrawn &&
+                        x.RegistrationStatus !=
+                            TournamentRegistrationStatus.Disqualified),
+
+                TournamentFilter.PaymentPending =>
+                    tournaments.Where(x =>
+                        x.RegistrationStatus ==
+                        TournamentRegistrationStatus.PendingPayment),
+
+                TournamentFilter.CheckedIn =>
+                    tournaments.Where(x =>
+                        x.RegistrationStatus ==
+                        TournamentRegistrationStatus.CheckedIn),
+
+                TournamentFilter.Completed =>
+                    tournaments.Where(x =>
+                        x.EndDate <= now),
+
+                _ =>
+                    tournaments
+            };
+        }
+    }
+
+
+    private void SelectFilter(
+        TournamentFilter filter)
+    {
+        selectedFilter =
+            filter;
+    }
+
+
+    // =====================================================
+    // CHECK-IN
+    // =====================================================
+
+    private static bool CanCheckIn(
+        MyTournamentDto tournament)
+    {
+        if (tournament.RegistrationStatus !=
+            TournamentRegistrationStatus.Registered)
+        {
+            return false;
+        }
+
+        var now =
+            DateTime.UtcNow;
+
+        var opens =
+            tournament.StartDate
+                .AddMinutes(-30);
+
+        return now >= opens &&
+               now < tournament.StartDate;
+    }
+
+
+    private async Task CheckInAsync(
+        MyTournamentDto tournament)
+    {
+        if (checkingInRegistrationId.HasValue)
+            return;
+
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            Toast.Error(
+                "Your account could not be identified.");
+
+            return;
+        }
+
+        checkingInRegistrationId =
+            tournament.RegistrationId;
+
+        try
+        {
+            var result =
+                await RegistrationService
+                    .PlayerCheckInAsync(
+                        tournament.RegistrationId,
+                        currentUserId);
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error ??
+                    "Unable to check in.");
+
+                return;
+            }
+
+            Toast.Success(
+                result.Message ??
+                "You have successfully checked in.");
+
+            await LoadTournamentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "Something went wrong while checking in.");
+        }
+        finally
+        {
+            checkingInRegistrationId = null;
+        }
+    }
+
+
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
+
+    private void BrowseTournaments()
+    {
+        Navigation.NavigateTo(
+            "/dashboard/tournaments");
+    }
+
+
+    private void ViewTournament(
+        MyTournamentDto tournament)
+    {
+        Navigation.NavigateTo(
+            $"/dashboard/my-tournaments/{tournament.TournamentId}");
+    }
+
+
+    private void ContinuePayment(
+        MyTournamentDto tournament)
+    {
+        Navigation.NavigateTo(
+            $"/dashboard/checkout/{tournament.RegistrationId}");
+    }
+
+
+    // =====================================================
+    // DISPLAY
+    // =====================================================
+
+    private static string GetRegistrationStatusText(
+        TournamentRegistrationStatus status)
+    {
+        return status switch
+        {
+            TournamentRegistrationStatus.PendingPayment =>
+                "Payment pending",
+
+            TournamentRegistrationStatus.Registered =>
+                "Registered",
+
+            TournamentRegistrationStatus.CheckedIn =>
+                "Checked in",
+
+            TournamentRegistrationStatus.Withdrawn =>
+                "Withdrawn",
+
+            TournamentRegistrationStatus.Disqualified =>
+                "Disqualified",
+
+            TournamentRegistrationStatus.Cancelled =>
+                "Cancelled",
+
+            _ =>
+                status.ToString()
+        };
+    }
+
+
+    private static string GetRegistrationStatusClass(
+        TournamentRegistrationStatus status)
+    {
+        return status switch
+        {
+            TournamentRegistrationStatus.Registered =>
+                "portal-status open",
+
+            TournamentRegistrationStatus.CheckedIn =>
+                "portal-status open",
+
+            TournamentRegistrationStatus.PendingPayment =>
+                "portal-status pending",
+
+            TournamentRegistrationStatus.Disqualified =>
+                "portal-status danger",
+
+            TournamentRegistrationStatus.Cancelled =>
+                "portal-status danger",
+
+            TournamentRegistrationStatus.Withdrawn =>
+                "portal-status",
+
+            _ =>
+                "portal-status"
+        };
+    }
+
+
+    private static string GetParticipationLabel(
+        MyTournamentDto tournament)
+    {
+        return tournament.RegistrationStatus switch
+        {
+            TournamentRegistrationStatus.PendingPayment =>
+                "Payment required",
+
+            TournamentRegistrationStatus.Registered =>
+                "Awaiting check-in",
+
+            TournamentRegistrationStatus.CheckedIn =>
+                "Ready to compete",
+
+            TournamentRegistrationStatus.Withdrawn =>
+                "Withdrawn",
+
+            TournamentRegistrationStatus.Disqualified =>
+                "Disqualified",
+
+            TournamentRegistrationStatus.Cancelled =>
+                "Cancelled",
+
+            _ =>
+                tournament.RegistrationStatus.ToString()
+        };
+    }
+
+
+    private static string GetStepClass(
+        MyTournamentDto tournament,
+        int step)
+    {
+        var completed =
+            step switch
+            {
+                1 => true,
+
+                2 =>
+                    tournament.RegistrationStatus ==
+                        TournamentRegistrationStatus.Registered ||
+                    tournament.RegistrationStatus ==
+                        TournamentRegistrationStatus.CheckedIn,
+
+                3 =>
+                    tournament.RegistrationStatus ==
+                        TournamentRegistrationStatus.CheckedIn,
+
+                _ => false
+            };
+
+        return completed
+            ? "participation-step complete"
+            : "participation-step";
+    }
+
+
+    private static string GetLineClass(
+        MyTournamentDto tournament,
+        int line)
+    {
+        var complete =
+            line switch
+            {
+                1 =>
+                    tournament.RegistrationStatus ==
+                        TournamentRegistrationStatus.Registered ||
+                    tournament.RegistrationStatus ==
+                        TournamentRegistrationStatus.CheckedIn,
+
+                2 =>
+                    tournament.RegistrationStatus ==
+                        TournamentRegistrationStatus.CheckedIn,
+
+                _ =>
+                    false
+            };
+
+        return complete
+            ? "complete"
+            : string.Empty;
+    }
+
+
+    private static string GetCheckInMessage(
+        MyTournamentDto tournament)
+    {
+        var opens =
+            tournament.StartDate
+                .AddMinutes(-30);
+
+        if (DateTime.UtcNow < opens)
+        {
+            return
+                $"Check-in opens {opens.ToLocalTime():dd MMM 'at' HH:mm}.";
+        }
+
+        if (DateTime.UtcNow >= tournament.StartDate)
+        {
+            return "The tournament has started.";
+        }
+
+        return "Check-in is now available.";
+    }
+
+
+    private static string FormatTournamentFormat(
+        TournamentFormat format)
+    {
+        return format.ToString();
+    }
+
+
+    private static string FormatMoney(
+        decimal amount,
+        string currency)
+    {
+        return currency.ToUpperInvariant() switch
+        {
+            "NGN" =>
+                $"₦{amount:N0}",
+
+            "GBP" =>
+                $"£{amount:N2}",
+
+            "USD" =>
+                $"${amount:N2}",
+
+            "EUR" =>
+                $"€{amount:N2}",
+
+            _ =>
+                $"{currency} {amount:N2}"
+        };
+    }
+
+
+    private static string GetCoverStyle(
+        MyTournamentDto tournament)
+    {
+        if (string.IsNullOrWhiteSpace(
+                tournament.ImageUrl))
+        {
+            return string.Empty;
+        }
+
+        return
+            $"background-image: linear-gradient(rgba(6,9,17,.22), rgba(6,9,17,.88)), url('{tournament.ImageUrl}'); background-size: cover; background-position: center;";
+    }
+
+
+    private string GetEmptyTitle()
+    {
+        return selectedFilter switch
+        {
+            TournamentFilter.PaymentPending =>
+                "No pending payments",
+
+            TournamentFilter.CheckedIn =>
+                "No checked-in tournaments",
+
+            TournamentFilter.Completed =>
+                "No completed tournaments",
+
+            TournamentFilter.Upcoming =>
+                "No upcoming tournaments",
+
+            _ =>
+                "You haven't joined a tournament yet"
+        };
+    }
+
+
+    private string GetEmptyMessage()
+    {
+        return selectedFilter switch
+        {
+            TournamentFilter.PaymentPending =>
+                "You don't currently have any tournament entries awaiting payment.",
+
+            TournamentFilter.CheckedIn =>
+                "Your checked-in tournaments will appear here.",
+
+            TournamentFilter.Completed =>
+                "Your completed tournaments will appear here.",
+
+            TournamentFilter.Upcoming =>
+                "You don't currently have an upcoming tournament.",
+
+            _ =>
+                "Browse available competitions and join your first tournament."
+        };
+    }
+
+
+    private enum TournamentFilter
+    {
+        All,
+        Upcoming,
+        PaymentPending,
+        CheckedIn,
+        Completed
+    }
+}

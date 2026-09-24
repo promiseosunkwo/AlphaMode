@@ -1,0 +1,291 @@
+﻿.participant-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.participant-summary-card {
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    /* Let the existing admin theme provide the page background */
+    background: rgba(255, 255, 255, 0.035);
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+    .participant-summary-card:hover {
+        background: rgba(255, 255, 255, 0.055);
+        border-color: rgba(255, 255, 255, 0.13);
+        transform: translateY(-2px);
+    }
+
+    .participant-summary-card > span {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        opacity: 0.55;
+    }
+
+    .participant-summary-card > strong {
+        display: block;
+        margin: 8px 0 4px;
+        font-size: 1.8rem;
+        font-weight: 800;
+    }
+
+    .participant-summary-card > small {
+        display: block;
+        font-size: 0.68rem;
+        opacity: 0.45;
+    }
+
+/* Readiness */
+
+.participant-readiness {
+    margin-bottom: 20px;
+}
+
+.participant-readiness-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+    .participant-readiness-heading h2 {
+        margin: 5px 0;
+        font-size: 1.15rem;
+    }
+
+    .participant-readiness-heading p {
+        margin: 0;
+        font-size: 0.76rem;
+        opacity: 0.55;
+    }
+
+.readiness-number {
+    min-width: 90px;
+    text-align: right;
+}
+
+    .readiness-number strong,
+    .readiness-number span {
+        display: block;
+    }
+
+    .readiness-number strong {
+        font-size: 2rem;
+    }
+
+    .readiness-number span {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        opacity: 0.45;
+    }
+
+.readiness-progress {
+    margin-top: 22px;
+}
+
+.readiness-progress-heading {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.72rem;
+}
+
+    .readiness-progress-heading span {
+        opacity: 0.55;
+    }
+
+.readiness-progress progress {
+    width: 100%;
+    height: 7px;
+}
+
+.readiness-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+    .readiness-breakdown span {
+        font-size: 0.7rem;
+        opacity: 0.58;
+    }
+
+    .readiness-breakdown b {
+        margin-right: 4px;
+        opacity: 1;
+    }
+
+
+/* Filter */
+
+.participant-filter {
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.035);
+    color: inherit;
+}
+
+
+/* Player */
+
+.participant-avatar {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+    .participant-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+.participant-identity {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+    .participant-identity strong {
+        font-size: 0.8rem;
+    }
+
+    .participant-identity span {
+        font-size: 0.7rem;
+        opacity: 0.65;
+    }
+
+    .participant-identity small {
+        max-width: 220px;
+        overflow: hidden;
+        font-size: 0.65rem;
+        opacity: 0.4;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+.participant-inactive {
+    width: fit-content;
+    margin-top: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.08);
+    font-size: 0.6rem !important;
+    opacity: 0.9 !important;
+}
+
+.participant-cell-muted {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.65rem;
+    opacity: 0.42;
+}
+
+.participant-date,
+.participant-checkin-time {
+    font-size: 0.72rem;
+}
+
+.participant-eligible {
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.participant-not-ready {
+    font-size: 0.7rem;
+    opacity: 0.42;
+}
+
+.participant-reason-row td {
+    padding-top: 9px !important;
+    padding-bottom: 9px !important;
+    font-size: 0.68rem;
+    opacity: 0.62;
+    background: rgba(239, 68, 68, 0.025);
+}
+
+.participant-reason-row strong {
+    margin-right: 5px;
+}
+
+
+/* Disqualify modal */
+
+.participant-disqualify-content {
+    display: grid;
+    gap: 18px;
+}
+
+.participant-selected-player {
+    padding: 13px 15px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+    .participant-selected-player span,
+    .participant-selected-player strong {
+        display: block;
+    }
+
+    .participant-selected-player span {
+        margin-bottom: 3px;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        opacity: 0.4;
+    }
+
+    .participant-selected-player strong {
+        font-size: 0.85rem;
+    }
+
+.participant-reason-input {
+    min-height: 120px;
+    resize: vertical;
+}
+
+
+/* Responsive */
+
+@media (max-width: 1100px) {
+    .participant-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .participant-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .participant-readiness-heading {
+        flex-direction: column;
+    }
+
+    .readiness-number {
+        text-align: left;
+    }
+
+    .readiness-breakdown {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+}

@@ -1,0 +1,128 @@
+﻿/* =========================
+   PAYMENT TABLE
+   ========================= */
+
+.portal-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.portal-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+    /* Header */
+    .portal-table thead {
+        background: #f8fafc;
+    }
+
+    .portal-table th {
+        padding: 16px 20px;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        border-bottom: 1px solid #e2e8f0;
+        white-space: nowrap;
+    }
+
+    /* Body cells */
+    .portal-table td {
+        padding: 18px 20px;
+        vertical-align: middle;
+        font-size: 0.9rem;
+        color: #334155;
+        border-bottom: 1px solid #edf2f7;
+    }
+
+    /* Striped rows */
+    .portal-table tbody tr:nth-child(even) {
+        background: #f8fafc;
+    }
+
+    /* Hover */
+    .portal-table tbody tr {
+        transition: background 0.15s ease;
+    }
+
+        .portal-table tbody tr:hover {
+            background: #f1f5f9;
+        }
+
+        /* Remove final border */
+        .portal-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+
+/* =========================
+   TOURNAMENT
+   ========================= */
+
+.tournament-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 180px;
+}
+
+    .tournament-cell strong {
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 650;
+    }
+
+    .tournament-cell small {
+        color: #94a3b8;
+        font-size: 0.8rem;
+    }
+
+
+/* =========================
+   PAYMENT DETAILS
+   ========================= */
+
+.payment-reference {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.payment-amount {
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.payment-action {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.action-column {
+    width: 1%;
+}
+
+
+/* =========================
+   MOBILE
+   ========================= */
+
+@media (max-width: 768px) {
+
+    .portal-table th,
+    .portal-table td {
+        padding: 14px 16px;
+    }
+
+    .portal-table {
+        min-width: 750px;
+    }
+}

@@ -145,23 +145,19 @@
         </label>
 
 
-        <select value="@SelectedStatusValue"
-                @onchange="StatusChangedAsync">
+        <select value="@SelectedStatusValue" @onchange="StatusChangedAsync">
 
             <option value="">All statuses</option>
 
             @foreach (var status in Enum.GetValues<PaymentStatus>())
             {
-                <option value="@((int)status)">
-                    @GetStatusText(status)
-                </option>
+                <option value="@((int)status)"> @GetStatusText(status) </option>
             }
 
         </select>
 
 
-        <select value="@SelectedTypeValue"
-                @onchange="TypeChangedAsync">
+        <select value="@SelectedTypeValue" @onchange="TypeChangedAsync">
 
             <option value="">All types</option>
 
@@ -175,8 +171,7 @@
         </select>
 
 
-        <select value="@SelectedMethodValue"
-                @onchange="MethodChangedAsync">
+        <select value="@SelectedMethodValue" @onchange="MethodChangedAsync">
 
             <option value="">All methods</option>
 
@@ -215,13 +210,7 @@
 
             @if (HasFilters)
             {
-                <button type="button"
-                        class="adm-button secondary"
-                        @onclick="ClearFiltersAsync">
-
-                    Clear filters
-
-                </button>
+                <button type="button" class="adm-button secondary" @onclick="ClearFiltersAsync">Clear filters</button>
             }
 
         </div>
@@ -255,14 +244,10 @@
 
                                 <div class="adm-person">
 
-                                    @if (!string.IsNullOrWhiteSpace(
-                                                                payment.AvatarUrl))
+                                    @if (!string.IsNullOrWhiteSpace(payment.AvatarUrl))
                                     {
                                         <span class="payment-avatar">
-
-                                            <img src="@payment.AvatarUrl"
-                                                 alt="@payment.GamerTag" />
-
+                                            <img src="@payment.AvatarUrl" alt="@payment.GamerTag" />
                                         </span>
                                     }
                                     else
@@ -294,8 +279,7 @@
                                 <div class="payment-reference">
 
                                     <strong>
-                                        @ShortReference(
-                                        payment.TransactionReference)
+                                        @ShortReference(payment.TransactionReference)
                             </strong>
 
                             <small>
@@ -312,12 +296,10 @@
                         <div class="payment-purpose">
 
                             <strong>
-                                @(payment.TournamentName
-                                                                ?? GetTypeText(payment.Type))
+                                @(payment.TournamentName ?? GetTypeText(payment.Type))
                             </strong>
 
-                            @if (!string.IsNullOrWhiteSpace(
-                                                        payment.GameName))
+                            @if (!string.IsNullOrWhiteSpace(payment.GameName))
                                     {
                                         <small>
                                             @payment.GameName
@@ -332,9 +314,7 @@
                             <td>
 
                                 <strong class="payment-amount">
-                                    @FormatMoney(
-                                    payment.Amount,
-                                                        payment.Currency)
+                                    @FormatMoney(payment.Amount, payment.Currency)
                         </strong>
 
                     </td>
@@ -351,76 +331,44 @@
 
                     <td>
 
-                        <span class="@GetStatusClass(
-                                                                               payment.Status)">
+                        <span class="@GetStatusClass(payment.Status)"><span class="payment-status-dot"></span>@GetStatusText(payment.Status)</span>
 
-                            <span class="payment-status-dot">
-                            </span>
-
-                                    @GetStatusText(payment.Status)
-
-                                </span>
-
-                            </td>
+                    </td>
 
 
-                            <td>
+                    <td>
 
-                                <div class="payment-date">
+                        <div class="payment-date">
 
-                                    <strong>
-                                        @payment.CreatedAt
-                                        .ToString("dd MMM yyyy")
-                                    </strong>
+                            <strong>
+                                @payment.CreatedAt.ToString("dd MMM yyyy")
+                            </strong>
 
-                                    <small>
-                                        @payment.CreatedAt
-                                        .ToString("HH:mm")
-                                    </small>
+                            <small>
+                                @payment.CreatedAt.ToString("HH:mm")
+                            </small>
 
-                                </div>
+                        </div>
 
-                            </td>
+                    </td>
 
 
-                            <td class="adm-row-actions payment-actions">
+                    <td class="adm-row-actions payment-actions">
 
-                                <button type="button"
-                                        @onclick="() =>
-                                                                            OpenDetailsAsync(payment.Id)">
-
-                            View
-
-                                </button>
+                        <button type="button" @onclick="() => OpenDetailsAsync(payment.Id)">View</button>
 
 
-                        @if (payment.Status ==
-                                                PaymentStatus.Pending)
-                                {
-                                    <button type="button"
-                                            @onclick="() =>
-                                            OpenCompleteModal(payment)">
+                        @if (payment.Status == PaymentStatus.Pending)
+                            {
+                                    <button type="button" @onclick="() => OpenCompleteModal(payment)">Complete</button>
 
-                            Complete
+                                    <button type="button" class="danger" @onclick="() => RequestAction(payment, PaymentAction.Fail)"> Fail</button>
+                            }
 
-                                    </button>
+                    </td>
 
-                                    <button type="button"
-                                            class="danger"
-                                            @onclick="() =>
-                                                                                RequestAction(
-                                                                                    payment,
-                                                                                    PaymentAction.Fail)">
-
-                            Fail
-
-                                    </button>
-                                                }
-
-                            </td>
-
-                        </tr>
-                    }
+                </tr>
+                }
 
             </tbody>
 
@@ -466,12 +414,9 @@
             <span class="adm-result-count">
 
                 Page @pagedResult.Page of
-                @(pagedResult.TotalPages == 0
-                                ? 1
-                                : pagedResult.TotalPages)
+                @(pagedResult.TotalPages == 0 ? 1 : pagedResult.TotalPages)
 
             </span>
-
 
                 <button type="button"
                         class="adm-button secondary"
@@ -510,29 +455,19 @@
 
                     <div>
 
-                        <span class="payment-detail-label">
-                            Amount
-                        </span>
+                        <span class="payment-detail-label">Amount</span>
 
                         <strong class="payment-detail-amount">
                             @FormatMoney(
-                            selectedDetails.Amount,
-                                                selectedDetails.Currency)
+                            selectedDetails.Amount, selectedDetails.Currency)
                     </strong>
 
                 </div>
 
 
-                <span class="@GetStatusClass(
-                                                           selectedDetails.Status)">
+                <span class="@GetStatusClass(selectedDetails.Status)">
 
-                    <span class="payment-status-dot">
-                    </span>
-
-                        @GetStatusText(
-                                        selectedDetails.Status)
-
-                </span>
+                    <span class="payment-status-dot"></span>@GetStatusText(selectedDetails.Status)</span>
 
             </div>
 
@@ -576,18 +511,12 @@
 
                     <div>
                         <span>Provider</span>
-                        <strong>
-                            @(selectedDetails.PaymentProvider
-                                                        ?? "—")
-                                                           </strong>
-                                                       </div>
+                        <strong> @(selectedDetails.PaymentProvider ?? "—")</strong>
+                    </div>
 
                     <div>
                         <span>Provider reference</span>
-                        <strong>
-                            @(selectedDetails.ProviderReference
-                                                        ?? "—")
-                        </strong>
+                        <strong>@(selectedDetails.ProviderReference ?? "—")</strong>
                     </div>
 
                     </div>
@@ -673,17 +602,14 @@
                     <div>
                         <span>Created</span>
                         <strong>
-                            @selectedDetails.CreatedAt
-                            .ToString("dd MMM yyyy HH:mm")
+                            @selectedDetails.CreatedAt.ToString("dd MMM yyyy HH:mm")
                         </strong>
                     </div>
 
                     <div>
                         <span>Paid</span>
                         <strong>
-                            @(selectedDetails.PaidAt
-                                                        ?.ToString("dd MMM yyyy HH:mm")
-                                                        ?? "Not completed")
+                            @(selectedDetails.PaidAt ?.ToString("dd MMM yyyy HH:mm") ?? "Not completed")
                         </strong>
                     </div>
 

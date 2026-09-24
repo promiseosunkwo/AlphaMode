@@ -43,7 +43,7 @@ else
 {
     <div class="portal-table-wrap">
 
-        <table class="portal-table">
+        <table class="portal-table payment-table">
 
             <thead>
                 <tr>
@@ -52,7 +52,7 @@ else
                     <th>Amount</th>
                     <th>Date</th>
                     <th>Status</th>
-                    <th></th>
+                    <th class="action-column"></th>
                 </tr>
             </thead>
 
@@ -63,42 +63,37 @@ else
                     <tr>
 
                         <td>
-                            <strong>
-                                @payment.TournamentName
+                            <div class="tournament-cell">
+                                <strong>@payment.TournamentName</strong>
+                                <small>@payment.GameName</small>
+                            </div>
+                        </td>
+
+                        <td>
+                            <span class="payment-reference">
+                                @payment.TransactionReference
+                            </span>
+                        </td>
+
+                        <td>
+                            <strong class="payment-amount">
+                                @FormatMoney(payment.Amount, payment.Currency)
                             </strong>
-
-                            <small>
-                                @payment.GameName
-                            </small>
                         </td>
 
                         <td>
-                            @payment.TransactionReference
+                            @payment.CreatedDate.ToLocalTime().ToString("dd MMM yyyy")
                         </td>
 
                         <td>
-                            @FormatMoney(
-                            payment.Amount,
-                                        payment.Currency)
-                </td>
+                            <span class="@GetStatusClass(payment.Status)">
+                                @payment.Status
+                            </span>
+                        </td>
 
-                <td>
-                    @payment.CreatedDate
-                    .ToLocalTime()
-                    .ToString("dd MMM yyyy")
-                </td>
+                        <td class="payment-action">
 
-                <td>
-                    <span class="@GetStatusClass(payment.Status)">
-                        @payment.Status
-                    </span>
-                </td>
-
-                <td>
-
-                    @if (payment.Status ==
-                                        PaymentStatus.Pending &&
-                                        payment.TournamentRegistrationId.HasValue)
+                            @if (payment.Status == PaymentStatus.Pending && payment.TournamentRegistrationId.HasValue)
                             {
                                 <button type="button"
                                         class="portal-button primary"
@@ -131,33 +126,22 @@ else
     {
         try
         {
-            var state =
-                await AuthenticationStateProvider
-                    .GetAuthenticationStateAsync();
+            var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
 
-            var userId =
-                state.User.FindFirstValue(
-                    ClaimTypes.NameIdentifier);
+            var userId = state.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrWhiteSpace(userId))
                 return;
 
-            var result =
-                await PaymentService
-                    .GetPlayerPaymentsAsync(userId);
+            var result = await PaymentService.GetPlayerPaymentsAsync(userId);
 
-            if (!result.Succeeded ||
-                result.Value is null)
+            if (!result.Succeeded || result.Value is null)
             {
-                Toast.Error(
-                    result.Error ??
-                    "Unable to load payments.");
-
+                Toast.Error(result.Error ?? "Unable to load payments.");
                 return;
             }
 
-            payments =
-                result.Value.ToList();
+            payments = result.Value.ToList();
         }
         finally
         {
@@ -166,54 +150,40 @@ else
     }
 
 
-    private void ContinuePayment(
-        PlayerPaymentDto payment)
+    private void ContinuePayment(PlayerPaymentDto payment)
     {
         if (!payment.TournamentRegistrationId.HasValue)
             return;
 
-        Navigation.NavigateTo(
-            $"/dashboard/checkout/{payment.TournamentRegistrationId}");
+        Navigation.NavigateTo($"/dashboard/checkout/{payment.TournamentRegistrationId}");
     }
 
 
-    private static string GetStatusClass(
-        PaymentStatus status)
+    private static string GetStatusClass(PaymentStatus status)
     {
         return status switch
         {
-            PaymentStatus.Completed =>
-                "portal-status open",
+            PaymentStatus.Completed => "portal-status open",
 
-            PaymentStatus.Pending =>
-                "portal-status pending",
+            PaymentStatus.Pending => "portal-status pending",
 
-            PaymentStatus.Failed =>
-                "portal-status danger",
+            PaymentStatus.Failed => "portal-status danger",
 
-            PaymentStatus.Refunded =>
-                "portal-status",
+            PaymentStatus.Refunded => "portal-status",
 
-            PaymentStatus.Cancelled =>
-                "portal-status",
-
-            _ =>
-                "portal-status"
+            PaymentStatus.Cancelled => "portal-status", _ => "portal-status"
         };
     }
 
 
-    private static string FormatMoney(
-        decimal amount,
-        string currency)
+    private static string FormatMoney(decimal amount, string currency)
     {
         return currency.ToUpperInvariant() switch
         {
             "NGN" => $"₦{amount:N0}",
             "GBP" => $"£{amount:N2}",
             "USD" => $"${amount:N2}",
-            "EUR" => $"€{amount:N2}",
-            _ => $"{currency} {amount:N2}"
+            "EUR" => $"€{amount:N2}", _ => $"{currency} {amount:N2}"
         };
     }
 }

@@ -1,0 +1,237 @@
+﻿.my-tournament-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.my-tournament-card {
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    background: rgba(14, 18, 29, 0.92);
+}
+
+.my-tournament-cover {
+    min-height: 180px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: linear-gradient( 135deg, rgba(63, 81, 181, 0.22), rgba(8, 12, 22, 0.96));
+}
+
+.my-tournament-cover-top,
+.my-tournament-cover-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.my-game-label {
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.my-tournament-cover-bottom {
+    align-items: flex-end;
+}
+
+    .my-tournament-cover-bottom span {
+        display: block;
+        font-size: 0.72rem;
+        opacity: 0.65;
+    }
+
+    .my-tournament-cover-bottom strong {
+        font-size: 1.4rem;
+    }
+
+.my-tournament-body {
+    padding: 22px;
+}
+
+.my-tournament-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+    .my-tournament-heading h2 {
+        margin: 5px 0 0;
+        font-size: 1.25rem;
+    }
+
+.my-tournament-format {
+    font-size: 0.72rem;
+    font-weight: 700;
+    opacity: 0.55;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.my-tournament-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 22px;
+}
+
+    .my-tournament-meta > div {
+        padding: 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.035);
+    }
+
+    .my-tournament-meta small,
+    .my-tournament-meta span {
+        display: block;
+    }
+
+    .my-tournament-meta small {
+        margin-bottom: 5px;
+        font-size: 0.67rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        opacity: 0.48;
+    }
+
+    .my-tournament-meta strong {
+        display: block;
+        font-size: 0.88rem;
+    }
+
+    .my-tournament-meta span {
+        margin-top: 3px;
+        font-size: 0.7rem;
+        opacity: 0.48;
+    }
+
+.my-tournament-progress {
+    margin-top: 22px;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+}
+
+.my-tournament-progress-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 18px;
+    font-size: 0.78rem;
+}
+
+    .my-tournament-progress-heading span {
+        opacity: 0.55;
+    }
+
+.participation-steps {
+    display: flex;
+    align-items: flex-start;
+}
+
+.participation-step {
+    width: 65px;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    text-align: center;
+}
+
+    .participation-step > span {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 0.72rem;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .participation-step small {
+        font-size: 0.65rem;
+        opacity: 0.5;
+    }
+
+    .participation-step.complete > span {
+        border-color: rgba(74, 222, 128, 0.45);
+        background: rgba(74, 222, 128, 0.13);
+    }
+
+    .participation-step.complete small {
+        opacity: 0.9;
+    }
+
+.participation-line {
+    flex: 1;
+    height: 1px;
+    margin-top: 14px;
+    background: rgba(255, 255, 255, 0.09);
+}
+
+    .participation-line.complete {
+        background: rgba(74, 222, 128, 0.55);
+    }
+
+.my-tournament-notice {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+    .my-tournament-notice > div {
+        display: grid;
+        gap: 4px;
+    }
+
+    .my-tournament-notice strong {
+        font-size: 0.82rem;
+    }
+
+    .my-tournament-notice span {
+        font-size: 0.74rem;
+        opacity: 0.62;
+    }
+
+    .my-tournament-notice.warning {
+        border: 1px solid rgba(250, 204, 21, 0.17);
+        background: rgba(250, 204, 21, 0.06);
+    }
+
+    .my-tournament-notice.success {
+        border: 1px solid rgba(74, 222, 128, 0.15);
+        background: rgba(74, 222, 128, 0.055);
+    }
+
+.my-tournament-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+@media (max-width: 1100px) {
+    .my-tournament-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 650px) {
+    .my-tournament-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .my-tournament-actions {
+        flex-direction: column;
+    }
+
+        .my-tournament-actions .portal-button {
+            width: 100%;
+        }
+}

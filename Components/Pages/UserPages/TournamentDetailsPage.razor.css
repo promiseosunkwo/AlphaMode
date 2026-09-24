@@ -1,0 +1,550 @@
+﻿.competition-centre {
+    display: grid;
+    gap: 0;
+}
+
+.competition-hero {
+    min-height: 300px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 22px 22px 0 0;
+    background: radial-gradient( circle at 80% 20%, rgba(86, 100, 255, 0.25), transparent 35%), linear-gradient( 135deg, #11182a, #080b12);
+    background-size: cover;
+    background-position: center;
+}
+
+.competition-hero-overlay {
+    min-height: 300px;
+    padding: 26px 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: linear-gradient( 180deg, rgba(5, 8, 15, 0.18), rgba(5, 8, 15, 0.92));
+}
+
+.competition-back {
+    width: fit-content;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.82rem;
+    opacity: 0.7;
+}
+
+    .competition-back:hover {
+        opacity: 1;
+    }
+
+.competition-hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+}
+
+.competition-game {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.65;
+}
+
+.competition-hero h1 {
+    max-width: 800px;
+    margin: 8px 0 10px;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    line-height: 1.05;
+}
+
+.competition-hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.78rem;
+    opacity: 0.65;
+}
+
+
+/* Tabs */
+
+.competition-tabs {
+    display: flex;
+    gap: 5px;
+    padding: 0 22px;
+    overflow-x: auto;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 0;
+    background: rgba(12, 16, 26, 0.96);
+}
+
+.competition-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 18px 15px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.8rem;
+    opacity: 0.55;
+    white-space: nowrap;
+}
+
+    .competition-tab:hover {
+        opacity: 0.85;
+    }
+
+    .competition-tab.active {
+        border-bottom-color: currentColor;
+        opacity: 1;
+    }
+
+    .competition-tab span {
+        min-width: 20px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+        font-size: 0.65rem;
+    }
+
+
+/* Main content */
+
+.competition-content {
+    padding-top: 22px;
+}
+
+.competition-overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(270px, 0.8fr);
+    gap: 20px;
+}
+
+.competition-main-column,
+.competition-side-column {
+    display: grid;
+    align-content: start;
+    gap: 20px;
+}
+
+.competition-panel {
+    padding: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 18px;
+    background: rgba(14, 18, 29, 0.86);
+}
+
+.competition-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+    .competition-panel-heading h2 {
+        margin: 5px 0 0;
+        font-size: 1.05rem;
+    }
+
+.competition-eyebrow {
+    display: block;
+    font-size: 0.67rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    opacity: 0.48;
+}
+
+.competition-muted {
+    opacity: 0.55;
+}
+
+.competition-description {
+    margin: 0;
+    line-height: 1.75;
+    opacity: 0.78;
+}
+
+
+/* Participation journey */
+
+.competition-journey {
+    display: flex;
+    align-items: flex-start;
+    margin: 30px 0;
+}
+
+.journey-step {
+    min-width: 100px;
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    text-align: center;
+}
+
+    .journey-step > span {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.035);
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
+
+    .journey-step div {
+        display: grid;
+        gap: 3px;
+    }
+
+    .journey-step strong {
+        font-size: 0.78rem;
+    }
+
+    .journey-step small {
+        font-size: 0.65rem;
+        opacity: 0.45;
+    }
+
+    .journey-step.complete > span {
+        border-color: rgba(74, 222, 128, 0.45);
+        background: rgba(74, 222, 128, 0.12);
+    }
+
+    .journey-step.complete small {
+        opacity: 0.7;
+    }
+
+.journey-line {
+    flex: 1;
+    height: 1px;
+    margin-top: 18px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+    .journey-line.complete {
+        background: rgba(74, 222, 128, 0.5);
+    }
+
+
+/* Action box */
+
+.competition-action-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 17px;
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+    .competition-action-box strong {
+        font-size: 0.83rem;
+    }
+
+    .competition-action-box p {
+        margin: 4px 0 0;
+        font-size: 0.74rem;
+        line-height: 1.5;
+        opacity: 0.58;
+    }
+
+    .competition-action-box.warning {
+        border: 1px solid rgba(250, 204, 21, 0.15);
+        background: rgba(250, 204, 21, 0.05);
+    }
+
+    .competition-action-box.success {
+        border: 1px solid rgba(74, 222, 128, 0.15);
+        background: rgba(74, 222, 128, 0.05);
+    }
+
+
+/* Information */
+
+.competition-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+    .competition-info-grid > div {
+        padding: 13px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .competition-info-grid small,
+    .competition-info-grid span {
+        display: block;
+    }
+
+    .competition-info-grid small {
+        margin-bottom: 5px;
+        font-size: 0.64rem;
+        text-transform: uppercase;
+        opacity: 0.4;
+    }
+
+    .competition-info-grid strong {
+        font-size: 0.8rem;
+    }
+
+    .competition-info-grid span {
+        margin-top: 3px;
+        font-size: 0.68rem;
+        opacity: 0.45;
+    }
+
+
+/* Player summary */
+
+.competition-player-summary {
+    margin-top: 15px;
+}
+
+    .competition-player-summary > strong {
+        display: block;
+        font-size: 1.65rem;
+    }
+
+    .competition-player-summary > span {
+        display: block;
+        margin-top: 3px;
+        font-size: 0.7rem;
+        opacity: 0.5;
+    }
+
+    .competition-player-summary progress {
+        width: 100%;
+        height: 6px;
+        margin: 16px 0;
+    }
+
+.competition-checkin-count,
+.competition-legs {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 13px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.76rem;
+}
+
+    .competition-checkin-count span,
+    .competition-legs span {
+        opacity: 0.55;
+    }
+
+
+/* Scoring */
+
+.competition-score-rules {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    margin: 15px 0;
+}
+
+    .competition-score-rules > div {
+        padding: 11px 6px;
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.03);
+        text-align: center;
+    }
+
+    .competition-score-rules small,
+    .competition-score-rules strong {
+        display: block;
+    }
+
+    .competition-score-rules small {
+        margin-bottom: 4px;
+        font-size: 0.62rem;
+        opacity: 0.4;
+    }
+
+    .competition-score-rules strong {
+        font-size: 0.72rem;
+    }
+
+
+/* Player list */
+
+.competition-count {
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.68rem;
+    opacity: 0.7;
+}
+
+.competition-player-list {
+    display: grid;
+}
+
+.competition-player-row {
+    display: grid;
+    grid-template-columns: 35px 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+    .competition-player-row:last-child {
+        border-bottom: 0;
+    }
+
+.competition-player-position {
+    font-size: 0.72rem;
+    opacity: 0.4;
+    text-align: center;
+}
+
+.competition-avatar {
+    width: 38px;
+    height: 38px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+    .competition-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+.competition-player-name {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+}
+
+    .competition-player-name strong {
+        overflow: hidden;
+        font-size: 0.82rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .competition-player-name span {
+        font-size: 0.68rem;
+        opacity: 0.45;
+    }
+
+
+/* Feature empty state */
+
+.competition-feature-empty {
+    min-height: 340px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    text-align: center;
+}
+
+.competition-feature-icon {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 14px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.045);
+    font-size: 1.4rem;
+}
+
+.competition-feature-empty h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.competition-feature-empty p {
+    max-width: 420px;
+    margin: 8px auto;
+    font-size: 0.77rem;
+    line-height: 1.6;
+    opacity: 0.5;
+}
+
+.competition-feature-empty > span {
+    margin-top: 8px;
+    font-size: 0.68rem;
+    opacity: 0.4;
+}
+
+
+/* Responsive */
+
+@media (max-width: 950px) {
+    .competition-overview {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 650px) {
+    .competition-hero,
+    .competition-hero-overlay {
+        min-height: 250px;
+    }
+
+    .competition-hero-overlay {
+        padding: 20px;
+    }
+
+    .competition-hero-content {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .competition-tabs {
+        padding: 0 10px;
+    }
+
+    .competition-panel {
+        padding: 17px;
+    }
+
+    .competition-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .competition-journey {
+        overflow-x: auto;
+        padding-bottom: 8px;
+    }
+
+    .journey-line {
+        min-width: 35px;
+    }
+
+    .competition-action-box {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .competition-player-row {
+        grid-template-columns: 28px 38px minmax(0, 1fr);
+    }
+
+    .competition-player-state {
+        grid-column: 3;
+    }
+}

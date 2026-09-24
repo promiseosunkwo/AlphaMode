@@ -12,6 +12,7 @@
 @using AlphaMode.Domain.Enums
 @using AlphaMode.Services
 
+@inject NavigationManager Navigation
 @inject ITournamentService TournamentService
 @inject IGameService GameService
 @inject ToastService Toast
@@ -180,6 +181,11 @@
                                     Delete
                                 </button>
 
+                                <button type="button"
+                                        class="adm-button secondary"
+                                        @onclick="() => ManageParticipants(tournament.Id)">
+                                    Participants
+                                </button>
                             </td>
 
                         </tr>
@@ -984,6 +990,11 @@
     private bool IsProcessing(Guid id)
     {
         return processingTournamentId == id;
+    }
+
+    private void ManageParticipants(Guid tournamentId)
+    {
+        Navigation.NavigateTo($"/admin/tournaments/{tournamentId}/participants");
     }
 
 
