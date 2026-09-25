@@ -834,8 +834,7 @@ else
 
             if (!result.Succeeded)
             {
-                Toast.Error(
-                    result.Error ?? "The action could not be completed.");
+                Toast.Error(result.Error ?? "The action could not be completed.");
 
                 return;
             }
@@ -843,7 +842,7 @@ else
 
             Toast.Success(result.Message ?? "Participant updated successfully.");
 
-            CloseConfirm();
+            CloseConfirm(); /////////////////////////////////////////////////////////////////////////////////////////////////////
 
             await LoadAsync();
         }
@@ -880,13 +879,19 @@ else
         confirmButtonText = "Confirm";
     }
 
+    private void CloseConfirmDialog()
+    {
+        isConfirmOpen = false;
+        selectedParticipant = null;
+        pendingAction = default;
+    }
+
 
     // =====================================================
     // DISQUALIFY
     // =====================================================
 
-    private void OpenDisqualify(
-        AdminTournamentRegisteredParticipantDto participant)
+    private void OpenDisqualify(AdminTournamentRegisteredParticipantDto participant)
     {
         selectedParticipant = participant;
 
@@ -943,9 +948,7 @@ else
             }
 
 
-            Toast.Success(
-                result.Message ??
-                "Player disqualified successfully.");
+            Toast.Success(result.Message ?? "Player disqualified successfully.");
 
             CloseDisqualifyAfterSuccess();
 
@@ -955,8 +958,7 @@ else
         {
             Console.WriteLine(ex);
 
-            Toast.Error(
-                "Something went wrong while disqualifying the player.");
+            Toast.Error("Something went wrong while disqualifying the player.");
         }
         finally
         {
@@ -969,17 +971,13 @@ else
 
     private void CloseDisqualifyAfterSuccess()
     {
-        isDisqualifyOpen =
-            false;
+        isDisqualifyOpen = false;
 
-        selectedParticipant =
-            null;
+        selectedParticipant = null;
 
-        disqualifyModel =
-            new DisqualifyFormModel();
+        disqualifyModel = new DisqualifyFormModel();
 
-        disqualifyEditContext =
-            null;
+        disqualifyEditContext = null;
     }
 
 
@@ -987,21 +985,15 @@ else
     // ACTION RULES
     // =====================================================
 
-    private static bool CanDisqualify(
-        AdminTournamentRegisteredParticipantDto participant)
+    private static bool CanDisqualify(AdminTournamentRegisteredParticipantDto participant)
     {
-        return participant.Status is
-            TournamentRegistrationStatus.Registered or
-            TournamentRegistrationStatus.CheckedIn;
+        return participant.Status is TournamentRegistrationStatus.Registered or TournamentRegistrationStatus.CheckedIn;
     }
 
 
-    private static bool CanCancel(
-        AdminTournamentRegisteredParticipantDto participant)
+    private static bool CanCancel(AdminTournamentRegisteredParticipantDto participant)
     {
-        return participant.Status is
-            TournamentRegistrationStatus.PendingPayment or
-            TournamentRegistrationStatus.Registered;
+        return participant.Status is TournamentRegistrationStatus.PendingPayment or TournamentRegistrationStatus.Registered;
     }
 
 
