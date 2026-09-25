@@ -1,0 +1,1005 @@
+﻿@page "/admin/tournaments/{TournamentId:guid}/fixtures"
+
+@layout AlphaMode.Components.Layout.AdminLayout
+@rendermode InteractiveServer
+
+@using AlphaMode.Application.TournamentFixtures.DTOs
+@using AlphaMode.Application.TournamentFixtures.Interfaces
+@using AlphaMode.Components.Sections.AdminSectionComponents
+@using AlphaMode.Components.Shared.ConfirmDialog
+@using AlphaMode.Components.Shared.Toast
+@using AlphaMode.Domain.Enums
+@using AlphaMode.Services
+@using AlphaMode.Application.TournamentMatches.DTOs
+@using AlphaMode.Application.TournamentMatches.Interfaces
+@using AlphaMode.Application.TournamentMatches.Requests
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+
+
+@inject ITournamentMatchService MatchService
+@inject ITournamentFixtureService FixtureService
+@inject NavigationManager Navigation
+@inject ToastService Toast
+
+<PageTitle>Fixtures | AlphaMode</PageTitle>
+<ToastContainer />
+
+@if (isLoading)
+{
+    <div class="adm-empty-state">
+        Loading fixtures...
+    </div>
+}
+else if (fixture is null)
+{
+    <div class="adm-empty-state">
+
+        <h3>Fixtures unavailable</h3>
+
+        <p>@errorMessage</p>
+
+        <button type="button"
+                class="adm-button secondary"
+                @onclick="BackToParticipants">
+            Back to participants
+        </button>
+
+    </div>
+}
+else
+{
+    <AdminPageHeader
+        Eyebrow="Tournament management"
+        Title="@fixture.TournamentName"
+        Description="@GetHeaderDescription()">
+
+        <Actions>
+
+            <button type="button"
+                    class="adm-button secondary"
+                    @onclick="BackToParticipants">
+                Participants
+            </button>
+
+            @if (!fixture.FixturesGenerated)
+            {
+                <button type="button"
+                        class="adm-button primary"
+                        disabled="@isGenerating"
+                        @onclick="OpenGenerateConfirmation">
+                    Generate fixtures
+                </button>
+            }
+
+        </Actions>
+
+    </AdminPageHeader>
+
+
+    <section class="fixture-summary-grid">
+
+        <article class="adm-panel fixture-summary-card">
+            <span>Format</span>
+            <strong>@FormatTournamentFormat(fixture.Format)</strong>
+            <small>competition structure</small>
+        </article>
+
+        <article class="adm-panel fixture-summary-card">
+            <span>Players</span>
+            <strong>@fixture.EligiblePlayers</strong>
+            <small>checked in and eligible</small>
+        </article>
+
+        <article class="adm-panel fixture-summary-card">
+            <span>Rounds</span>
+            <strong>@fixture.Rounds.Count</strong>
+            <small>fixture rounds</small>
+        </article>
+
+        <article class="adm-panel fixture-summary-card">
+            <span>Status</span>
+
+            <strong>
+                @(fixture.FixturesGenerated
+                    ? "Generated"
+                    : "Preview")
+            </strong>
+
+            <small>
+                @(fixture.FixturesGenerated
+                    ? "saved tournament fixtures"
+                    : "not saved yet")
+            </small>
+        </article>
+
+    </section>
+
+
+    @if (!fixture.FixturesGenerated)
+    {
+        <section class="adm-panel fixture-preview-notice">
+
+            <div>
+                <span class="adm-eyebrow">
+                    Fixture preview
+                </span>
+
+                <h2>Review before generating</h2>
+
+                <p>
+                    These fixtures are only a preview.
+                    Nothing has been saved yet.
+                </p>
+            </div>
+
+        </section>
+    }
+
+
+    @if (!fixture.Rounds.Any())
+    {
+        <section class="adm-panel">
+
+            <div class="adm-empty-state">
+                No fixtures are available.
+            </div>
+
+        </section>
+    }
+    else
+    {
+        <div class="fixture-rounds">
+
+            @foreach (var round in fixture.Rounds)
+            {
+                <section class="adm-panel fixture-round">
+
+                    <div class="fixture-round-heading">
+
+                        <div>
+                            <span class="adm-eyebrow">
+                                Round @round.RoundNumber
+                            </span>
+
+                            <h2>@round.Name</h2>
+                        </div>
+
+                        <span class="fixture-match-count">
+                            @round.Matches.Count matches
+                        </span>
+
+                    </div>
+
+
+                    <div class="fixture-match-list">
+
+                        @foreach (var match in round.Matches)
+                        {
+                            <article class="fixture-match">
+
+                                <div class="fixture-player">
+                                    <span class="fixture-player-label">
+                                        Player 1
+                                    </span>
+
+                                    <strong>
+                                        @match.PlayerOneName
+                                    </strong>
+                                </div>
+
+                                <div class="fixture-versus">
+                                    @if (match.HasScore)
+                                    {
+                                        <strong>
+                                            @match.PlayerOneScore - @match.PlayerTwoScore
+                                        </strong>
+                                    }
+                                    else
+                                    {
+                                        <span>
+                                            VS
+                                        </span>
+                                    }
+                                </div>
+
+                                <div class="fixture-player right">
+                                    <span class="fixture-player-label">
+                                        Player 2
+                                    </span>
+
+                                    <strong>
+                                        @match.PlayerTwoName
+                                    </strong>
+                                </div>
+
+                                <div class="fixture-match-actions">
+
+                                    @if (match.IsBye)
+                                    {
+                                        <span class="fixture-bye">
+                                            BYE
+                                        </span>
+                                    }
+                                    else if (fixture.FixturesGenerated)
+                                    {
+                                        <span class="@GetMatchStatusClass(match.Status)">
+                                            @match.Status
+                                        </span>
+                                    }
+
+                                    @if (fixture.FixturesGenerated && match.MatchId.HasValue && !match.IsBye)
+                                    {
+                                        <button type="button" class="adm-button secondary fixture-manage-button" @onclick="() => OpenManageMatchAsync(match.MatchId.Value)">
+                                            Manage
+                                        </button>
+                                    }
+
+                                </div>
+
+                            </article>
+                        }
+
+                    </div>
+
+                </section>
+            }
+
+        </div>
+    }
+}
+
+
+<AdminModal
+    IsOpen="@isManageMatchOpen"
+    Eyebrow="Match management"
+    Title="@GetMatchModalTitle()"
+    EditContext="@matchEditContext"
+    OnValidSubmit="HandleMatchSubmitAsync"
+    OnInvalidSubmit="HandleInvalidMatchSubmitAsync"
+    OnClose="CloseManageMatch">
+
+    <ChildContent>
+    @if (selectedMatch is not null)
+    {
+        <div class="match-manager">
+
+            <div class="match-manager-scoreboard">
+
+                <div class="match-manager-player">
+
+                    <span>Player 1</span>
+
+                    <strong>
+                        @selectedMatch.PlayerOneName
+                    </strong>
+
+                </div>
+
+                <div class="match-manager-vs">
+                    VS
+                </div>
+
+                <div class="match-manager-player right">
+
+                    <span>Player 2</span>
+
+                    <strong>
+                        @selectedMatch.PlayerTwoName
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="match-manager-meta">
+
+                <span>
+                    Round @selectedMatch.RoundNumber
+                </span>
+
+                <span class="@GetMatchStatusClass(
+                    selectedMatch.Status)">
+                    @selectedMatch.Status
+                </span>
+
+            </div>
+
+
+            @if (selectedMatch.Status == MatchStatus.Pending || selectedMatch.Status == MatchStatus.Scheduled)
+            {
+                <div class="match-manager-section">
+
+                    <h4>Schedule</h4>
+
+                    <div class="adm-field">
+
+                        <label>Match date & time</label>
+
+                            <InputDate @bind-Value="scheduleRequest.ScheduledAt"
+                                   Type="InputDateType.DateTimeLocal"
+                                   class="adm-input" />
+
+                    </div>
+
+
+                    <button type="button"
+                            class="adm-button secondary"
+                            disabled="@isMatchProcessing"
+                                @onclick="ScheduleSelectedMatchAsync">
+                        Save schedule
+                    </button>
+
+                </div>
+            }
+
+
+            @if (CanEnterResult(selectedMatch))
+            {
+                <div class="match-manager-section">
+
+                    <h4>Match result</h4>
+
+                    <div class="match-score-inputs">
+
+                        <div class="adm-field">
+
+                            <label>@selectedMatch.PlayerOneName</label>
+
+                                <InputNumber class="adm-input match-score-input" @bind-Value="resultRequest.PlayerOneScore" />
+                                <ValidationMessage For="@(() => resultRequest.PlayerOneScore)" />
+                        </div>
+
+                        <div class="match-score-divider"> - </div>
+
+
+                        <div class="adm-field">
+
+                            <label>@selectedMatch.PlayerTwoName</label>
+
+                                <InputNumber class="adm-input match-score-input" @bind-Value="resultRequest.PlayerTwoScore" />
+                                <ValidationMessage For="@(() => resultRequest.PlayerTwoScore)" />
+                        </div>
+                    </div>
+                </div>
+            }
+
+
+            @if (selectedMatch.Status == MatchStatus.Completed)
+            {
+                <div class="match-completed-result">
+
+                    <span>Final result</span>
+
+                    <strong>
+                        @selectedMatch.PlayerOneScore
+                        -
+                        @selectedMatch.PlayerTwoScore
+                    </strong>
+
+                    <p>
+                        @GetWinnerText(selectedMatch)
+                    </p>
+
+                </div>
+            }
+
+        </div>
+    }
+    </ChildContent>
+
+    <Footer>
+
+        <button type="button" class="adm-button secondary" disabled="@isMatchProcessing" @onclick="CloseManageMatch">Close</button>
+
+
+        @if (selectedMatch is not null && CanStartMatch(selectedMatch))
+        {
+            <button type="button"
+                    class="adm-button secondary"
+                    disabled="@isMatchProcessing"
+                    @onclick="StartSelectedMatchAsync">
+                @(isMatchProcessing ? "Processing..." : "Start match")
+            </button>
+        }
+
+
+        @if (selectedMatch is not null && CanEnterResult(selectedMatch))
+        {
+            <button type="submit" class="adm-button primary" disabled="@isMatchProcessing">
+
+                @(isMatchProcessing ? "Saving..." : "Complete match")
+
+            </button>
+        }
+
+    </Footer>
+
+</AdminModal>
+
+
+<ConfirmDialog
+    IsOpen="@isGenerateConfirmationOpen"
+    Title="Generate tournament fixtures?"
+    Message="@GetGenerateConfirmationMessage()"
+    ConfirmText="Generate fixtures"
+    CancelText="Cancel"
+    ProcessingText="Generating..."
+    IsProcessing="@isGenerating"
+    OnConfirm="GenerateAsync"
+    OnCancel="CloseGenerateConfirmation" />
+
+
+@code {
+    private MatchDetailsDto? selectedMatch;
+
+    private bool isManageMatchOpen;
+
+    private bool isMatchProcessing;
+
+    private ScheduleMatchRequest scheduleRequest = new();
+
+    private SubmitMatchResultRequest resultRequest = new();
+
+    private EditContext? matchEditContext;
+
+    [Parameter]
+    public Guid TournamentId { get; set; }
+
+    private TournamentFixtureDto? fixture;
+
+    private bool isLoading = true;
+
+    private bool isGenerating;
+
+    private bool isGenerateConfirmationOpen;
+
+    private string errorMessage =
+        "Fixtures could not be loaded.";
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            // First check whether fixtures already exist.
+            var existing = await FixtureService.GetAsync(TournamentId);
+
+            if (!existing.Succeeded || existing.Value is null)
+            {
+                fixture = null;
+
+                errorMessage = existing.Error ??"Tournament could not be loaded.";
+
+                return;
+            }
+
+            if (existing.Value.FixturesGenerated)
+            {
+                fixture = existing.Value;
+
+                return;
+            }
+
+            // Nothing generated yet, so show preview.
+            var preview = await FixtureService.PreviewAsync(TournamentId);
+
+            if (!preview.Succeeded || preview.Value is null)
+            {
+                fixture = existing.Value;
+
+                errorMessage = preview.Error ?? "A fixture preview could not be generated.";
+
+                Toast.Warning(errorMessage);
+
+                return;
+            }
+
+            fixture = preview.Value;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            fixture = null;
+
+            errorMessage = "Something went wrong while loading fixtures.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private async Task StartSelectedMatchAsync()
+    {
+        if (selectedMatch is null || isMatchProcessing)
+        {
+            return;
+        }
+
+        isMatchProcessing = true;
+
+        try
+        {
+            var result = await MatchService.StartAsync(selectedMatch.Id);
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(result.Error ??"Match could not be started.");
+
+                return;
+            }
+
+            Toast.Success(result.Message ??"Match started successfully.");
+
+            // Reload the selected match so the modal
+            // immediately changes from Scheduled/Pending -> Live.
+            await RefreshSelectedMatchAsync();
+
+            // Reload the fixture list so the match card
+            // also displays the new Live status.
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error("Something went wrong while starting the match.");
+        }
+        finally
+        {
+            isMatchProcessing = false;
+        }
+    }
+
+
+    private void OpenGenerateConfirmation()
+    {
+        if (fixture is null || fixture.FixturesGenerated)
+        {
+            return;
+        }
+
+        isGenerateConfirmationOpen = true;
+    }
+
+
+    private void CloseGenerateConfirmation()
+    {
+        if (isGenerating)
+            return;
+
+        isGenerateConfirmationOpen = false;
+    }
+
+
+    private async Task GenerateAsync()
+    {
+        if (fixture is null || fixture.FixturesGenerated || isGenerating)
+        {
+            return;
+        }
+
+        isGenerating = true;
+
+        try
+        {
+            var result = await FixtureService.GenerateAsync(TournamentId);
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(result.Error ?? "Fixtures could not be generated.");
+
+                return;
+            }
+
+            isGenerateConfirmationOpen = false;
+
+            Toast.Success(result.Message ?? "Fixtures generated successfully.");
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error("Something went wrong while generating fixtures.");
+        }
+        finally
+        {
+            isGenerating = false;
+        }
+    }
+
+
+    private void BackToParticipants()
+    {
+        Navigation.NavigateTo($"/admin/tournaments/{TournamentId}/participants");
+    }
+
+
+    private string GetHeaderDescription()
+    {
+        if (fixture is null)
+            return string.Empty;
+
+        return
+            $"{fixture.GameName} • " +
+            $"{FormatTournamentFormat(fixture.Format)} • " +
+            $"{fixture.EligiblePlayers} eligible players";
+    }
+
+
+    private string GetGenerateConfirmationMessage()
+    {
+        if (fixture is null)
+        {
+            return
+                "Generate tournament fixtures?";
+        }
+
+        var matches =
+            fixture.Rounds
+                .Sum(x => x.Matches.Count);
+
+        return
+            $"Generate {matches} fixture(s) for " +
+            $"{fixture.EligiblePlayers} checked-in players? " +
+            "Fixtures cannot be generated again once matches exist.";
+    }
+
+
+    private static string FormatTournamentFormat(TournamentFormat format)
+    {
+        return format switch
+        {
+            TournamentFormat.SingleElimination => "Single Elimination",
+
+            TournamentFormat.DoubleElimination => "Double Elimination",
+
+            TournamentFormat.League => "League",
+
+            _ =>
+                format.ToString()
+        };
+    }
+
+
+    private static string GetMatchStatusClass(MatchStatus status)
+    {
+        return status switch
+        {
+            MatchStatus.Completed => "adm-status active",
+
+            MatchStatus.Live => "adm-status active",
+
+            MatchStatus.Scheduled => "adm-status pending",
+
+            _ =>
+                "adm-status"
+        };
+    }
+
+
+    //open match modal to update scores
+    private async Task OpenManageMatchAsync(Guid matchId)
+    {
+        if (isMatchProcessing)
+            return;
+
+        try
+        {
+            var result = await MatchService.GetByIdAsync(matchId);
+
+            if (!result.Succeeded || result.Value is null)
+            {
+                Toast.Error(
+                    result.Error ??
+                    "Match could not be loaded.");
+
+                return;
+            }
+
+            selectedMatch = result.Value;
+
+            // Scheduling model
+            scheduleRequest = new ScheduleMatchRequest
+            {
+                MatchId = selectedMatch.Id,
+                ScheduledAt = selectedMatch.ScheduledAt?.ToLocalTime()
+            };
+
+            // Result submission model
+            resultRequest = new SubmitMatchResultRequest
+            {
+                MatchId = selectedMatch.Id,
+                PlayerOneScore = selectedMatch.PlayerOneScore,
+                PlayerTwoScore = selectedMatch.PlayerTwoScore
+            };
+
+            // The modal's submit button is used to submit
+            // the match result, so validate resultRequest.
+            matchEditContext = new EditContext(resultRequest);
+
+            isManageMatchOpen = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "Something went wrong while loading the match.");
+        }
+    }
+
+
+
+    //submit result of match onvalid form input///////////////////////////////////////////////////////////////
+    private async Task HandleMatchSubmitAsync()
+    {
+        if (selectedMatch is null || isMatchProcessing)
+        {
+            return;
+        }
+
+        if (!resultRequest.PlayerOneScore.HasValue || !resultRequest.PlayerTwoScore.HasValue)
+        {
+            Toast.Warning("Enter a score for both players.");
+
+            return;
+        }
+
+        if (selectedMatch.TournamentFormat == TournamentFormat.SingleElimination && resultRequest.PlayerOneScore.Value == resultRequest.PlayerTwoScore.Value)
+        {
+            Toast.Warning("A single-elimination match must have a winner.");
+
+            return;
+        }
+
+        isMatchProcessing = true;
+
+        try
+        {
+            var request = new SubmitMatchResultRequest
+            {
+                MatchId = selectedMatch.Id,
+
+                PlayerOneScore = resultRequest.PlayerOneScore.Value,
+
+                PlayerTwoScore = resultRequest.PlayerTwoScore.Value
+            };
+
+            var result = await MatchService.SubmitResultAsync(request);
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(result.Error ?? "Match result could not be submitted.");
+
+                return;
+            }
+
+            Toast.Success(result.Message ?? "Match completed successfully.");
+
+            // Reload selected match from database.
+            await RefreshSelectedMatchAsync();
+
+            await LoadAsync();
+
+            CloseManageMatchAfterSuccess();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error("Something went wrong while submitting the result.");
+        }
+        finally
+        {
+            isMatchProcessing = false;
+        }
+    }
+
+    private void HandleInvalidMatchSubmitAsync()
+    {
+        if (!resultRequest.PlayerOneScore.HasValue || !resultRequest.PlayerTwoScore.HasValue)
+        {
+            Toast.Warning(
+                "Enter a score for both players.");
+
+            return;
+        }
+
+        Toast.Warning(
+            "Please correct the highlighted fields.");
+    }
+
+
+    private async Task ScheduleSelectedMatchAsync()
+    {
+        if (selectedMatch is null ||
+            isMatchProcessing)
+        {
+            return;
+        }
+
+        if (!scheduleRequest.ScheduledAt.HasValue)
+        {
+            Toast.Warning(
+                "Please select a match date and time.");
+
+            return;
+        }
+
+        isMatchProcessing = true;
+
+        try
+        {
+            var request =
+                new ScheduleMatchRequest
+                {
+                    MatchId = selectedMatch.Id,
+
+                    ScheduledAt =
+                        scheduleRequest.ScheduledAt.Value
+                            .ToUniversalTime()
+                };
+
+            var result =
+                await MatchService.ScheduleAsync(
+                    request);
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(
+                    result.Error ??
+                    "Match could not be scheduled.");
+
+                return;
+            }
+
+            Toast.Success(
+                result.Message ??
+                "Match scheduled successfully.");
+
+            await RefreshSelectedMatchAsync();
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "Something went wrong while scheduling the match.");
+        }
+        finally
+        {
+            isMatchProcessing = false;
+        }
+    }
+
+
+    // Refresh 
+    private async Task RefreshSelectedMatchAsync()
+    {
+        if (selectedMatch is null)
+            return;
+
+        var result = await MatchService.GetByIdAsync(selectedMatch.Id);
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            return;
+        }
+
+        selectedMatch = result.Value;
+
+        // Scheduling model
+        scheduleRequest = new ScheduleMatchRequest
+        {
+            MatchId = selectedMatch.Id,
+            ScheduledAt = selectedMatch.ScheduledAt?.ToLocalTime()
+        };
+
+        // Result submission model
+        resultRequest = new SubmitMatchResultRequest
+        {
+            MatchId = selectedMatch.Id,
+            PlayerOneScore = selectedMatch.PlayerOneScore,
+            PlayerTwoScore = selectedMatch.PlayerTwoScore
+        };
+    }
+
+
+
+    //Helpers
+    private void CloseManageMatch()
+    {
+        if (isMatchProcessing)
+            return;
+
+        isManageMatchOpen = false;
+
+        selectedMatch = null;
+
+        resultRequest = new SubmitMatchResultRequest();
+
+        matchEditContext =
+            null;
+    }
+
+
+    private void CloseManageMatchAfterSuccess()
+    {
+        isManageMatchOpen = false;
+
+        selectedMatch = null;
+
+        resultRequest = new SubmitMatchResultRequest();
+
+        matchEditContext = null;
+    }
+
+
+    private static bool CanStartMatch(MatchDetailsDto match)
+    {
+        return match.Status is
+            MatchStatus.Pending or
+            MatchStatus.Scheduled &&
+            match.PlayerOneId.HasValue &&
+            match.PlayerTwoId.HasValue;
+    }
+
+    private static bool CanEnterResult(MatchDetailsDto match)
+    {
+        return
+            match.Status == MatchStatus.Live
+            &&
+            match.PlayerOneId.HasValue
+            &&
+            match.PlayerTwoId.HasValue;
+    }
+
+    private static string GetWinnerText(MatchDetailsDto match)
+    {
+        if (!match.WinnerId.HasValue)
+        {
+            return "Draw";
+        }
+
+        if (match.WinnerId ==
+            match.PlayerOneId)
+        {
+            return $"{match.PlayerOneName} won";
+        }
+
+        if (match.WinnerId ==
+            match.PlayerTwoId)
+        {
+            return $"{match.PlayerTwoName} won";
+        }
+
+        return "Match completed";
+    }
+
+    private string GetMatchModalTitle()
+    {
+        if (selectedMatch is null)
+            return "Manage Match";
+
+        return
+            $"{selectedMatch.PlayerOneName} vs " +
+            $"{selectedMatch.PlayerTwoName}";
+    }
+}

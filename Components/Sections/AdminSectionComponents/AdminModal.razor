@@ -24,7 +24,7 @@
 
             @if (EditContext is not null)
             {
-                <EditForm EditContext="EditContext" OnValidSubmit="HandleValidSubmitAsync" Enhance="false">
+                <EditForm EditContext="EditContext" OnValidSubmit="HandleValidSubmitAsync" OnInvalidSubmit="HandleInvalidSubmitAsync" Enhance =" false">
 
                     <DataAnnotationsValidator />
 
@@ -80,9 +80,20 @@
     public EventCallback OnValidSubmit { get; set; }
 
     [Parameter]
+    public EventCallback OnInvalidSubmit { get; set; }
+
+    [Parameter]
     public EventCallback OnClose { get; set; }
 
     private Task CloseAsync()  => OnClose.InvokeAsync();
 
     private Task HandleValidSubmitAsync() => OnValidSubmit.InvokeAsync();
+
+    private async Task HandleInvalidSubmitAsync()
+    {
+        if (OnInvalidSubmit.HasDelegate)
+        {
+            await OnInvalidSubmit.InvokeAsync();
+        }
+    }
 }
