@@ -4,6 +4,7 @@
 @rendermode InteractiveServer
 
 @using System.Security.Claims
+@using AlphaMode.Application.TournamentFixtures.DTOs
 @using AlphaMode.Application.TournamentRegistrations.DTOs
 @using AlphaMode.Application.TournamentRegistrations.Interfaces
 @using AlphaMode.Application.TournamentStandings.DTOs
@@ -804,6 +805,16 @@ else
     private string? standingsError;
 
 
+    //Fixtures Tab
+    private TournamentFixtureDto? fixtures;
+
+    private bool isFixturesLoading;
+
+    private bool fixturesLoaded;
+
+    private string? fixturesError;
+
+
     // =====================================================
     // LIFECYCLE
     // =====================================================
@@ -941,7 +952,7 @@ else
     }
 
 
-    //Show the user's standing onclick
+    //Load user's standing onclick
     private async Task LoadStandingsAsync()
     {
         if (TournamentId == Guid.Empty)
@@ -983,6 +994,49 @@ else
         }
     }
 
+    //Load Fixtures Tab onclik
+    private async Task LoadFixturesAsync()
+    {
+        if (TournamentId == Guid.Empty)
+            return;
+
+        isFixturesLoading = true;
+        fixturesError = null;
+
+        try
+        {
+            var result =
+                await FixtureService.GetAsync(TournamentId);
+
+            if (!result.Succeeded || result.Value is null)
+            {
+                fixtures = null;
+
+                fixturesError =
+                    result.Error ??
+                    "Tournament fixtures could not be loaded.";
+
+                return;
+            }
+
+            fixtures = result.Value;
+            fixturesLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            fixtures = null;
+
+            fixturesError =
+                "Something went wrong while loading the fixtures.";
+        }
+        finally
+        {
+            isFixturesLoading = false;
+        }
+    }
+
 
     // =====================================================
     // NAVIGATION
@@ -1010,16 +1064,30 @@ else
     {
         selectedTab = tab;
 
-        if (tab != CompetitionTab.Standings ||
-            tournament is null ||
-            tournament.Format != TournamentFormat.League ||
-            standingsLoaded ||
-            isStandingsLoading)
+        switch (tab)
         {
-            return;
-        }
+            case CompetitionTab.Fixtures:
 
-        await LoadStandingsAsync();
+                if (!fixturesLoaded &&
+                    !isFixturesLoading)
+                {
+                    await LoadFixturesAsync();
+                }
+
+                break;
+
+            case CompetitionTab.Standings:
+
+                if (tournament is not null &&
+                    tournament.Format == TournamentFormat.League &&
+                    !standingsLoaded &&
+                    !isStandingsLoading)
+                {
+                    await LoadStandingsAsync();
+                }
+
+                break;
+        }
     }
 
 
