@@ -6,11 +6,14 @@
 @using System.Security.Claims
 @using AlphaMode.Application.TournamentRegistrations.DTOs
 @using AlphaMode.Application.TournamentRegistrations.Interfaces
+@using AlphaMode.Application.TournamentStandings.DTOs
 @using AlphaMode.Domain.Entities
 @using AlphaMode.Domain.Enums
 @using AlphaMode.Components.Sections.UserSectionComponents
 @using AlphaMode.Services
+@using AlphaMode.Application.TournamentStandings.Interfaces
 
+@inject ITournamentStandingsQueryService LeagueStandingsService
 @inject ITournamentRegistrationService RegistrationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -602,20 +605,166 @@ else
         {
             <section class="competition-panel">
 
-                <div class="competition-feature-empty">
+                <div class="competition-panel-heading">
 
-                    <div class="competition-feature-icon">
-                        🏆
+                    <div>
+                        <span class="competition-eyebrow">
+                            League table
+                        </span>
+
+                        <h2>Tournament standings</h2>
                     </div>
 
-                    <h2>Standings aren't available yet</h2>
-
-                    <p>
-                        Tournament standings will appear here as
-                        match results are recorded.
-                    </p>
+                    @if (standings is not null)
+                    {
+                        <span class="competition-count">
+                            @standings.Standings.Count players
+                        </span>
+                    }
 
                 </div>
+
+
+                @if (tournament.Format != TournamentFormat.League)
+                {
+                    <div class="competition-feature-empty">
+
+                        <div class="competition-feature-icon">
+                            🏆
+                        </div>
+
+                        <h2>No league table for this format</h2>
+
+                        <p>
+                            This tournament uses
+                            @FormatTournamentFormat(tournament.Format).
+                            Progress is determined by match results
+                            rather than league standings.
+                        </p>
+
+                    </div>
+                }
+                else if (isStandingsLoading)
+                {
+                    <div class="portal-empty-state">
+                        Loading standings...
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(standingsError))
+                {
+                    <div class="portal-empty-state">
+
+                        <h3>Standings unavailable</h3>
+
+                        <p>
+                            @standingsError
+                        </p>
+
+                        <button type="button"
+                                class="portal-button subtle"
+                                @onclick="LoadStandingsAsync">
+                            Try again
+                        </button>
+
+                    </div>
+                }
+                else if (standings is null ||
+                !standings.Standings.Any())
+                {
+                    <div class="competition-feature-empty">
+
+                        <div class="competition-feature-icon">
+                            🏆
+                        </div>
+
+                        <h2>Standings aren't available yet</h2>
+
+                        <p>
+                            The league table will appear once
+                            tournament fixtures have been generated.
+                        </p>
+
+                    </div>
+                }
+                else
+                {
+                    <div class="portal-table-wrap">
+
+                        <table class="portal-table competition-standings-table">
+
+                            <thead>
+                                <tr>
+                                    <th>Pos</th>
+                                    <th>Player</th>
+                                    <th>P</th>
+                                    <th>W</th>
+                                    <th>D</th>
+                                    <th>L</th>
+                                    <th>SF</th>
+                                    <th>SA</th>
+                                    <th>SD</th>
+                                    <th>Pts</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                @foreach (var standing in standings.Standings)
+                                {
+                                    <tr @key="standing.PlayerId">
+
+                                        <td>
+                                            <strong>
+                                                @standing.Position
+                                            </strong>
+                                        </td>
+
+                                        <td>
+                                            <div class="competition-standing-player">
+
+                                                <span class="competition-avatar small">
+                                                    @GetInitials(standing.GamerTag)
+                                                </span>
+
+                                                <strong>
+                                                    @standing.GamerTag
+                                                </strong>
+
+                                            </div>
+                                        </td>
+
+                                        <td>@standing.Played</td>
+
+                                        <td>@standing.Wins</td>
+
+                                        <td>@standing.Draws</td>
+
+                                        <td>@standing.Losses</td>
+
+                                        <td>@standing.ScoreFor</td>
+
+                                        <td>@standing.ScoreAgainst</td>
+
+                                        <td>
+                                            @FormatScoreDifference(
+                                            standing.ScoreDifference)
+                            </td>
+
+                            <td>
+                                <strong>
+                                    @standing.Points
+                                </strong>
+                            </td>
+
+                        </tr>
+                                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+                }
 
             </section>
         }
@@ -645,6 +794,14 @@ else
     private bool isCheckingIn;
 
     private CompetitionTab selectedTab = CompetitionTab.Overview;
+
+    private LeagueTournamentStandingsDto? standings;
+
+    private bool isStandingsLoading;
+
+    private bool standingsLoaded;
+
+    private string? standingsError;
 
 
     // =====================================================
@@ -784,6 +941,49 @@ else
     }
 
 
+    //Show the user's standing onclick
+    private async Task LoadStandingsAsync()
+    {
+        if (TournamentId == Guid.Empty)
+            return;
+
+        isStandingsLoading = true;
+        standingsError = null;
+
+        try
+        {
+            var result = await LeagueStandingsService.GetAsync(TournamentId);
+
+            if (!result.Succeeded || result.Value is null)
+            {
+                standings = null;
+
+                standingsError =
+                    result.Error ??
+                    "Tournament standings could not be loaded.";
+
+                return;
+            }
+
+            standings = result.Value;
+            standingsLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            standings = null;
+
+            standingsError =
+                "Something went wrong while loading the standings.";
+        }
+        finally
+        {
+            isStandingsLoading = false;
+        }
+    }
+
+
     // =====================================================
     // NAVIGATION
     // =====================================================
@@ -806,9 +1006,20 @@ else
     // TABS
     // =====================================================
 
-    private void SelectTab(CompetitionTab tab)
+    private async Task SelectTab(CompetitionTab tab)
     {
         selectedTab = tab;
+
+        if (tab != CompetitionTab.Standings ||
+            tournament is null ||
+            tournament.Format != TournamentFormat.League ||
+            standingsLoaded ||
+            isStandingsLoading)
+        {
+            return;
+        }
+
+        await LoadStandingsAsync();
     }
 
 
@@ -993,36 +1204,34 @@ else
     {
         return currency.ToUpperInvariant() switch
         {
-            "NGN" =>
-                $"₦{amount:N0}",
+            "NGN" => $"₦{amount:N0}",
 
-            "GBP" =>
-                $"£{amount:N2}",
+            "GBP" => $"£{amount:N2}",
 
-            "USD" =>
-                $"${amount:N2}",
+            "USD" => $"${amount:N2}",
 
-            "EUR" =>
-                $"€{amount:N2}",
+            "EUR" => $"€{amount:N2}",
 
-            _ =>
-                $"{currency} {amount:N2}"
+            _ => $"{currency} {amount:N2}"
         };
     }
 
+    private static string FormatScoreDifference(int scoreDifference)
+    {
+        return scoreDifference > 0
+            ? $"+{scoreDifference}"
+            : scoreDifference.ToString();
+    }
 
-    private static string GetInitials(
-        string gamerTag)
+
+    private static string GetInitials(string gamerTag)
     {
         if (string.IsNullOrWhiteSpace(gamerTag))
             return "?";
 
-        var value =
-            gamerTag.Trim();
+        var value = gamerTag.Trim();
 
-        return value.Length == 1
-            ? value.ToUpperInvariant()
-            : value[..2].ToUpperInvariant();
+        return value.Length == 1 ? value.ToUpperInvariant() : value[..2].ToUpperInvariant();
     }
 
 

@@ -1,0 +1,10 @@
+@page "/dashboard/ranking"
+@layout AlphaMode.Components.Layout.UserLayout
+@using AlphaMode.Components.Sections.UserSectionComponents
+@using AlphaMode.Data
+<PageTitle>Ranking | AlphaMode</PageTitle>
+<PortalPageHeader Eyebrow="Performance" Title="Global ranking" Description="See where you stand and what it takes to reach the next tier." />
+<section class="ranking-hero"><div><span>Current position</span><strong>#@UserPortalSampleData.Stats.CurrentRank</strong><small>↑ 3 places this month</small></div><div class="rank-copy"><span class="portal-status open">Diamond tier</span><h2>You're in the top 8%</h2><p>Earn 140 more points to pass the next ranked player.</p><progress value="72" max="100"></progress></div><div class="rank-metric"><small>Points</small><strong>@UserPortalSampleData.Stats.Points.ToString("N0")</strong><span>+180 this month</span></div></section>
+<section class="portal-panel"><div class="portal-section-heading"><div><span>Leaderboard</span><h2>Top competitors</h2></div><select class="portal-select"><option>All games</option><option>EA FC 26</option><option>Tekken 8</option></select></div>
+<div class="portal-ranking-table"><div class="ranking-table-head"><span>Rank</span><span>Player</span><span>Game</span><span>Wins</span><span>Points</span><span>Trend</span></div>@foreach (var player in UserPortalSampleData.Rankings) { <div class="ranking-table-row @(player.IsCurrentUser ? "is-current-user" : "")"><strong>#@player.Rank</strong><div class="rank-player"><span>@player.Initials</span><strong>@player.Player @if(player.IsCurrentUser){<small>You</small>}</strong></div><span>@player.Game</span><span>@player.Wins</span><b>@player.Points.ToString("N0")</b><span class="trend @player.Trend">@(player.Trend == "up" ? "↑" : "↓")</span></div> }</div></section>
+
