@@ -770,7 +770,7 @@ else
 
         confirmButtonText = "Check in";
 
-        isConfirmOpen = true;
+        isConfirmOpen = false;
     }
 
 
@@ -786,7 +786,7 @@ else
 
         confirmButtonText = "Cancel registration";
 
-        isConfirmOpen = true;
+        isConfirmOpen = false;
     }
 
 
@@ -839,10 +839,10 @@ else
                 return;
             }
 
-
             Toast.Success(result.Message ?? "Participant updated successfully.");
 
-            CloseConfirm(); /////////////////////////////////////////////////////////////////////////////////////////////////////
+            CloseConfirm();
+         
 
             await LoadAsync();
         }
@@ -1129,8 +1129,7 @@ else
     }
 
 
-    private static string FormatStatus(
-        TournamentRegistrationStatus status)
+    private static string FormatStatus(TournamentRegistrationStatus status)
     {
         return status switch
         {
