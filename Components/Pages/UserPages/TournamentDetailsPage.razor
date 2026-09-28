@@ -13,7 +13,9 @@
 @using AlphaMode.Components.Sections.UserSectionComponents
 @using AlphaMode.Services
 @using AlphaMode.Application.TournamentStandings.Interfaces
+@using AlphaMode.Application.TournamentFixtures.Interfaces
 
+@inject ITournamentFixtureService FixtureService
 @inject ITournamentStandingsQueryService LeagueStandingsService
 @inject ITournamentRegistrationService RegistrationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -229,8 +231,7 @@ else
                             </div>
 
 
-                    @if (tournament.RegistrationStatus ==
-                                        TournamentRegistrationStatus.PendingPayment)
+                    @if (tournament.RegistrationStatus == TournamentRegistrationStatus.PendingPayment)
                             {
                                 <div class="competition-action-box warning">
 
@@ -533,7 +534,7 @@ else
                                                 @GetInitials(
                                                 participant.GamerTag)
                         </span>
-                                                }
+                                        }
 
                             </div>
 
@@ -580,25 +581,214 @@ else
             {
             <section class="competition-panel">
 
-                <div class="competition-feature-empty">
+                <div class="competition-panel-heading">
 
-                    <div class="competition-feature-icon">
-                        ⚔
+                    <div>
+                        <span class="competition-eyebrow">
+                            Match schedule
+                        </span>
+
+                        <h2>Tournament fixtures</h2>
                     </div>
 
-                    <h2>Fixtures aren't available yet</h2>
-
-                    <p>
-                        Match fixtures will appear here once the
-                        tournament organiser generates them.
-                    </p>
-
-                    <span>
-                        @tournament.CheckedInPlayers
-                        players currently checked in
-                    </span>
+                    @if (fixtures is not null &&
+                                    fixtures.FixturesGenerated)
+                    {
+                        <span class="competition-count">
+                            @fixtures.Rounds.Sum(x => x.Matches.Count) matches
+                        </span>
+                    }
 
                 </div>
+
+
+                @if (isFixturesLoading)
+                {
+                    <div class="portal-empty-state">
+                        Loading fixtures...
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(fixturesError))
+                {
+                    <div class="portal-empty-state">
+
+                        <h3>Fixtures unavailable</h3>
+
+                        <p>@fixturesError</p>
+
+                        <button type="button"
+                                class="portal-button subtle"
+                                @onclick="LoadFixturesAsync">
+                            Try again
+                        </button>
+
+                    </div>
+                }
+                else if (fixtures is null ||
+                !fixtures.FixturesGenerated ||
+                !fixtures.Rounds.Any())
+                {
+                    <div class="competition-feature-empty">
+
+                        <div class="competition-feature-icon">
+                            ⚔
+                        </div>
+
+                        <h2>Fixtures aren't available yet</h2>
+
+                        <p>
+                            Match fixtures will appear here once the
+                            tournament organiser generates them.
+                        </p>
+
+                        <span>
+                            @tournament.CheckedInPlayers
+                            players currently checked in
+                        </span>
+
+                    </div>
+                }
+                else
+                {
+                    <div class="competition-fixture-rounds">
+
+                        @foreach (var round in fixtures.Rounds)
+                        {
+                            <section class="competition-fixture-round"
+                                     @key="round.RoundNumber">
+
+                                <div class="competition-fixture-round-heading">
+
+                                    <div>
+                                        <span>
+                                            Round @round.RoundNumber
+                                        </span>
+
+                                        <h3>@round.Name</h3>
+                                    </div>
+
+                                    <span class="competition-count">
+                                        @round.Matches.Count matches
+                                    </span>
+
+                                </div>
+
+
+                                <div class="competition-fixture-list">
+
+                                    @foreach (var match in round.Matches)
+                                    {
+                                        <article class="competition-fixture-card"
+                                                 @key="GetMatchKey(match)">
+
+                                            <div class="competition-fixture-meta">
+
+                                                <span>
+                                                    @GetMatchLabel(match)
+                                                </span>
+
+                                                <span class="@GetMatchStatusClass(match.Status)">
+                                                    @GetMatchStatusText(match.Status)
+                                                </span>
+
+                                            </div>
+
+
+                                            <div class="competition-fixture-players">
+
+                                                <div class="@GetPlayerMatchClass(
+                                                   match,
+                                                   match.PlayerOneId)">
+
+                                    <span class="competition-avatar small">
+                                        @GetInitials(match.PlayerOneName)
+                                    </span>
+
+                                                    <strong>
+                                                        @match.PlayerOneName
+                                                    </strong>
+
+                                    @if (match.HasScore)
+                                    {
+                                        <span class="competition-fixture-score">
+                                            @match.PlayerOneScore
+                                        </span>
+                                    }
+
+                                </div>
+
+
+                                <div class="competition-fixture-versus">
+
+                                    @if (match.HasScore)
+                                    {
+                                        <span>—</span>
+                                    }
+                                    else
+                                    {
+                                        <span>VS</span>
+                                    }
+
+                                </div>
+
+
+                            <div class="@GetPlayerMatchClass(match, match.PlayerTwoId)">
+
+                            <span class="competition-avatar small">
+                                @GetInitials(match.PlayerTwoName)
+                            </span>
+
+                            <strong>
+                                @match.PlayerTwoName
+                            </strong>
+
+                            @if (match.HasScore)
+                            {
+                                <span class="competition-fixture-score">
+                                    @match.PlayerTwoScore
+                                </span>
+                            }
+
+                            </div>
+
+                                </div>
+
+
+                        <div class="competition-fixture-footer">
+
+                            @if (match.ScheduledAt.HasValue)
+                            {
+                                <span>
+                                    @match.ScheduledAt.Value.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                                </span>
+                            }
+                            else
+                            {
+                                <span>
+                                    Time to be confirmed
+                                </span>
+                            }
+
+
+                            @if (match.Status == MatchStatus.Completed && match.WinnerId.HasValue)
+                            {
+                                <strong>
+                                    Winner: @GetWinnerName(match)
+                                </strong>
+                            }
+
+                        </div>
+
+                            </article>
+                            }
+
+                            </div>
+
+                            </section>
+                        }
+
+                    </div>
+                }
 
             </section>
         }
@@ -625,7 +815,6 @@ else
 
                 </div>
 
-
                 @if (tournament.Format != TournamentFormat.League)
                 {
                     <div class="competition-feature-empty">
@@ -634,13 +823,12 @@ else
                             🏆
                         </div>
 
-                        <h2>No league table for this format</h2>
+                        <h2>No league standings</h2>
 
                         <p>
+                            Standings are available for league tournaments.
                             This tournament uses
                             @FormatTournamentFormat(tournament.Format).
-                            Progress is determined by match results
-                            rather than league standings.
                         </p>
 
                     </div>
@@ -657,20 +845,17 @@ else
 
                         <h3>Standings unavailable</h3>
 
-                        <p>
-                            @standingsError
-                        </p>
+                        <p>@standingsError</p>
 
                         <button type="button"
                                 class="portal-button subtle"
-                                @onclick="LoadStandingsAsync">
+                                @onclick="LoadStandingsAsync"> @* ////////////////////////////////////////////////////////////////////////////////// *@
                             Try again
                         </button>
 
                     </div>
                 }
-                else if (standings is null ||
-                !standings.Standings.Any())
+                else if (standings is null || !standings.Standings.Any())
                 {
                     <div class="competition-feature-empty">
 
@@ -682,7 +867,7 @@ else
 
                         <p>
                             The league table will appear once
-                            tournament fixtures have been generated.
+                            tournament fixtures have been generated. @* ////////////////////////////////////////////////////////////////////////////////// *@
                         </p>
 
                     </div>
@@ -735,15 +920,10 @@ else
                                         </td>
 
                                         <td>@standing.Played</td>
-
                                         <td>@standing.Wins</td>
-
                                         <td>@standing.Draws</td>
-
                                         <td>@standing.Losses</td>
-
                                         <td>@standing.ScoreFor</td>
-
                                         <td>@standing.ScoreAgainst</td>
 
                                         <td>
@@ -751,7 +931,7 @@ else
                                             standing.ScoreDifference)
                             </td>
 
-                            <td>
+                            <td class="competition-standing-points">
                                 <strong>
                                     @standing.Points
                                 </strong>
@@ -768,6 +948,7 @@ else
                 }
 
             </section>
+        
         }
 
     </div>
@@ -953,7 +1134,7 @@ else
 
 
     //Load user's standing onclick
-    private async Task LoadStandingsAsync()
+    private async Task LoadStandingsAsync() ////////////////////////////////////////////////////////////////////////////////////////////////////////
     {
         if (TournamentId == Guid.Empty)
             return;
@@ -1309,5 +1490,90 @@ else
         Players,
         Fixtures,
         Standings
+    }
+
+    private static string GetMatchStatusText(
+    MatchStatus status)
+    {
+        return status switch
+        {
+            MatchStatus.Pending => "Pending",
+            MatchStatus.Scheduled => "Scheduled",
+            MatchStatus.Live => "Live",
+            MatchStatus.Completed => "Completed",
+            _ => status.ToString()
+        };
+    }
+
+    private static string GetMatchStatusClass(
+    MatchStatus status)
+    {
+        return status switch
+        {
+            MatchStatus.Live =>
+                "portal-status danger",
+
+            MatchStatus.Completed =>
+                "portal-status open",
+
+            MatchStatus.Scheduled =>
+                "portal-status pending",
+
+            _ =>
+                "portal-status"
+        };
+    }
+
+    private static string GetMatchLabel(
+    FixtureMatchDto match)
+    {
+        if (match.MatchWeek.HasValue)
+        {
+            return $"Matchweek {match.MatchWeek.Value}";
+        }
+
+        return $"Round {match.RoundNumber}";
+    }
+
+    private static string GetWinnerName(
+    FixtureMatchDto match)
+    {
+        if (!match.WinnerId.HasValue)
+            return string.Empty;
+
+        if (match.WinnerId == match.PlayerOneId)
+            return match.PlayerOneName;
+
+        if (match.WinnerId == match.PlayerTwoId)
+            return match.PlayerTwoName;
+
+        return string.Empty;
+    }
+
+    private static string GetPlayerMatchClass(FixtureMatchDto match, Guid? playerId)
+    {
+        const string baseClass = "competition-fixture-player";
+
+        if (match.Status != MatchStatus.Completed || !match.WinnerId.HasValue || !playerId.HasValue)
+        {
+            return baseClass;
+        }
+
+        return match.WinnerId == playerId
+            ? $"{baseClass} winner"
+            : baseClass;
+    }
+
+    private static string GetMatchKey(FixtureMatchDto match)
+    {
+        if (match.MatchId.HasValue)
+        {
+            return match.MatchId.Value.ToString();
+        }
+
+        return $"{match.RoundNumber}-" +
+               $"{match.MatchWeek}-" +
+               $"{match.PlayerOneId}-" +
+               $"{match.PlayerTwoId}";
     }
 }

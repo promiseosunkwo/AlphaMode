@@ -294,7 +294,7 @@
 
                                 <button type="button"
                                         @onclick="() => OpenDetailsAsync(registration.Id)">
-                                    View
+                                        View
                                 </button>
 
 
@@ -303,24 +303,19 @@
                                     <button type="button"
                                             @onclick="() => RequestAction(
                                             registration, RegistrationAction.Register)">
-                            Confirm
-                        </button>
-                                                }
+                                            Confirm
+                                     </button>
+                                }
 
 
-                                @if (registration.Status ==
-                                                        TournamentRegistrationStatus
-                                                        .Registered)
+                                @if (registration.Status == TournamentRegistrationStatus.Registered)
                                 {
                                     <button type="button"
                                             @onclick="() => RequestAction(
-                                            registration,
-                                                                                                                                                                                                                RegistrationAction.CheckIn)">
-
-                            Check in
-
-                        </button>
-                                                }
+                                            registration, RegistrationAction.CheckIn)"> @* ////////////////////////////////////////////////////////////// *@
+                                            Check in
+                                    </button>
+                                }
 
 
                                 @if (CanDisqualify(
@@ -1016,25 +1011,19 @@
     // ACTION
     // =====================================================
 
-    private void RequestAction(
-        TournamentRegistrationDto registration,
-        RegistrationAction action)
+    private void RequestAction(TournamentRegistrationDto registration, RegistrationAction action)
     {
-        selectedRegistration =
-            registration;
+        selectedRegistration = registration;
 
-        pendingAction =
-            action;
+        pendingAction = action;
 
-        showConfirmation =
-            true;
+        showConfirmation = true;
     }
 
 
     private async Task ConfirmActionAsync()
     {
-        if (selectedRegistration is null ||
-            isProcessing)
+        if (selectedRegistration is null || isProcessing)
             return;
 
 
@@ -1043,8 +1032,7 @@
 
         try
         {
-            Result result =
-                pendingAction switch
+            Result result = pendingAction switch
                 {
                     RegistrationAction.Register =>
                         await RegistrationService

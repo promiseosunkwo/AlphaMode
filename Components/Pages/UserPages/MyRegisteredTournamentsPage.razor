@@ -220,7 +220,7 @@ else
 
                             <div class="@GetStepClass(tournament, 3)">
                                 <span>3</span>
-                                <small>Check-in</small>
+                                <small>Check-in</small> @* \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ *@
                             </div>
 
                         </div>
@@ -256,8 +256,7 @@ else
 
                         </div>
                     }
-                    else if (tournament.RegistrationStatus ==
-                    TournamentRegistrationStatus.Registered &&
+                    else if (tournament.RegistrationStatus == TournamentRegistrationStatus.Registered &&
                     !tournament.IsFinished)
                     {
                         <div class="my-tournament-notice">
@@ -272,8 +271,7 @@ else
 
                         </div>
                     }
-                    else if (tournament.RegistrationStatus ==
-                    TournamentRegistrationStatus.CheckedIn)
+                    else if (tournament.RegistrationStatus == TournamentRegistrationStatus.CheckedIn)
                     {
                         <div class="my-tournament-notice success">
 
@@ -298,8 +296,7 @@ else
                         </button>
 
 
-                        @if (tournament.RegistrationStatus ==
-                                        TournamentRegistrationStatus.PendingPayment)
+                        @if (tournament.RegistrationStatus == TournamentRegistrationStatus.PendingPayment)
                         {
                             <button type="button"
                                     class="portal-button primary"
@@ -311,19 +308,15 @@ else
                         {
                             <button type="button"
                                     class="portal-button primary"
-                                    disabled="@(checkingInRegistrationId ==
-                                                                                   tournament.RegistrationId)"
-                                                                                                             @onclick="() => CheckInAsync(tournament)">
+                                    disabled="@(checkingInRegistrationId == tournament.RegistrationId)" @onclick="() => CheckInAsync(tournament)">
 
-                                @(checkingInRegistrationId ==
-                                                    tournament.RegistrationId
+                                @(checkingInRegistrationId == tournament.RegistrationId
                                                     ? "Checking in..."
                                                     : "Check in")
 
                 </button>
                                 }
-                        else if (tournament.RegistrationStatus ==
-                        TournamentRegistrationStatus.CheckedIn)
+                        else if (tournament.RegistrationStatus == TournamentRegistrationStatus.CheckedIn)
                         {
                             <button type="button"
                                     class="portal-button subtle"

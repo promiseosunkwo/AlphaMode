@@ -419,9 +419,8 @@ else
                                                     class="adm-button small"
                                                     disabled="@IsProcessing(
                                                         participant.RegistrationId)"
-                                                    @onclick="() => AskCheckIn(
-                                                        participant)">
-                                                Check in
+                                                    @onclick="() => AskCheckIn(participant)"> @* ///////////////////////////////////////////////////////////// *@
+                                                            Check in
                                             </button>
                                         }
 
@@ -632,9 +631,7 @@ else
                     selectedStatus,
                     out var status))
             {
-                query =
-                    query.Where(x =>
-                        x.Status == status);
+                query = query.Where(x => x.Status == status);
             }
 
             return query;
@@ -659,15 +656,13 @@ else
 
     private string confirmTitle = string.Empty;
 
-    private string confirmMessage =
-        string.Empty;
+    private string confirmMessage = string.Empty;
 
     private string confirmButtonText = "Confirm";
 
     private AdminTournamentRegisteredParticipantDto? selectedParticipant;
 
-    private ParticipantAction pendingAction =
-        ParticipantAction.None;
+    private ParticipantAction pendingAction = ParticipantAction.None;
 
 
     // =====================================================
@@ -676,8 +671,7 @@ else
 
     private bool isDisqualifyOpen;
 
-    private DisqualifyFormModel disqualifyModel =
-        new();
+    private DisqualifyFormModel disqualifyModel = new();
 
     private EditContext? disqualifyEditContext;
 
@@ -702,25 +696,18 @@ else
 
         try
         {
-            var result =
-                await RegistrationService
-                    .GetAdminTournamentParticipantsAsync(
-                        TournamentId);
+            var result = await RegistrationService.GetAdminTournamentParticipantsAsync(TournamentId);
 
-            if (!result.Succeeded ||
-                result.Value is null)
+            if (!result.Succeeded || result.Value is null)
             {
                 pageData = null;
 
-                errorMessage =
-                    result.Error ??
-                    "Tournament could not be loaded.";
+                errorMessage = result.Error ?? "Tournament could not be loaded.";
 
                 return;
             }
 
-            pageData =
-                result.Value;
+            pageData = result.Value;
         }
         catch (Exception ex)
         {
@@ -728,8 +715,7 @@ else
 
             pageData = null;
 
-            errorMessage =
-                "Something went wrong while loading participants.";
+            errorMessage = "Something went wrong while loading participants.";
         }
         finally
         {
@@ -770,7 +756,7 @@ else
 
         confirmButtonText = "Check in";
 
-        isConfirmOpen = false;
+        isConfirmOpen = true;
     }
 
 
@@ -786,7 +772,7 @@ else
 
         confirmButtonText = "Cancel registration";
 
-        isConfirmOpen = false;
+        isConfirmOpen = true;
     }
 
 
@@ -841,8 +827,7 @@ else
 
             Toast.Success(result.Message ?? "Participant updated successfully.");
 
-            CloseConfirm();
-         
+            //CloseConfirm();
 
             await LoadAsync();
         }
@@ -857,6 +842,8 @@ else
             isActionProcessing = false;
 
             processingRegistrationId = null;
+
+            CloseConfirmDialog();
         }
     }
 
@@ -870,7 +857,8 @@ else
 
         selectedParticipant = null;
 
-        pendingAction = ParticipantAction.None;
+        pendingAction = default;
+        //pendingAction = ParticipantAction.None;
 
         confirmTitle = string.Empty;
 
@@ -932,11 +920,11 @@ else
         try
         {
             var request = new DisqualifyRegistrationRequest
-                {
-                    RegistrationId = selectedParticipant.RegistrationId,
+            {
+                RegistrationId = selectedParticipant.RegistrationId,
 
-                    Reason = disqualifyModel.Reason.Trim()
-                };
+                Reason = disqualifyModel.Reason.Trim()
+            };
 
             var result = await RegistrationService.DisqualifyAsync(request);
 
@@ -1043,20 +1031,16 @@ else
 
     private string GetTournamentDescription()
     {
-        if (pageData is null)
-            return string.Empty;
+        if (pageData is null) return string.Empty;
 
-        return
-            $"{pageData.Tournament.GameName} • " +
-            $"{FormatTournamentFormat(pageData.Tournament.Format)} • " +
-            $"Starts {pageData.Tournament.StartDate.ToLocalTime():dd MMM yyyy, HH:mm}";
+        return $"{pageData.Tournament.GameName} • " + $"{FormatTournamentFormat(pageData.Tournament.Format)} • " +
+        $"Starts {pageData.Tournament.StartDate.ToLocalTime():dd MMM yyyy, HH:mm}";
     }
 
 
     private string GetReadinessTitle()
     {
-        if (pageData is null)
-            return string.Empty;
+        if (pageData is null) return string.Empty;
 
         if (pageData.Tournament.EligiblePlayers == 0)
         {
@@ -1065,22 +1049,18 @@ else
 
         if (pageData.Tournament.AwaitingCheckIn > 0)
         {
-            return
-                $"{pageData.Tournament.EligiblePlayers} players ready to compete";
+            return $"{pageData.Tournament.EligiblePlayers} players ready to compete";
         }
 
-        return
-            $"{pageData.Tournament.EligiblePlayers} players ready";
+        return $"{pageData.Tournament.EligiblePlayers} players ready";
     }
 
 
     private string GetReadinessDescription()
     {
-        if (pageData is null)
-            return string.Empty;
+        if (pageData is null) return string.Empty;
 
-        if (pageData.Tournament.EligiblePlayers == 0 &&
-            pageData.Tournament.Registered > 0)
+        if (pageData.Tournament.EligiblePlayers == 0 && pageData.Tournament.Registered > 0)
         {
             return
                 $"{pageData.Tournament.Registered} confirmed players are still awaiting check-in.";
@@ -1088,18 +1068,15 @@ else
 
         if (pageData.Tournament.EligiblePlayers == 0)
         {
-            return
-                "Checked-in players will become eligible for fixture generation.";
+            return "Checked-in players will become eligible for fixture generation.";
         }
 
         if (pageData.Tournament.AwaitingCheckIn > 0)
         {
-            return
-                $"{pageData.Tournament.AwaitingCheckIn} confirmed players have not checked in yet.";
+            return $"{pageData.Tournament.AwaitingCheckIn} confirmed players have not checked in yet.";
         }
 
-        return
-            "All currently confirmed players have checked in.";
+        return "All currently confirmed players have checked in.";
     }
 
 
@@ -1108,16 +1085,13 @@ else
         if (pageData is null)
             return 1;
 
-        return Math.Max(
-            1,
-            pageData.Tournament.ConfirmedPlayers);
+        return Math.Max(1, pageData.Tournament.ConfirmedPlayers);
     }
 
 
     private int GetCheckInPercentage()
     {
-        if (pageData is null ||
-            pageData.Tournament.ConfirmedPlayers == 0)
+        if (pageData is null || pageData.Tournament.ConfirmedPlayers == 0)
         {
             return 0;
         }
@@ -1133,26 +1107,19 @@ else
     {
         return status switch
         {
-            TournamentRegistrationStatus.PendingPayment =>
-                "Payment pending",
+            TournamentRegistrationStatus.PendingPayment => "Payment pending",
 
-            TournamentRegistrationStatus.Registered =>
-                "Registered",
+            TournamentRegistrationStatus.Registered => "Registered",
 
-            TournamentRegistrationStatus.CheckedIn =>
-                "Checked in",
+            TournamentRegistrationStatus.CheckedIn => "Checked in",
 
-            TournamentRegistrationStatus.Withdrawn =>
-                "Withdrawn",
+            TournamentRegistrationStatus.Withdrawn => "Withdrawn",
 
-            TournamentRegistrationStatus.Disqualified =>
-                "Disqualified",
+            TournamentRegistrationStatus.Disqualified => "Disqualified",
 
-            TournamentRegistrationStatus.Cancelled =>
-                "Cancelled",
+            TournamentRegistrationStatus.Cancelled => "Cancelled",
 
-            _ =>
-                status.ToString()
+            _ => status.ToString()
         };
     }
 
@@ -1179,15 +1146,13 @@ else
     }
 
 
-    private static string FormatTournamentFormat(
-        TournamentFormat format)
+    private static string FormatTournamentFormat(TournamentFormat format)
     {
         return format.ToString();
     }
 
 
-    private static string GetInitials(
-        string gamerTag)
+    private static string GetInitials(string gamerTag)
     {
         if (string.IsNullOrWhiteSpace(gamerTag))
             return "?";
