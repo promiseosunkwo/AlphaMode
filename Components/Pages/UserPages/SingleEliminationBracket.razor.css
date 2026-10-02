@@ -1,0 +1,375 @@
+﻿.se-bracket-wrapper {
+    width: 100%;
+    min-width: 0;
+}
+
+
+/* =========================================================
+   SCROLL AREA
+   ========================================================= */
+
+.se-bracket-scroll {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: .5rem .25rem 1.5rem;
+}
+
+
+/* =========================================================
+   BRACKET
+   ========================================================= */
+
+.se-bracket {
+    display: flex;
+    align-items: stretch;
+    gap: 3.75rem;
+    min-width: max-content;
+    padding: .25rem 2.5rem 1rem .25rem;
+}
+
+
+/* =========================================================
+   ROUND
+   ========================================================= */
+
+.se-round {
+    display: flex;
+    flex-direction: column;
+    width: 290px;
+    min-width: 290px;
+}
+
+
+.se-round-header {
+    height: 64px;
+    flex: 0 0 64px;
+}
+
+
+    .se-round-header span {
+        display: block;
+        margin-bottom: .25rem;
+        font-size: .7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        opacity: .5;
+    }
+
+
+    .se-round-header h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 750;
+    }
+
+
+/* =========================================================
+   ROUND MATCH LAYOUT
+
+   Every round receives the same total vertical space.
+   Later rounds distribute fewer matches through that space,
+   which naturally centres them between previous matches.
+   ========================================================= */
+
+.se-round-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-around;
+    min-height: 650px;
+}
+
+
+.se-match-slot {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 120px;
+}
+
+
+/* =========================================================
+   MATCH CARD
+   ========================================================= */
+
+.se-match {
+    position: relative;
+    width: 100%;
+    overflow: visible;
+    border: 1px solid rgba(255, 255, 255, .09);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .025);
+}
+
+
+/* =========================================================
+   PLAYER
+   ========================================================= */
+
+.se-player {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    min-height: 54px;
+    padding: .7rem .8rem;
+    transition: background .15s ease, opacity .15s ease;
+}
+
+
+    .se-player + .se-player {
+        border-top: 1px solid rgba(255, 255, 255, .07);
+    }
+
+
+.se-player-info {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-width: 0;
+}
+
+
+.se-player-name {
+    overflow: hidden;
+    font-size: .88rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.se-score {
+    flex: 0 0 auto;
+    min-width: 22px;
+    text-align: right;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   WINNER / LOSER
+   ========================================================= */
+
+.se-player.winner {
+    background: rgba(255, 255, 255, .055);
+}
+
+
+    .se-player.winner .se-player-name,
+    .se-player.winner .se-score {
+        font-weight: 800;
+    }
+
+
+.se-player.eliminated {
+    opacity: .48;
+}
+
+
+/* =========================================================
+   BYE
+   ========================================================= */
+
+.se-match.bye {
+    overflow: hidden;
+}
+
+
+.se-player.bye-player {
+    background: rgba(255, 255, 255, .035);
+}
+
+
+.se-advanced {
+    flex: 0 0 auto;
+    font-size: .67rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .65;
+}
+
+
+.se-bye-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    min-height: 40px;
+    padding: .55rem .8rem;
+    border-top: 1px solid rgba(255, 255, 255, .07);
+    font-size: .7rem;
+    opacity: .55;
+}
+
+
+.se-bye-label {
+    font-weight: 850;
+    letter-spacing: .05em;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.se-match-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    min-height: 34px;
+    padding: .5rem .8rem;
+    border-top: 1px solid rgba(255, 255, 255, .07);
+    font-size: .7rem;
+    opacity: .7;
+}
+
+
+.se-status {
+    font-weight: 750;
+}
+
+
+    .se-status.live {
+        opacity: 1;
+    }
+
+
+    .se-status.completed {
+        opacity: .8;
+    }
+
+
+    .se-status.scheduled {
+        opacity: .9;
+    }
+
+
+    .se-status.bye {
+        text-transform: uppercase;
+    }
+
+
+/* =========================================================
+   CONNECTOR — OUTGOING
+
+   Each match connects horizontally toward the next round.
+   ========================================================= */
+
+.se-round:not(:last-child)
+.se-match-slot::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: 3.75rem;
+    height: 1px;
+    background: rgba(255, 255, 255, .16);
+}
+
+
+/* =========================================================
+   CONNECTOR — INCOMING
+
+   Later rounds receive the horizontal line coming from
+   the previous bracket branch.
+   ========================================================= */
+
+.se-round:not(:first-child)
+.se-match-slot::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    width: 1.875rem;
+    height: 1px;
+    background: rgba(255, 255, 255, .16);
+}
+
+
+/* =========================================================
+   ROUND-TO-ROUND BRANCHES
+
+   These vertical branches visually join each pair of
+   previous-round matches.
+   ========================================================= */
+
+.se-round:not(:last-child)
+.se-match-slot:nth-child(odd)
+.se-match::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 3.75rem);
+    width: 1px;
+    height: calc(50% + 60px);
+    background: rgba(255, 255, 255, .16);
+}
+
+
+.se-round:not(:last-child)
+.se-match-slot:nth-child(even)
+.se-match::after {
+    content: "";
+    position: absolute;
+    bottom: 50%;
+    left: calc(100% + 3.75rem);
+    width: 1px;
+    height: calc(50% + 60px);
+    background: rgba(255, 255, 255, .16);
+}
+
+
+/* =========================================================
+   LIVE MATCH
+   ========================================================= */
+
+.se-match.live {
+    border-color: rgba(255, 255, 255, .2);
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .se-bracket {
+        gap: 3rem;
+        padding-right: 2rem;
+    }
+
+
+    .se-round {
+        width: 260px;
+        min-width: 260px;
+    }
+
+
+        .se-round:not(:last-child)
+        .se-match-slot::after {
+            width: 3rem;
+        }
+
+
+        .se-round:not(:first-child)
+        .se-match-slot::before {
+            width: 1.5rem;
+        }
+
+
+        .se-round:not(:last-child)
+        .se-match-slot:nth-child(odd)
+        .se-match::after,
+        .se-round:not(:last-child)
+        .se-match-slot:nth-child(even)
+        .se-match::after {
+            left: calc(100% + 3rem);
+        }
+}

@@ -1,0 +1,333 @@
+﻿@using AlphaMode.Application.TournamentFixtures.DTOs
+@using AlphaMode.Domain.Enums
+
+<div class="se-bracket-wrapper">
+
+    @if (Fixtures is null ||
+        !Fixtures.FixturesGenerated || Fixtures.Rounds.Count == 0)
+    {
+        <div class="competition-feature-empty">
+            <div class="competition-feature-icon">🏆</div>
+
+            <h2>Bracket isn't available yet</h2>
+
+            <p>
+                The tournament bracket will appear once
+                fixtures have been generated.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="se-bracket-scroll">
+
+            <div class="se-bracket">
+
+                @foreach (var round in OrderedRounds)
+                {
+                    <section class="se-round" @key="round.RoundNumber">
+
+                        <header class="se-round-header">
+
+                            <span>
+                                Round @round.RoundNumber
+                            </span>
+
+                            <h3>
+                                @GetRoundName(round)
+                            </h3>
+
+                        </header>
+
+                        <div class="se-round-body">
+
+                            @foreach (var match in round.Matches)
+                            {
+                                <div class="se-match-slot"
+                                     @key="GetMatchKey(match)">
+
+                                    <article class="@GetMatchClass(match)">
+
+                                        @if (match.IsBye)
+                                        {
+                                            <div class="se-player bye-player">
+
+                                                <div class="se-player-info">
+
+                                                    <span class="competition-avatar small">
+                                                        @GetInitials(GetByePlayerName(match))
+                                                    </span>
+
+                                                    <span class="se-player-name">
+                                                        @GetByePlayerName(match)
+                                                    </span>
+
+                                                </div>
+
+                                                <span class="se-advanced">
+                                                    Advanced
+                                                </span>
+
+                                            </div>
+
+                                            <div class="se-bye-row">
+
+                                                <span class="se-bye-label">
+                                                    BYE
+                                                </span>
+
+                                                <span>
+                                                    Automatic advance
+                                                </span>
+
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="@GetPlayerClass(
+                                                 match,
+                                                 match.PlayerOneId)">
+
+                                <div class="se-player-info">
+
+                                    <span class="competition-avatar small">
+                                        @GetInitials(match.PlayerOneName)
+                                    </span>
+
+                                    <span class="se-player-name">
+                                        @GetPlayerName(match.PlayerOneName)
+                                    </span>
+
+                                </div>
+
+                                <strong class="se-score">
+                                    @GetScore(match.PlayerOneScore)
+                                </strong>
+
+                            </div>
+
+
+                            <div class="@GetPlayerClass(
+                                    match,
+                                    match.PlayerTwoId)">
+
+                                <div class="se-player-info">
+
+                                    <span class="competition-avatar small">
+                                        @GetInitials(match.PlayerTwoName)
+                                    </span>
+
+                                    <span class="se-player-name">
+                                        @GetPlayerName(match.PlayerTwoName)
+                                    </span>
+
+                                </div>
+
+                                <strong class="se-score">
+                                    @GetScore(match.PlayerTwoScore)
+                                </strong>
+
+                            </div>
+                                                        }
+
+
+                            <footer class="se-match-footer">
+
+                                <span class="@GetStatusClass(match)">
+                                    @GetStatusText(match)
+                                </span>
+
+                                @if (match.ScheduledAt.HasValue && !match.IsBye)
+                                {
+                                    <span>
+                                        @match.ScheduledAt.Value.ToLocalTime().ToString("dd MMM · HH:mm")
+                                    </span>
+                                }
+                                        </footer>
+                                    </article>
+                                </div>
+                            }
+                        </div>
+                    </section>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public TournamentFixtureDto Fixtures { get; set; } = default!;
+
+
+    private IEnumerable<FixtureRoundDto> OrderedRounds =>
+        Fixtures.Rounds.OrderBy(x => x.RoundNumber);
+
+
+    private static string GetRoundName(
+        FixtureRoundDto round)
+    {
+        return string.IsNullOrWhiteSpace(round.Name)
+            ? $"Round {round.RoundNumber}"
+            : round.Name;
+    }
+
+
+    private static string GetPlayerName(string name)
+    {
+        return string.IsNullOrWhiteSpace(name)
+            ? "TBD"
+            : name;
+    }
+
+
+    private static string GetScore(int? score)
+    {
+        return score?.ToString() ?? "–";
+    }
+
+
+    private static string GetByePlayerName(
+        FixtureMatchDto match)
+    {
+        if (match.PlayerOneId.HasValue &&
+            !string.IsNullOrWhiteSpace(match.PlayerOneName) &&
+            !match.PlayerOneName.Equals(
+                "TBD",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return match.PlayerOneName;
+        }
+
+        if (match.PlayerTwoId.HasValue &&
+            !string.IsNullOrWhiteSpace(match.PlayerTwoName) &&
+            !match.PlayerTwoName.Equals(
+                "TBD",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return match.PlayerTwoName;
+        }
+
+        return "TBD";
+    }
+
+
+    private static string GetPlayerClass(
+        FixtureMatchDto match,
+        Guid? playerId)
+    {
+        const string baseClass = "se-player";
+
+        if (match.Status != MatchStatus.Completed ||
+            !match.WinnerId.HasValue ||
+            !playerId.HasValue)
+        {
+            return baseClass;
+        }
+
+        return match.WinnerId == playerId
+            ? $"{baseClass} winner"
+            : $"{baseClass} eliminated";
+    }
+
+
+    private static string GetMatchClass(
+        FixtureMatchDto match)
+    {
+        var classes = "se-match";
+
+        if (match.IsBye)
+        {
+            classes += " bye";
+        }
+
+        if (match.Status == MatchStatus.Live)
+        {
+            classes += " live";
+        }
+
+        if (match.Status == MatchStatus.Completed)
+        {
+            classes += " completed";
+        }
+
+        return classes;
+    }
+
+
+    private static string GetStatusText(
+        FixtureMatchDto match)
+    {
+        if (match.IsBye)
+        {
+            return "Bye";
+        }
+
+        return match.Status switch
+        {
+            MatchStatus.Pending => "Pending",
+            MatchStatus.Scheduled => "Scheduled",
+            MatchStatus.Live => "Live",
+            MatchStatus.Completed => "Completed",
+            _ => match.Status.ToString()
+        };
+    }
+
+
+    private static string GetStatusClass(
+        FixtureMatchDto match)
+    {
+        if (match.IsBye)
+        {
+            return "se-status bye";
+        }
+
+        return match.Status switch
+        {
+            MatchStatus.Live =>
+                "se-status live",
+
+            MatchStatus.Completed =>
+                "se-status completed",
+
+            MatchStatus.Scheduled =>
+                "se-status scheduled",
+
+            _ =>
+                "se-status"
+        };
+    }
+
+
+    private static string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) ||
+            name.Equals(
+                "TBD",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "?";
+        }
+
+        var value = name.Trim();
+
+        return value.Length == 1
+            ? value.ToUpperInvariant()
+            : value[..1].ToUpperInvariant();
+    }
+
+
+    private static string GetMatchKey(
+        FixtureMatchDto match)
+    {
+        if (match.MatchId.HasValue)
+        {
+            return match.MatchId.Value.ToString();
+        }
+
+        return $"{match.RoundNumber}-" +
+               $"{match.PlayerOneId}-" +
+               $"{match.PlayerTwoId}";
+    }
+}

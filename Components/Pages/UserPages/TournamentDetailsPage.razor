@@ -577,8 +577,9 @@ else
             }
 
         </section>
+
          }else if (selectedTab == CompetitionTab.Fixtures)
-            {
+         {
             <section class="competition-panel">
 
                 <div class="competition-panel-heading">
@@ -591,8 +592,7 @@ else
                         <h2>Tournament fixtures</h2>
                     </div>
 
-                    @if (fixtures is not null &&
-                                    fixtures.FixturesGenerated)
+                    @if (fixtures is not null && fixtures.FixturesGenerated)
                     {
                         <span class="competition-count">
                             @fixtures.Rounds.Sum(x => x.Matches.Count) matches
@@ -624,9 +624,7 @@ else
 
                     </div>
                 }
-                else if (fixtures is null ||
-                !fixtures.FixturesGenerated ||
-                !fixtures.Rounds.Any())
+                else if (fixtures is null || !fixtures.FixturesGenerated || !fixtures.Rounds.Any())
                 {
                     <div class="competition-feature-empty">
 
@@ -646,11 +644,15 @@ else
                             players currently checked in
                         </span>
 
-                    </div>
-                }
-                else
-                {
-                    <div class="competition-fixture-rounds">
+                        </div>
+                    }
+                    ////////// tournament bracket //////////////
+                    else if (fixtures.Format == TournamentFormat.SingleElimination)
+                    {
+                        <SingleEliminationBracket Fixtures="@fixtures" />
+                    }
+                    else{
+                        <div class="competition-fixture-rounds">
 
                         @foreach (var round in fixtures.Rounds)
                         {
@@ -704,9 +706,9 @@ else
                                         @GetInitials(match.PlayerOneName)
                                     </span>
 
-                                                    <strong>
-                                                        @match.PlayerOneName
-                                                    </strong>
+                                        <strong>
+                                            @match.PlayerOneName
+                                        </strong>
 
                                     @if (match.HasScore)
                                     {
