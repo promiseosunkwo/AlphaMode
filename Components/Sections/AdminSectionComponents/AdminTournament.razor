@@ -1,5 +1,6 @@
 @rendermode InteractiveServer
 
+@using AlphaMode.Application.Common.Models
 @using AlphaMode.Application.Games.DTOs
 @using AlphaMode.Application.Games.Interfaces
 @using AlphaMode.Application.Tournaments.DTOs
@@ -9,9 +10,12 @@
 @using AlphaMode.Components.Sections.AdminSectionComponents.Models
 @using AlphaMode.Components.Shared.ConfirmDialog
 @using AlphaMode.Components.Shared.Toast
+@using AlphaMode.Domain.Entities
 @using AlphaMode.Domain.Enums
 @using AlphaMode.Services
 
+
+@inject ITournamentLifecycleService LifecycleService
 @inject NavigationManager Navigation
 @inject ITournamentService TournamentService
 @inject IGameService GameService
@@ -109,7 +113,9 @@
                         <th>Starts</th>
                         <th>Registration</th>
                         <th>Status</th>
-                        <th></th>
+                        <th class="adm-actions-heading">
+                            Actions
+                        </th>
                     </tr>
                 </thead>
 
@@ -155,37 +161,111 @@
 
 
                             <td>
+                                <div class="adm-tournament-status-cell">
 
-                                <span class="adm-status @GetStatusCss(tournament.Status)">
-                                    @tournament.Status
-                                </span>
+                                    <span class="adm-status @GetStatusCss(tournament.Status)">
+                                        @FormatTournamentStatus(tournament.Status)
+                                    </span>
 
+                                    <small class="adm-status-description">
+                                        @GetTournamentStatusDescription(tournament.Status)
+                                    </small>
+
+                                </div>
                             </td>
 
 
                             <td class="adm-row-actions">
 
-                                <button type="button"
-                                        disabled="@IsProcessing(tournament.Id)"
-                                        @onclick="() => OpenEditModal(tournament.Id)">
-                                    Edit
-                                </button>
+                                <div class="adm-action-group">
+
+                                    <button type="button"
+                                            class="adm-table-action"
+                                            disabled="@IsProcessing(tournament.Id)"
+                                            @onclick="() => OpenEditModal(tournament.Id)">
+                                        Edit
+                                    </button>
+
+                                    <button type="button"
+                                            class="adm-table-action"
+                                            @onclick="() => ManageParticipants(tournament.Id)">
+                                        Participants
+                                    </button>
+
+                                    @if (tournament.Status == TournamentStatus.Draft)
+                                    {
+                                        <button type="button"
+                                                class="adm-table-action danger"
+                                                disabled="@IsProcessing(tournament.Id)"
+                                                @onclick="() => RequestDelete(tournament)">
+                                            Delete
+                                        </button>
+                                    }
+
+                                </div>
 
 
-                                <button type="button"
-                                        class="danger"
-                                        disabled="@IsProcessing(tournament.Id)"
-                                        @onclick="() => RequestDelete(tournament)">
-                                    Delete
-                                </button>
+                                @if (tournament.Status is
+                                    TournamentStatus.Draft or
+                                    TournamentStatus.Upcoming or
+                                    TournamentStatus.RegistrationOpen or
+                                    TournamentStatus.Live)
+                                {
+                                    <div class="adm-action-divider"></div>
 
-                                <button type="button"
-                                        class="adm-button secondary"
-                                        @onclick="() => ManageParticipants(tournament.Id)">
-                                    Participants
-                                </button>
+                                    <div class="adm-lifecycle-actions">
+
+                                        @if (tournament.Status == TournamentStatus.Draft)
+                                        {
+                                            <button type="button"
+                                                    class="adm-table-action lifecycle-primary"
+                                                    disabled="@isLifecycleProcessing"
+                                                    @onclick="() => AskPublishTournament(tournament)">
+                                                Publish
+                                            </button>
+                                        }
+
+                                        else if (tournament.Status == TournamentStatus.Upcoming)
+                                        {
+                                            <button type="button"
+                                                    class="adm-table-action lifecycle-primary"
+                                                    disabled="@isLifecycleProcessing"
+                                                    @onclick="() => AskStartTournament(tournament)">
+                                                Start
+                                            </button>
+
+                                            <button type="button"
+                                                    class="adm-table-action lifecycle-danger"
+                                                    disabled="@isLifecycleProcessing"
+                                                    @onclick="() => AskCancelTournament(tournament)">
+                                                Cancel
+                                            </button>
+                                        }
+
+                                        else if (tournament.Status == TournamentStatus.RegistrationOpen)
+                                        {
+                                            <button type="button"
+                                                    class="adm-table-action lifecycle-danger"
+                                                    disabled="@isLifecycleProcessing"
+                                                    @onclick="() => AskCancelTournament(tournament)">
+                                                Cancel
+                                            </button>
+                                        }
+
+                                        else if (tournament.Status == TournamentStatus.Live)
+                                        {
+                                            <button type="button"
+                                                    class="adm-table-action lifecycle-complete"
+                                                    disabled="@isLifecycleProcessing"
+                                                    @onclick="() => AskCompleteTournament(tournament)">
+                                                Complete
+                                            </button>
+                                        }
+
+                                    </div>
+                                }
+
                             </td>
-
                         </tr>
                     }
 
@@ -449,6 +529,16 @@
     OnCancel="CancelDelete" />
 
 
+<ConfirmDialog IsOpen="@isLifecycleConfirmationOpen"
+               Title="@lifecycleConfirmTitle"
+               Message="@lifecycleConfirmMessage"
+               ConfirmText="@lifecycleConfirmButtonText"
+               CancelText="Cancel"
+               ProcessingText="@lifecycleProcessingText"
+               IsProcessing="@isLifecycleProcessing"
+               OnConfirm="ExecuteLifecycleActionAsync"
+               OnCancel="CloseLifecycleConfirmation" />
+
 @code {
 
     // =======================================================
@@ -505,6 +595,30 @@
     private string deleteConfirmationMessage => tournamentToDelete is null ? "This action cannot be undone." : $"You're about to permanently delete {tournamentToDelete.Name}. This action cannot be undone.";
 
 
+    // =======================================================
+    // TOURNAMENT LIFECYCLE STATE
+    // =======================================================
+    private TournamentDto? selectedLifecycleTournament;
+
+    private bool isLifecycleConfirmationOpen;
+
+    private bool isLifecycleProcessing;
+
+    private TournamentLifecycleAction pendingLifecycleAction;
+
+    private string lifecycleConfirmTitle = string.Empty;
+    private string lifecycleConfirmMessage = string.Empty;
+    private string lifecycleConfirmButtonText = string.Empty;
+    private string lifecycleProcessingText = string.Empty;
+
+    private enum TournamentLifecycleAction
+    {
+        None = 0,
+        Publish = 1,
+        Start = 2,
+        Complete = 3,
+        Cancel = 4
+    }
     // =======================================================
     // FILTERING
     // =======================================================
@@ -1027,6 +1141,282 @@
         return status
             .ToString()
             .ToLowerInvariant();
+    }
+
+
+    private void AskPublishTournament(TournamentDto tournament)
+    {
+        if (tournament.Status != TournamentStatus.Draft)
+        {
+            return;
+        }
+
+        selectedLifecycleTournament = tournament;
+
+        pendingLifecycleAction =
+            TournamentLifecycleAction.Publish;
+
+        lifecycleConfirmTitle =
+            "Publish tournament?";
+
+        lifecycleConfirmMessage =
+            $"Publish {tournament.Name}? Registration will open automatically during the configured registration period.";
+
+        lifecycleConfirmButtonText =
+            "Publish tournament";
+
+        lifecycleProcessingText =
+            "Publishing...";
+
+        isLifecycleConfirmationOpen = true;
+    }
+
+
+
+    private void AskStartTournament(TournamentDto tournament)
+    {
+        if (tournament.Status != TournamentStatus.Upcoming)
+        {
+            return;
+        }
+
+        selectedLifecycleTournament = tournament;
+
+        pendingLifecycleAction =
+            TournamentLifecycleAction.Start;
+
+        lifecycleConfirmTitle =
+            "Start tournament?";
+
+        lifecycleConfirmMessage =
+            $"Start {tournament.Name}? At least two checked-in players and generated fixtures are required.";
+
+        lifecycleConfirmButtonText =
+            "Start tournament";
+
+        lifecycleProcessingText =
+            "Starting...";
+
+        isLifecycleConfirmationOpen = true;
+    }
+
+
+    private void AskCompleteTournament(TournamentDto tournament)
+    {
+        if (tournament.Status != TournamentStatus.Live)
+        {
+            return;
+        }
+
+        selectedLifecycleTournament = tournament;
+
+        pendingLifecycleAction =
+            TournamentLifecycleAction.Complete;
+
+        lifecycleConfirmTitle =
+            "Complete tournament?";
+
+        lifecycleConfirmMessage =
+            $"Complete {tournament.Name}? All tournament matches must already be completed.";
+
+        lifecycleConfirmButtonText =
+            "Complete tournament";
+
+        lifecycleProcessingText =
+            "Completing...";
+
+        isLifecycleConfirmationOpen = true;
+    }
+
+
+    private void AskCancelTournament(TournamentDto tournament)
+    {
+        if (tournament.Status is
+            TournamentStatus.Completed or
+            TournamentStatus.Cancelled or
+            TournamentStatus.Live)
+        {
+            return;
+        }
+
+        selectedLifecycleTournament = tournament;
+
+        pendingLifecycleAction =
+            TournamentLifecycleAction.Cancel;
+
+        lifecycleConfirmTitle =
+            "Cancel tournament?";
+
+        lifecycleConfirmMessage =
+            $"Cancel {tournament.Name}? This will prevent the tournament from continuing through the normal competition lifecycle.";
+
+        lifecycleConfirmButtonText =
+            "Cancel tournament";
+
+        lifecycleProcessingText =
+            "Cancelling...";
+
+        isLifecycleConfirmationOpen = true;
+    }
+
+
+    private async Task ExecuteLifecycleActionAsync()
+    {
+        if (selectedLifecycleTournament is null ||
+            isLifecycleProcessing ||
+            pendingLifecycleAction ==
+            TournamentLifecycleAction.None)
+        {
+            return;
+        }
+
+        isLifecycleProcessing = true;
+
+        try
+        {
+            Result result;
+
+            switch (pendingLifecycleAction)
+            {
+                case TournamentLifecycleAction.Publish:
+
+                    result =
+                        await LifecycleService.PublishAsync(
+                            selectedLifecycleTournament.Id);
+
+                    break;
+
+                case TournamentLifecycleAction.Start:
+
+                    result =
+                        await LifecycleService.StartAsync(
+                            selectedLifecycleTournament.Id);
+
+                    break;
+
+                case TournamentLifecycleAction.Complete:
+
+                    result =
+                        await LifecycleService.CompleteAsync(
+                            selectedLifecycleTournament.Id);
+
+                    break;
+
+                case TournamentLifecycleAction.Cancel:
+
+                    result =
+                        await LifecycleService.CancelAsync(
+                            selectedLifecycleTournament.Id);
+
+                    break;
+
+                default:
+                    return;
+            }
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(
+                    result.Error ??
+                    "The tournament status could not be changed.");
+
+                return;
+            }
+
+            Toast.Success(
+                result.Message ??
+                "Tournament updated successfully.");
+
+            ResetLifecycleConfirmation();
+
+            await LoadPageAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "Something went wrong while updating the tournament.");
+        }
+        finally
+        {
+            isLifecycleProcessing = false;
+        }
+    }
+
+
+    private void CloseLifecycleConfirmation()
+    {
+        if (isLifecycleProcessing)
+        {
+            return;
+        }
+
+        ResetLifecycleConfirmation();
+    }
+
+    private void CloseLifecycleConfirmationAfterSuccess()
+    {
+        ResetLifecycleConfirmation();
+    }
+
+    private void ResetLifecycleConfirmation()
+    {
+        isLifecycleConfirmationOpen = false;
+
+        selectedLifecycleTournament = null;
+
+        pendingLifecycleAction =
+            TournamentLifecycleAction.None;
+
+        lifecycleConfirmTitle = string.Empty;
+        lifecycleConfirmMessage = string.Empty;
+        lifecycleConfirmButtonText = string.Empty;
+        lifecycleProcessingText = string.Empty;
+    }
+
+
+    private static string GetTournamentStatusDescription(TournamentStatus status)
+    {
+        return status switch
+        {
+            TournamentStatus.Draft =>
+                "Not yet published to players.",
+
+            TournamentStatus.Upcoming =>
+                "Published but registration is not currently open.",
+
+            TournamentStatus.RegistrationOpen =>
+                "Players can currently register for this tournament.",
+
+            TournamentStatus.Live =>
+                "Tournament competition is currently in progress.",
+
+            TournamentStatus.Completed =>
+                "Tournament competition has finished.",
+
+            TournamentStatus.Cancelled =>
+                "Tournament has been cancelled.",
+
+            _ => string.Empty
+        };
+    }
+
+
+
+    private static string FormatTournamentStatus(
+    TournamentStatus status)
+    {
+        return status switch
+        {
+            TournamentStatus.Draft => "Draft",
+            TournamentStatus.Upcoming => "Upcoming",
+            TournamentStatus.RegistrationOpen => "Registration Open",
+            TournamentStatus.Live => "Live",
+            TournamentStatus.Completed => "Completed",
+            TournamentStatus.Cancelled => "Cancelled",
+            _ => status.ToString()
+        };
     }
 
 }

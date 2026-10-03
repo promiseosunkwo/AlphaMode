@@ -166,3 +166,147 @@
 .start {
     background: rgba(16,185,129,.2);
 }
+
+
+
+/* =========================================================
+   Tournament table actions
+   ========================================================= */
+
+.adm-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    white-space: nowrap;
+}
+
+.adm-action-group,
+.adm-lifecycle-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+
+/* Divider between management and lifecycle actions */
+
+.adm-action-divider {
+    width: 1px;
+    height: 24px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+
+/* Consistent table action button */
+
+.adm-table-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0.42rem 0.72rem;
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+    .adm-table-action:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.16);
+        color: #fff;
+    }
+
+    .adm-table-action:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+
+
+    /* ---------------------------------------------------------
+   Lifecycle primary: Publish / Start
+   --------------------------------------------------------- */
+
+    .adm-table-action.lifecycle-primary {
+        background: rgba(99, 102, 241, 0.12);
+        border-color: rgba(99, 102, 241, 0.35);
+        color: #c7d2fe;
+    }
+
+        .adm-table-action.lifecycle-primary:hover:not(:disabled) {
+            background: rgba(99, 102, 241, 0.22);
+            border-color: rgba(99, 102, 241, 0.6);
+        }
+
+
+    /* ---------------------------------------------------------
+   Complete tournament
+   --------------------------------------------------------- */
+
+    .adm-table-action.lifecycle-complete {
+        background: rgba(34, 197, 94, 0.1);
+        border-color: rgba(34, 197, 94, 0.3);
+        color: #86efac;
+    }
+
+        .adm-table-action.lifecycle-complete:hover:not(:disabled) {
+            background: rgba(34, 197, 94, 0.18);
+            border-color: rgba(34, 197, 94, 0.55);
+        }
+
+
+    /* ---------------------------------------------------------
+   Destructive actions
+   --------------------------------------------------------- */
+
+    .adm-table-action.danger,
+    .adm-table-action.lifecycle-danger {
+        background: transparent;
+        border-color: rgba(239, 68, 68, 0.22);
+        color: #fca5a5;
+    }
+
+        .adm-table-action.danger:hover:not(:disabled),
+        .adm-table-action.lifecycle-danger:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.45);
+        }
+
+
+    /* Disabled */
+
+    .adm-table-action:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+
+/* Heading */
+
+.adm-actions-heading {
+    text-align: right;
+}
+
+.adm-tournament-status-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    min-width: 170px;
+}
+
+.adm-status-description {
+    display: block;
+    max-width: 210px;
+    color: rgba(255, 255, 255, 0.48);
+    font-size: 0.72rem;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
