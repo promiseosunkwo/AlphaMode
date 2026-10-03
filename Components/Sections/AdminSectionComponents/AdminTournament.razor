@@ -125,41 +125,41 @@
                     {
                         <tr @key="tournament.Id">
 
+                            @* Tournament *@
                             <td>
-
-                                <strong>
-                                    @tournament.Name
-                                </strong>
-
-                                <small>
-                                    @tournament.GameName
-                                </small>
-
+                                <div class="">
+                                    <strong>@tournament.Name</strong>
+                                    <small>@tournament.GameName</small>
+                                </div>
                             </td>
 
 
+                            @* Start date *@
                             <td>
-                                @tournament.StartDate.ToString("dd MMM yyyy")
+                                <span class="adm-table-date">
+                                    @tournament.StartDate.ToString("dd MMM yyyy")
+                                </span>
                             </td>
 
 
+                            @* Registration *@
                             <td>
+                                <div class="adm-registration-cell">
 
-                                <div class="adm-progress">
+                                    <div class="adm-progress">
+                                        <span style="@GetRegistrationProgressStyle(tournament)">
+                                        </span>
+                                    </div>
 
-                                    <span style="@GetRegistrationProgressStyle(tournament)">
-                                    </span>
+                                    <small>
+                                        @tournament.RegisteredPlayers / @tournament.MaxPlayers players
+                                    </small>
 
                                 </div>
-
-                                <small>
-                                    @tournament.RegisteredPlayers
-                                    @tournament.MaxPlayers players
-                                </small>
-
                             </td>
 
 
+                            @* Status *@
                             <td>
                                 <div class="adm-tournament-status-cell">
 
@@ -175,97 +175,106 @@
                             </td>
 
 
-                            <td class="adm-row-actions">
+                            @* Actions *@
+                            <td>
+                                <div class="adm-tournament-row-actions">
 
-                                <div class="adm-action-group">
+                                    @* Management actions *@
+                                    <div class="adm-action-group">
 
-                                    <button type="button"
-                                            class="adm-table-action"
-                                            disabled="@IsProcessing(tournament.Id)"
-                                            @onclick="() => OpenEditModal(tournament.Id)">
-                                        Edit
-                                    </button>
-
-                                    <button type="button"
-                                            class="adm-table-action"
-                                            @onclick="() => ManageParticipants(tournament.Id)">
-                                        Participants
-                                    </button>
-
-                                    @if (tournament.Status == TournamentStatus.Draft)
-                                    {
                                         <button type="button"
-                                                class="adm-table-action danger"
+                                                class="adm-table-action"
                                                 disabled="@IsProcessing(tournament.Id)"
-                                                @onclick="() => RequestDelete(tournament)">
-                                            Delete
+                                                @onclick="() => OpenEditModal(tournament.Id)">
+                                            Edit
                                         </button>
-                                    }
 
-                                </div>
-
-
-                                @if (tournament.Status is
-                                    TournamentStatus.Draft or
-                                    TournamentStatus.Upcoming or
-                                    TournamentStatus.RegistrationOpen or
-                                    TournamentStatus.Live)
-                                {
-                                    <div class="adm-action-divider"></div>
-
-                                    <div class="adm-lifecycle-actions">
+                                        <button type="button"
+                                                class="adm-table-action"
+                                                disabled="@IsProcessing(tournament.Id)"
+                                                @onclick="() => ManageParticipants(tournament.Id)">
+                                            Participants
+                                        </button>
 
                                         @if (tournament.Status == TournamentStatus.Draft)
                                         {
                                             <button type="button"
-                                                    class="adm-table-action lifecycle-primary"
-                                                    disabled="@isLifecycleProcessing"
-                                                    @onclick="() => AskPublishTournament(tournament)">
-                                                Publish
-                                            </button>
-                                        }
-
-                                        else if (tournament.Status == TournamentStatus.Upcoming)
-                                        {
-                                            <button type="button"
-                                                    class="adm-table-action lifecycle-primary"
-                                                    disabled="@isLifecycleProcessing"
-                                                    @onclick="() => AskStartTournament(tournament)">
-                                                Start
-                                            </button>
-
-                                            <button type="button"
-                                                    class="adm-table-action lifecycle-danger"
-                                                    disabled="@isLifecycleProcessing"
-                                                    @onclick="() => AskCancelTournament(tournament)">
-                                                Cancel
-                                            </button>
-                                        }
-
-                                        else if (tournament.Status == TournamentStatus.RegistrationOpen)
-                                        {
-                                            <button type="button"
-                                                    class="adm-table-action lifecycle-danger"
-                                                    disabled="@isLifecycleProcessing"
-                                                    @onclick="() => AskCancelTournament(tournament)">
-                                                Cancel
-                                            </button>
-                                        }
-
-                                        else if (tournament.Status == TournamentStatus.Live)
-                                        {
-                                            <button type="button"
-                                                    class="adm-table-action lifecycle-complete"
-                                                    disabled="@isLifecycleProcessing"
-                                                    @onclick="() => AskCompleteTournament(tournament)">
-                                                Complete
+                                                    class="adm-table-action danger"
+                                                    disabled="@IsProcessing(tournament.Id)"
+                                                    @onclick="() => RequestDelete(tournament)">
+                                                Delete
                                             </button>
                                         }
 
                                     </div>
-                                }
 
+
+                                    @* Lifecycle actions *@
+                                    @if (HasLifecycleActions(tournament.Status))
+                                    {
+                                        <div class="adm-lifecycle-row">
+
+                                            <span class="adm-lifecycle-label">
+                                                Lifecycle
+                                            </span>
+
+                                            <div class="adm-lifecycle-actions">
+
+                                                @if (tournament.Status == TournamentStatus.Draft)
+                                                {
+                                                    <button type="button"
+                                                            class="adm-table-action lifecycle-primary"
+                                                            disabled="@IsLifecycleProcessing(tournament.Id)"
+                                                            @onclick="() => AskPublishTournament(tournament)">
+                                                        Publish
+                                                    </button>
+                                                }
+
+                                                else if (tournament.Status == TournamentStatus.Upcoming)
+                                                {
+                                                    <button type="button"
+                                                            class="adm-table-action lifecycle-primary"
+                                                            disabled="@IsLifecycleProcessing(tournament.Id)"
+                                                            @onclick="() => AskStartTournament(tournament)">
+                                                        Start
+                                                    </button>
+
+                                                    <button type="button"
+                                                            class="adm-table-action lifecycle-danger"
+                                                            disabled="@IsLifecycleProcessing(tournament.Id)"
+                                                            @onclick="() => AskCancelTournament(tournament)">
+                                                        Cancel
+                                                    </button>
+                                                }
+
+                                                else if (tournament.Status == TournamentStatus.RegistrationOpen)
+                                                {
+                                                    <button type="button"
+                                                            class="adm-table-action lifecycle-danger"
+                                                            disabled="@IsLifecycleProcessing(tournament.Id)"
+                                                            @onclick="() => AskCancelTournament(tournament)">
+                                                        Cancel
+                                                    </button>
+                                                }
+
+                                                else if (tournament.Status == TournamentStatus.Live)
+                                                {
+                                                    <button type="button"
+                                                            class="adm-table-action lifecycle-complete"
+                                                            disabled="@IsLifecycleProcessing(tournament.Id)"
+                                                            @onclick="() => AskCompleteTournament(tournament)">
+                                                        Complete
+                                                    </button>
+                                                }
+
+                                            </div>
+
+                                        </div>
+                                    }
+
+                                </div>
                             </td>
+
                         </tr>
                     }
 
@@ -1419,4 +1428,21 @@
         };
     }
 
+
+    private static bool HasLifecycleActions(
+    TournamentStatus status)
+    {
+        return status is
+            TournamentStatus.Draft or
+            TournamentStatus.Upcoming or
+            TournamentStatus.RegistrationOpen or
+            TournamentStatus.Live;
+    }
+
+
+    private bool IsLifecycleProcessing(Guid tournamentId)
+    {
+        return isLifecycleProcessing &&
+               selectedLifecycleTournament?.Id == tournamentId;
+    }
 }
