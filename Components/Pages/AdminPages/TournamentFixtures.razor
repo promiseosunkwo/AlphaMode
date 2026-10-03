@@ -329,11 +329,28 @@ else
                             disabled="@isMatchProcessing"
                                 @onclick="ScheduleSelectedMatchAsync">
                         Save schedule
-                    </button>
-
+                    </button>  
                 </div>
             }
 
+            @* ////////////////////////correct match score///////////////////////////// *@
+                @if (selectedMatch.Status == MatchStatus.Completed &&
+                            selectedMatch.HasScore &&
+                            selectedMatch.Id != Guid.Empty)
+                {
+                    <div class="match-manager-section">
+
+                        <h4>Result administration</h4>
+
+                        <button type="button"
+                                class="adm-button secondary"
+                                disabled="@isMatchProcessing"
+                                @onclick="() => OpenCorrectionModal(selectedMatch)">
+                            Correct result
+                        </button>
+
+                    </div>
+                }
 
             @if (CanEnterResult(selectedMatch))
             {
@@ -419,6 +436,130 @@ else
 </AdminModal>
 
 
+<AdminModal IsOpen="@isCorrectionModalOpen"
+            Eyebrow="Match administration"
+            Title="Correct match result"
+            EditContext="@correctionEditContext"
+            OnValidSubmit="CorrectResultAsync"
+            OnClose="CloseCorrectionModal">
+
+<ChildContent>
+@if (selectedCorrectionMatch is not null)
+    {
+        <div class="adm-result-correction">
+
+            <div class="adm-correction-warning">
+                <strong>Result correction</strong>
+
+                <p>
+                    Changing this result may update player statistics,
+                    tournament standings and knockout progression.
+                    The correction will be recorded in the audit log.
+                </p>
+            </div>
+
+
+            <div class="adm-correction-matchup">
+
+                <div class="adm-correction-player">
+
+                    <div>
+                        <span class="adm-correction-label">
+                            Player 1
+                        </span>
+
+                        <strong>
+                            @selectedCorrectionMatch.PlayerOneName
+                        </strong>
+                    </div>
+
+                    <InputNumber @bind-Value="correctionModel.PlayerOneScore"
+                                 class="adm-input adm-score-input" />
+
+                    <ValidationMessage For="@(() =>
+                        correctionModel.PlayerOneScore)" />
+
+                </div>
+
+
+                <div class="adm-correction-versus">
+                    VS
+                </div>
+
+
+                <div class="adm-correction-player">
+
+                    <div>
+                        <span class="adm-correction-label">
+                            Player 2
+                        </span>
+
+                        <strong>
+                            @selectedCorrectionMatch.PlayerTwoName
+                        </strong>
+                    </div>
+
+                    <InputNumber @bind-Value="correctionModel.PlayerTwoScore"
+                                 class="adm-input adm-score-input" />
+
+                    <ValidationMessage For="@(() =>
+                        correctionModel.PlayerTwoScore)" />
+
+                </div>
+
+            </div>
+
+
+            <div class="adm-form-field">
+
+                <label for="correction-reason">
+                    Reason for correction
+                </label>
+
+                <InputTextArea id="correction-reason"
+                               @bind-Value="correctionModel.Reason"
+                               class="adm-input adm-textarea"
+                               rows="4"
+                               placeholder="Explain why this result is being corrected..." />
+
+                <ValidationMessage For="@(() =>
+                    correctionModel.Reason)" />
+
+            </div>
+
+        </div>
+    }
+    </ChildContent>
+
+    <Footer>
+
+        <button type="button"
+                class="adm-button secondary"
+                disabled="@isCorrectingResult"
+                @onclick="CloseCorrectionModal">
+            Cancel
+        </button>
+
+        <button type="submit"
+                class="adm-button primary"
+                disabled="@isCorrectingResult">
+
+            @if (isCorrectingResult)
+            {
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>Save correction</span>
+            }
+
+        </button>
+
+    </Footer>
+
+</AdminModal>
+
+
 <ConfirmDialog
     IsOpen="@isGenerateConfirmationOpen"
     Title="Generate tournament fixtures?"
@@ -429,6 +570,7 @@ else
     IsProcessing="@isGenerating"
     OnConfirm="GenerateAsync"
     OnCancel="CloseGenerateConfirmation" />
+
 
 
 @code {
@@ -455,9 +597,20 @@ else
 
     private bool isGenerateConfirmationOpen;
 
-    private string errorMessage =
-        "Fixtures could not be loaded.";
+    private string errorMessage = "Fixtures could not be loaded.";
 
+
+    // Update match score
+    private bool isCorrectionModalOpen;
+
+    private bool isCorrectingResult;
+
+    private MatchDetailsDto? selectedCorrectionMatch;
+
+    private CorrectMatchResultRequest correctionModel = new();
+
+    private EditContext? correctionEditContext;
+    //end Update match score
 
     protected override async Task OnParametersSetAsync()
     {
@@ -889,6 +1042,33 @@ else
         }
     }
 
+    //update match score when there is a mistake
+    private void OpenCorrectionModal(MatchDetailsDto match)
+    {
+        if (match.Id == Guid.Empty || !match.HasScore)
+        {
+            Toast.Error("This match does not have a completed result to correct.");
+
+            return;
+        }
+    
+        selectedCorrectionMatch = match;
+
+        correctionModel = new CorrectMatchResultRequest
+        {
+            MatchId = match.Id,
+            PlayerOneScore = match.PlayerOneScore,
+            PlayerTwoScore = match.PlayerTwoScore,
+            Reason = string.Empty
+        };
+
+        correctionEditContext = new EditContext(correctionModel);
+
+        isManageMatchOpen = false;
+
+        isCorrectionModalOpen = true;
+    }
+
 
     // Refresh 
     private async Task RefreshSelectedMatchAsync()
@@ -954,12 +1134,15 @@ else
 
     private static bool CanStartMatch(MatchDetailsDto match)
     {
-        return match.Status is
-            MatchStatus.Pending or
-            MatchStatus.Scheduled &&
-            match.PlayerOneId.HasValue &&
-            match.PlayerTwoId.HasValue;
+        return
+        (match.Status == MatchStatus.Pending ||
+         match.Status == MatchStatus.Scheduled)
+        &&
+        match.PlayerOneId.HasValue
+        &&
+        match.PlayerTwoId.HasValue;
     }
+    
 
     private static bool CanEnterResult(MatchDetailsDto match)
     {
@@ -1001,5 +1184,81 @@ else
         return
             $"{selectedMatch.PlayerOneName} vs " +
             $"{selectedMatch.PlayerTwoName}";
+    }
+
+    private void CloseCorrectionModal()
+    {
+        if (isCorrectingResult)
+        {
+            return;
+        }
+
+        isCorrectionModalOpen = false;
+
+        selectedCorrectionMatch = null;
+
+        correctionModel = new CorrectMatchResultRequest();
+
+        correctionEditContext = null;
+
+        if (selectedMatch is not null)
+        {
+            isManageMatchOpen = true;
+        }
+    }
+
+
+    private async Task CorrectResultAsync()
+    {
+        if (isCorrectingResult ||
+            selectedCorrectionMatch is null)
+        {
+            return;
+        }
+
+        isCorrectingResult = true;
+
+        try
+        {
+            var result = await MatchService.CorrectResultAsync(
+                    correctionModel);
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(
+                    result.Error ??
+                    "The match result could not be corrected.");
+
+                return;
+            }
+
+            Toast.Success(result.Message ?? "Match result corrected successfully.");
+
+            // Refresh fixture cards / bracket.
+            await LoadAsync();
+
+            // Refresh selected match while we still have its ID.
+            await RefreshSelectedMatchAsync();
+
+            isCorrectionModalOpen = false;
+            selectedCorrectionMatch = null;
+            correctionEditContext = null;
+
+            correctionModel = new CorrectMatchResultRequest();
+
+            // Re-open match management with corrected values.
+            isManageMatchOpen = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "An unexpected error occurred while correcting the result.");
+        }
+        finally
+        {
+            isCorrectingResult = false;
+        }
     }
 }
