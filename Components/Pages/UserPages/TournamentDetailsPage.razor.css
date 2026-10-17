@@ -703,3 +703,60 @@
         flex-direction: column;
     }
 }
+
+
+
+/* =========================================
+   MY TOURNAMENT DETAILS - WITHDRAW ACTION
+   ========================================= */
+
+.competition-withdraw-action {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+    .competition-withdraw-action .portal-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.7rem 1.1rem;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        border-radius: 8px;
+        background: rgba(239, 68, 68, 0.06);
+        color: #f87171;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+        .competition-withdraw-action .portal-button:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.14);
+            border-color: #ef4444;
+            color: #fca5a5;
+        }
+
+        .competition-withdraw-action .portal-button:focus-visible {
+            outline: 2px solid #f87171;
+            outline-offset: 3px;
+        }
+
+        .competition-withdraw-action .portal-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+@media (max-width: 640px) {
+    .competition-withdraw-action {
+        justify-content: stretch;
+    }
+
+        .competition-withdraw-action .portal-button {
+            width: 100%;
+        }
+}

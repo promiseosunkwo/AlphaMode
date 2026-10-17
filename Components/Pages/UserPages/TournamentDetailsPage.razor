@@ -14,10 +14,14 @@
 @using AlphaMode.Services
 @using AlphaMode.Application.TournamentStandings.Interfaces
 @using AlphaMode.Application.TournamentFixtures.Interfaces
+@using AlphaMode.Application.PlayerTournamentRegistrations.DTOs
+@using AlphaMode.Application.PlayerTournamentRegistrations.Interfaces
+@using AlphaMode.Components.Shared.ConfirmDialog
 
 @inject ITournamentFixtureService FixtureService
 @inject ITournamentStandingsQueryService LeagueStandingsService
 @inject ITournamentRegistrationService RegistrationService
+@inject ITournamentPlayerRegistrationService PlayerRegistrationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 @inject ToastService Toast
@@ -302,6 +306,18 @@ else
                                         </p>
                                     </div>
 
+                                </div>
+                            }
+
+                            @if (registrationAvailability?.CanWithdraw == true)
+                            {
+                                <div class="competition-withdraw-action">
+                                    <button type="button"
+                                            class="portal-button subtle"
+                                            disabled="@isWithdrawing"
+                                            @onclick="() => showWithdrawConfirmation = true">
+                                        Withdraw from tournament
+                                    </button>
                                 </div>
                             }
 
@@ -960,6 +976,16 @@ else
 
 
 
+<ConfirmDialog IsOpen="@showWithdrawConfirmation"
+               Title="Withdraw from tournament?"
+               Message="Are you sure you want to withdraw? You will lose your place in this tournament, and you may not be able to register again."
+               ConfirmText="Yes, withdraw"
+               CancelText="Keep my place"
+               ProcessingText="Withdrawing..."
+               IsProcessing="@isWithdrawing"
+               OnConfirm="WithdrawFromTournamentAsync"
+               OnCancel="CloseWithdrawConfirmation" />
+
 
 
 @code {
@@ -975,7 +1001,11 @@ else
 
     private bool isLoading = true;
 
-    private bool isCheckingIn;
+    private bool isCheckingIn; //player checking in
+
+    private TournamentRegistrationAvailabilityDto? registrationAvailability;
+
+    private bool isRegistrationActionProcessing;
 
     private CompetitionTab selectedTab = CompetitionTab.Overview;
 
@@ -987,6 +1017,10 @@ else
 
     private string? standingsError;
 
+    // withdraw from tournament
+    private bool showWithdrawConfirmation;
+
+    private bool isWithdrawing;
 
     //Fixtures Tab
     private TournamentFixtureDto? fixtures;
@@ -1053,6 +1087,8 @@ else
             }
 
             tournament = result.Value;
+
+            await LoadRegistrationAvailabilityAsync();
         }
         catch (Exception ex)
         {
@@ -1082,18 +1118,7 @@ else
 
     private bool CanCheckIn()
     {
-        if (tournament is null) return false;
-
-        if (tournament.RegistrationStatus != TournamentRegistrationStatus.Registered)
-        {
-            return false;
-        }
-
-        var now = DateTime.UtcNow;
-
-        var opens = tournament.StartDate.AddMinutes(-30);
-
-        return now >= opens && now < tournament.StartDate;
+        return registrationAvailability?.CanCheckIn == true;
     }
 
 
@@ -1108,7 +1133,7 @@ else
 
         try
         {
-            var result = await RegistrationService.PlayerCheckInAsync(tournament.RegistrationId, currentUserId);
+            var result = await PlayerRegistrationService.PlayerCheckInAsync(tournament.RegistrationId, currentUserId);
 
             if (!result.Succeeded)
             {
@@ -1177,6 +1202,31 @@ else
         }
     }
 
+
+    private async Task LoadRegistrationAvailabilityAsync()
+    {
+        registrationAvailability = null;
+
+        if (tournament is null || tournament.RegistrationId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return;
+        }
+
+        var result = await PlayerRegistrationService
+                .GetAvailabilityByRegistrationAsync(tournament.RegistrationId, currentUserId);
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            Console.WriteLine(result.Error ?? "Registration availability could not be loaded.");
+
+            return;
+        }
+
+        registrationAvailability = result.Value;
+    }
+
+
     //Load Fixtures Tab onclik
     private async Task LoadFixturesAsync()
     {
@@ -1219,6 +1269,80 @@ else
             isFixturesLoading = false;
         }
     }
+
+
+    //Withdraw method
+    private async Task WithdrawFromTournamentAsync()
+    {
+        if (tournament is null ||
+            isWithdrawing ||
+            string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return;
+        }
+
+        if (registrationAvailability?.CanWithdraw != true)
+        {
+            Toast.Warning(
+                "Withdrawal is not currently available.");
+
+            return;
+        }
+
+        isWithdrawing = true;
+
+        try
+        {
+            var result = await PlayerRegistrationService
+                .PlayerWithdrawAsync(
+                    tournament.RegistrationId,
+                    currentUserId);
+
+            if (!result.Succeeded)
+            {
+                Toast.Warning(
+                    result.Error ??
+                    "Unable to withdraw from this tournament.");
+
+                showWithdrawConfirmation = false;
+
+                await LoadTournamentAsync();
+
+                return;
+            }
+
+            showWithdrawConfirmation = false;
+
+            Toast.Success(
+                result.Message ??
+                "You have withdrawn from the tournament.");
+
+            Navigation.NavigateTo("/dashboard/my-tournaments");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "Something went wrong while withdrawing.");
+        }
+        finally
+        {
+            isWithdrawing = false;
+        }
+    }
+
+
+    private void CloseWithdrawConfirmation()
+    {
+        if (isWithdrawing)
+            return;
+
+        showWithdrawConfirmation = false;
+    }
+
+
+
 
 
     // =====================================================
