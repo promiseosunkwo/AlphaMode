@@ -301,46 +301,35 @@ else
 
         if (string.IsNullOrWhiteSpace(currentUserId))
         {
-            Toast.Error(
-                "Your account could not be identified.");
+            Toast.Error("Your account could not be identified.");
 
             return;
         }
 
-        registeringTournamentId =
-            tournament.Id;
+        registeringTournamentId = tournament.Id;
 
         try
         {
-            var result =
-                await RegistrationService
-                    .RegisterForTournamentAsync(
+            var result = await RegistrationService.RegisterForTournamentAsync(
                         new RegisterForTournamentRequest
                         {
-                            TournamentId =
-                                tournament.Id,
+                            TournamentId = tournament.Id,
 
-                            UserId =
-                                currentUserId
+                            UserId = currentUserId
                         });
 
-            if (!result.Succeeded ||
-                result.Value is null)
+            if (!result.Succeeded || result.Value is null)
             {
-                Toast.Warning(
-                    result.Error ??
-                    "Unable to register for this tournament.");
+                Toast.Warning(result.Error ?? "Unable to register for this tournament.");
 
                 return;
             }
 
-            var registration =
-                result.Value;
+            var registration = result.Value;
 
             if (registration.PaymentRequired)
             {
-                Toast.Success(
-                    $"Registration started. {FormatMoney(registration.AmountDue, registration.Currency)} payment is required.");
+                Toast.Success($"Registration started. {FormatMoney(registration.AmountDue, registration.Currency)} payment is required.");
 
                 /*
                  * Payment initiation comes next.
@@ -354,6 +343,11 @@ else
                 Toast.Success(
                     result.Message ??
                     "Tournament registration successful.");
+
+                Navigation.NavigateTo(
+                    $"/dashboard/my-tournaments/{registration.TournamentId}");
+
+                return;
             }
 
             await LoadTournamentsAsync();
@@ -362,8 +356,7 @@ else
         {
             Console.WriteLine(ex);
 
-            Toast.Error(
-                "Something went wrong while registering.");
+            Toast.Error("Something went wrong while registering.");
         }
         finally
         {
@@ -423,10 +416,15 @@ else
     // ELIGIBILITY DISPLAY
     // =====================================================
 
-    private static bool CanRegister(
-        UserTournamentDto tournament)
+    private static bool CanRegister(UserTournamentDto tournament)
     {
         var now = DateTime.UtcNow;
+
+        if (tournament.EntryFee > 0) // subject to removal after payment gateway implementation
+            return false;
+
+        if (tournament.Status != TournamentStatus.RegistrationOpen) 
+            return false;
 
         if (tournament.HasRegistration)
             return false;
@@ -437,21 +435,33 @@ else
         if (tournament.StartsAt <= now)
             return false;
 
-        if (tournament.RegistrationOpenDate.HasValue &&
-            now < tournament.RegistrationOpenDate.Value)
+        if (tournament.RegistrationOpenDate.HasValue && now < tournament.RegistrationOpenDate.Value)
             return false;
 
-        if (tournament.RegistrationDeadline.HasValue &&
-            now > tournament.RegistrationDeadline.Value)
+        if (tournament.RegistrationDeadline.HasValue && now > tournament.RegistrationDeadline.Value)
             return false;
 
         return true;
     }
 
 
-    private static string GetUnavailableText(
-        UserTournamentDto tournament)
+    private static string GetUnavailableText(UserTournamentDto tournament)
     {
+        if (tournament.Status == TournamentStatus.Draft)
+            return "Not published";
+
+        if (tournament.Status == TournamentStatus.Cancelled)
+            return "Tournament cancelled";
+
+        if (tournament.Status == TournamentStatus.Completed)
+            return "Tournament completed";
+
+        if (tournament.Status == TournamentStatus.Live)
+            return "Tournament in progress";
+
+        if (tournament.Status != TournamentStatus.RegistrationOpen)
+            return "Registration closed";
+
         var now = DateTime.UtcNow;
 
         if (tournament.IsFull)
@@ -468,9 +478,11 @@ else
             now > tournament.RegistrationDeadline.Value)
             return "Registration closed";
 
+        if (tournament.EntryFee > 0)
+            return "Paid registration coming soon";
+
         return "Unavailable";
     }
-
 
     // =====================================================
     // DISPLAY
@@ -491,22 +503,22 @@ else
     }
 
 
-    private static string GetTournamentStatusClass(
-        UserTournamentDto tournament)
+    private static string GetTournamentStatusClass(UserTournamentDto tournament)
     {
-        if (!CanRegister(tournament) &&
-            !tournament.HasRegistration)
+        return tournament.Status switch
         {
-            return "portal-status";
-        }
+            TournamentStatus.RegistrationOpen when CanRegister(tournament) => "portal-status open",
 
-        return "portal-status open";
+            TournamentStatus.Live => "portal-status open",
+
+            TournamentStatus.Cancelled => "portal-status danger",
+
+            _ => "portal-status"
+        };
     }
 
 
-    private static string FormatMoney(
-        decimal amount,
-        string currency)
+    private static string FormatMoney(decimal amount, string currency)
     {
         return currency.ToUpperInvariant() switch
         {
@@ -519,11 +531,9 @@ else
     }
 
 
-    private static string GetCoverStyle(
-        UserTournamentDto tournament)
+    private static string GetCoverStyle(UserTournamentDto tournament)
     {
-        if (string.IsNullOrWhiteSpace(
-                tournament.ImageUrl))
+        if (string.IsNullOrWhiteSpace(tournament.ImageUrl))
         {
             return string.Empty;
         }
