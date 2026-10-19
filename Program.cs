@@ -1,14 +1,15 @@
+using AlphaMode.Application;
+using AlphaMode.BackgroundServices;
+using AlphaMode.Components;
 using AlphaMode.Components.Account;
-using AlphaMode.Services;
 using AlphaMode.Domain.Identity;
+using AlphaMode.Infrastructure;
 using AlphaMode.Infrastructure.Identity;
 using AlphaMode.Infrastructure.Persistence;
+using AlphaMode.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using AlphaMode.Application;
-using AlphaMode.Infrastructure;
-using AlphaMode.Components;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +30,9 @@ builder.Services.AddScoped<ToastService>();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+
+//background services
+builder.Services.AddHostedService<TournamentLifecycleBackgroundService>();
 
 
 
