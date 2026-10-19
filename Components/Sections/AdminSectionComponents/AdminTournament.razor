@@ -355,7 +355,9 @@
 
                     Tournament starts
 
-                    <InputDate @bind-Value="model.StartDate" />
+                <InputDate @bind-Value="model.StartDate"
+                           Type="InputDateType.DateTimeLocal"
+                           class="adm-input" />
 
                     <ValidationMessage For="@(() => model.StartDate)" />
 
@@ -366,7 +368,9 @@
 
                     Tournament ends
 
-                    <InputDate @bind-Value="model.EndDate" />
+                <InputDate @bind-Value="model.EndDate"
+                           Type="InputDateType.DateTimeLocal"
+                           class="adm-input" />
 
                     <ValidationMessage For="@(() => model.EndDate)" />
 
@@ -377,7 +381,9 @@
 
                     Registration opens
 
-                    <InputDate @bind-Value="model.RegistrationOpenDate" />
+                <InputDate @bind-Value="model.RegistrationOpenDate"
+                           Type="InputDateType.DateTimeLocal"
+                           class="adm-input" />
 
                 <ValidationMessage For="@(() => model.RegistrationOpenDate)" />
 
@@ -388,7 +394,9 @@
 
                     Registration closes
 
-                    <InputDate @bind-Value="model.RegistrationDeadline" />
+                <InputDate @bind-Value="model.RegistrationDeadline"
+                           Type="InputDateType.DateTimeLocal"
+                           class="adm-input" />
 
                 <ValidationMessage For="@(() => model.RegistrationDeadline)" />
 
@@ -632,10 +640,7 @@
     // FILTERING
     // =======================================================
 
-    private IEnumerable<TournamentDto> FilteredTournaments =>
-        tournaments.Where(tournament =>
-            (statusFilter == "All"
-             || tournament.Status.ToString() == statusFilter)
+    private IEnumerable<TournamentDto> FilteredTournaments => tournaments.Where(tournament => (statusFilter == "All" || tournament.Status.ToString() == statusFilter)
             &&
             (
                 string.IsNullOrWhiteSpace(query)
