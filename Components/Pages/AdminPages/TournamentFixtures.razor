@@ -354,32 +354,89 @@ else
 
             @if (CanEnterResult(selectedMatch))
             {
-                <div class="match-manager-section">
+                    <div class="match-manager-section">
 
-                    <h4>Match result</h4>
+                        <h4>Match result</h4>
 
-                    <div class="match-score-inputs">
+                        <div class="match-score-inputs">
 
-                        <div class="adm-field">
+                            <div class="adm-field">
+                                <label>@selectedMatch.PlayerOneName</label>
 
-                            <label>@selectedMatch.PlayerOneName</label>
+                                <InputNumber class="adm-input match-score-input"
+                                             @bind-Value="resultRequest.PlayerOneScore" />
 
-                                <InputNumber class="adm-input match-score-input" @bind-Value="resultRequest.PlayerOneScore" />
                                 <ValidationMessage For="@(() => resultRequest.PlayerOneScore)" />
-                        </div>
+                            </div>
 
-                        <div class="match-score-divider"> - </div>
+                            <div class="match-score-divider">-</div>
 
+                            <div class="adm-field">
+                                <label>@selectedMatch.PlayerTwoName</label>
 
-                        <div class="adm-field">
+                                <InputNumber class="adm-input match-score-input"
+                                             @bind-Value="resultRequest.PlayerTwoScore" />
 
-                            <label>@selectedMatch.PlayerTwoName</label>
-
-                                <InputNumber class="adm-input match-score-input" @bind-Value="resultRequest.PlayerTwoScore" />
                                 <ValidationMessage For="@(() => resultRequest.PlayerTwoScore)" />
+                            </div>
+
                         </div>
+
+                        @if (IsKnockoutMatch)
+                        {
+                            <div class="adm-field" style="margin-top: 16px;">
+
+                                <label class="adm-checkbox-label">
+                                    <InputCheckbox @bind-Value="resultRequest.WentToExtraTime" />
+                                    Match went to extra time
+                                </label>
+
+                            </div>
+
+                            @if (ShouldShowPenaltyInputs)
+                            {
+                                <div class="match-manager-section">
+
+                                    <h4>Penalty shootout</h4>
+
+                                    <p class="adm-muted">
+                                        The main score remains unchanged.
+                                        Enter the penalty shootout scores below.
+                                    </p>
+
+                                    <div class="match-score-inputs">
+
+                                        <div class="adm-field">
+
+                                            <label>@selectedMatch.PlayerOneName</label>
+
+                                            <InputNumber class="adm-input match-score-input"
+                                                         @bind-Value="resultRequest.PlayerOnePenaltyScore" />
+
+                                            <ValidationMessage For="@(() => resultRequest.PlayerOnePenaltyScore)" />
+
+                                        </div>
+
+                                        <div class="match-score-divider">-</div>
+
+                                        <div class="adm-field">
+
+                                            <label>@selectedMatch.PlayerTwoName</label>
+
+                                            <InputNumber class="adm-input match-score-input"
+                                                         @bind-Value="resultRequest.PlayerTwoPenaltyScore" />
+
+                                            <ValidationMessage For="@(() => resultRequest.PlayerTwoPenaltyScore)" />
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            }
+                        }
+
                     </div>
-                </div>
             }
 
 
@@ -901,6 +958,8 @@ else
     //submit result of match onvalid form input///////////////////////////////////////////////////////////////
     private async Task HandleMatchSubmitAsync()
     {
+        NormaliseResultRequest();
+
         if (selectedMatch is null || isMatchProcessing)
         {
             return;
@@ -1259,6 +1318,35 @@ else
         finally
         {
             isCorrectingResult = false;
+        }
+    }
+
+    private bool IsKnockoutMatch =>
+        selectedMatch?.TournamentFormat is
+        TournamentFormat.SingleElimination or
+        TournamentFormat.DoubleElimination;
+
+
+    private bool ShouldShowPenaltyInputs =>
+        IsKnockoutMatch &&
+        resultRequest.WentToExtraTime &&
+        resultRequest.PlayerOneScore.HasValue &&
+        resultRequest.PlayerTwoScore.HasValue &&
+        resultRequest.PlayerOneScore ==
+        resultRequest.PlayerTwoScore;
+
+
+    private void NormaliseResultRequest()
+    {
+        if (!IsKnockoutMatch)
+        {
+            resultRequest.WentToExtraTime = false;
+        }
+
+        if (!ShouldShowPenaltyInputs)
+        {
+            resultRequest.PlayerOnePenaltyScore = null;
+            resultRequest.PlayerTwoPenaltyScore = null;
         }
     }
 }
