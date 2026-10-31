@@ -5,6 +5,7 @@
 
 @using AlphaMode.Application.TournamentFixtures.DTOs
 @using AlphaMode.Application.TournamentFixtures.Interfaces
+@using AlphaMode.Application.TournamentMatches.Services
 @using AlphaMode.Components.Sections.AdminSectionComponents
 @using AlphaMode.Components.Shared.ConfirmDialog
 @using AlphaMode.Components.Shared.Toast
@@ -956,26 +957,35 @@ else
 
 
     //submit result of match onvalid form input///////////////////////////////////////////////////////////////
+
     private async Task HandleMatchSubmitAsync()
     {
-        NormaliseResultRequest();
-
         if (selectedMatch is null || isMatchProcessing)
         {
             return;
         }
 
-        if (!resultRequest.PlayerOneScore.HasValue || !resultRequest.PlayerTwoScore.HasValue)
+        NormaliseResultRequest();
+
+        if (!resultRequest.PlayerOneScore.HasValue ||
+            !resultRequest.PlayerTwoScore.HasValue)
         {
             Toast.Warning("Enter a score for both players.");
-
             return;
         }
 
-        if (selectedMatch.TournamentFormat == TournamentFormat.SingleElimination && resultRequest.PlayerOneScore.Value == resultRequest.PlayerTwoScore.Value)
-        {
-            Toast.Warning("A single-elimination match must have a winner.");
+        // Validate the main score, extra time and penalties.
+        var validation = MatchScoreValidator.Validate(
+            selectedMatch.TournamentFormat,
+            resultRequest.PlayerOneScore.Value,
+            resultRequest.PlayerTwoScore.Value,
+            resultRequest.WentToExtraTime,
+            resultRequest.PlayerOnePenaltyScore,
+            resultRequest.PlayerTwoPenaltyScore);
 
+        if (!validation.Succeeded)
+        {
+            Toast.Warning(validation.Error ?? "Invalid match result.");
             return;
         }
 
@@ -988,24 +998,26 @@ else
                 MatchId = selectedMatch.Id,
 
                 PlayerOneScore = resultRequest.PlayerOneScore.Value,
+                PlayerTwoScore = resultRequest.PlayerTwoScore.Value,
 
-                PlayerTwoScore = resultRequest.PlayerTwoScore.Value
+                WentToExtraTime = resultRequest.WentToExtraTime,
+                PlayerOnePenaltyScore = resultRequest.PlayerOnePenaltyScore,
+                PlayerTwoPenaltyScore = resultRequest.PlayerTwoPenaltyScore
             };
 
             var result = await MatchService.SubmitResultAsync(request);
 
             if (!result.Succeeded)
             {
-                Toast.Error(result.Error ?? "Match result could not be submitted.");
-
+                Toast.Error(
+                    result.Error ?? "Match result could not be submitted.");
                 return;
             }
 
-            Toast.Success(result.Message ?? "Match completed successfully.");
+            Toast.Success(
+                result.Message ?? "Match completed successfully.");
 
-            // Reload selected match from database.
             await RefreshSelectedMatchAsync();
-
             await LoadAsync();
 
             CloseManageMatchAfterSuccess();
@@ -1014,13 +1026,16 @@ else
         {
             Console.WriteLine(ex);
 
-            Toast.Error("Something went wrong while submitting the result.");
+            Toast.Error(
+                "Something went wrong while submitting the result.");
         }
         finally
         {
             isMatchProcessing = false;
         }
     }
+
+
 
     private void HandleInvalidMatchSubmitAsync()
     {
