@@ -3,8 +3,7 @@
 
 <div class="se-bracket-wrapper">
 
-    @if (Fixtures is null ||
-        !Fixtures.FixturesGenerated || Fixtures.Rounds.Count == 0)
+    @if (Fixtures is null ||!Fixtures.FixturesGenerated || Fixtures.Rounds.Count == 0)
     {
         <div class="competition-feature-empty">
             <div class="competition-feature-icon">🏆</div>
@@ -128,7 +127,30 @@
                                 </strong>
 
                             </div>
-                                                        }
+                                }
+                                @* // display penalty shoot out scores *@
+                                @if (match.HasScore && match.WentToExtraTime) 
+                                {
+                                    <div class="competition-fixture-result-detail">
+
+                                        @if (match.PlayerOnePenaltyScore.HasValue && match.PlayerTwoPenaltyScore.HasValue)
+                                        {
+                                            <span>
+                                                @if (match.WinnerId.HasValue)
+                                                {
+                                                    <text>@GetWinnerName(match) wins </text>
+                                                }
+                                                @match.PlayerOnePenaltyScore–@match.PlayerTwoPenaltyScore
+                                                on penalties
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span>After extra time (AET)</span>
+                                        }
+
+                                    </div>
+                                }
 
 
                             <footer class="se-match-footer">
@@ -329,5 +351,19 @@
         return $"{match.RoundNumber}-" +
                $"{match.PlayerOneId}-" +
                $"{match.PlayerTwoId}";
+    }
+
+    private static string GetWinnerName(FixtureMatchDto match)
+    {
+        if (!match.WinnerId.HasValue)
+            return string.Empty;
+
+        if (match.WinnerId == match.PlayerOneId)
+            return match.PlayerOneName;
+
+        if (match.WinnerId == match.PlayerTwoId)
+            return match.PlayerTwoName;
+
+        return string.Empty;
     }
 }

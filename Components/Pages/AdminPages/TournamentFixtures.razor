@@ -5,6 +5,7 @@
 
 @using AlphaMode.Application.TournamentFixtures.DTOs
 @using AlphaMode.Application.TournamentFixtures.Interfaces
+@using AlphaMode.Application.TournamentMatches.Helpers
 @using AlphaMode.Application.TournamentMatches.Services
 @using AlphaMode.Components.Sections.AdminSectionComponents
 @using AlphaMode.Components.Shared.ConfirmDialog
@@ -448,9 +449,12 @@ else
                     <span>Final result</span>
 
                     <strong>
-                        @selectedMatch.PlayerOneScore
-                        -
-                        @selectedMatch.PlayerTwoScore
+                        @MatchScoreFormatter.Format(
+                        selectedMatch.PlayerOneScore,
+                        selectedMatch.PlayerTwoScore,
+                        selectedMatch.WentToExtraTime,
+                        selectedMatch.PlayerOnePenaltyScore,
+                        selectedMatch.PlayerTwoPenaltyScore)
                     </strong>
 
                     <p>

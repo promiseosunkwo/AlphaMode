@@ -705,6 +705,18 @@
 }
 
 
+/*Penalty area css*/
+.competition-fixture-result-detail {
+    margin-top: 0.65rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(128, 128, 128, 0.18);
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted, #8993a4);
+}
+
+
 
 /* =========================================
    MY TOURNAMENT DETAILS - WITHDRAW ACTION

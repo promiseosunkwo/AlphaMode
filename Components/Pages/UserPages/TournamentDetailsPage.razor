@@ -769,7 +769,30 @@ else
 
                             </div>
 
+                         </div>
+
+                            @if (match.HasScore && match.WentToExtraTime)
+                            {
+                                <div class="competition-fixture-result-detail">
+
+                                    @if (match.PlayerOnePenaltyScore.HasValue && match.PlayerTwoPenaltyScore.HasValue)
+                                    {
+                                        <span>
+                                            @if (match.WinnerId.HasValue)
+                                            {
+                                                <text>@GetWinnerName(match) wins </text>
+                                            }
+                                            @match.PlayerOnePenaltyScore–@match.PlayerTwoPenaltyScore
+                                            on penalties
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>After extra time (AET)</span>
+                                    }
+
                                 </div>
+                            }
 
 
                         <div class="competition-fixture-footer">
@@ -796,8 +819,8 @@ else
                             }
 
                         </div>
-
-                            </article>
+              
+            </article>
                             }
 
                             </div>
@@ -1031,7 +1054,6 @@ else
 
     private string? fixturesError;
 
-
     // =====================================================
     // LIFECYCLE
     // =====================================================
@@ -1238,16 +1260,13 @@ else
 
         try
         {
-            var result =
-                await FixtureService.GetAsync(TournamentId);
+            var result = await FixtureService.GetAsync(TournamentId);
 
             if (!result.Succeeded || result.Value is null)
             {
                 fixtures = null;
 
-                fixturesError =
-                    result.Error ??
-                    "Tournament fixtures could not be loaded.";
+                fixturesError = result.Error ?? "Tournament fixtures could not be loaded.";
 
                 return;
             }
@@ -1261,8 +1280,7 @@ else
 
             fixtures = null;
 
-            fixturesError =
-                "Something went wrong while loading the fixtures.";
+            fixturesError = "Something went wrong while loading the fixtures.";
         }
         finally
         {
@@ -1650,8 +1668,7 @@ else
         };
     }
 
-    private static string GetMatchLabel(
-    FixtureMatchDto match)
+    private static string GetMatchLabel(FixtureMatchDto match)
     {
         if (match.MatchWeek.HasValue)
         {
@@ -1661,8 +1678,7 @@ else
         return $"Round {match.RoundNumber}";
     }
 
-    private static string GetWinnerName(
-    FixtureMatchDto match)
+    private static string GetWinnerName(FixtureMatchDto match)
     {
         if (!match.WinnerId.HasValue)
             return string.Empty;
