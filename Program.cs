@@ -9,7 +9,6 @@ using AlphaMode.Infrastructure.Persistence;
 using AlphaMode.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 
 var builder = WebApplication.CreateBuilder(args);

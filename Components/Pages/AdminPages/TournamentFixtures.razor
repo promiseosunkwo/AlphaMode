@@ -335,8 +335,8 @@ else
                 </div>
             }
 
-            @* ////////////////////////correct match score///////////////////////////// *@
-                @if (selectedMatch.Status == MatchStatus.Completed &&
+                @* correct match score button *@
+                @if (selectedMatch.Status == MatchStatus.Completed && selectedMatch.ResultType == MatchResultType.Played &&
                             selectedMatch.HasScore &&
                             selectedMatch.Id != Guid.Empty)
                 {
@@ -354,7 +354,137 @@ else
                     </div>
                 }
 
-            @if (CanEnterResult(selectedMatch))
+
+                @* Forfit match section *@
+
+                @if (CanForfeitMatch(selectedMatch))
+                {
+                    <div class="match-forfeit-section">
+
+                        <div class="match-forfeit-header">
+                            <div class="match-forfeit-header-icon">
+                                <i class="fa-solid fa-flag"></i>
+                            </div>
+
+                            <div>
+                                <h4>Match forfeiture</h4>
+                                <p>Record a walkover or player no-show.</p>
+                            </div>
+                        </div>
+
+                        @if (!isForfeitFormOpen)
+                        {
+                            <button type="button"
+                                    class="match-forfeit-open-btn"
+                                    disabled="@(isMatchProcessing || isForfeitProcessing)"
+                                    @onclick="() => isForfeitFormOpen = true">
+                                Declare forfeiture
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="match-forfeit-form">
+
+                                <div class="match-forfeit-warning">
+                                    <i class="fa-solid fa-circle-exclamation"></i>
+                                    <span>
+                                        This will complete the match without recording
+                                        a football score. Confirm the details carefully.
+                                    </span>
+                                </div>
+
+                                <div class="match-forfeit-field">
+                                    <label>Forfeiture type</label>
+
+                                    <select class="match-forfeit-input"
+                                            @bind="forfeitResultType">
+                                        <option value="@MatchResultType.Walkover">
+                                            Walkover — one player forfeits
+                                        </option>
+
+                                        @if (selectedMatch.TournamentFormat == TournamentFormat.League)
+                                        {
+                                            <option value="@MatchResultType.DoubleForfeit">
+                                                Double forfeiture — both players
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+
+                                @if (forfeitResultType == MatchResultType.Walkover)
+                                {
+                                    <div class="match-forfeit-field">
+                                        <label>Player forfeiting</label>
+
+                                        <select class="match-forfeit-input"
+                                                @bind="forfeitingPlayerId">
+                                            <option value="">Select player</option>
+
+                                            <option value="@selectedMatch.PlayerOneId">
+                                                @selectedMatch.PlayerOneName
+                                            </option>
+
+                                            <option value="@selectedMatch.PlayerTwoId">
+                                                @selectedMatch.PlayerTwoName
+                                            </option>
+                                        </select>
+
+                                        <small>
+                                            The other player will automatically be
+                                            declared the winner.
+                                        </small>
+                                    </div>
+                                }
+
+                                <div class="match-forfeit-field">
+                                    <label>Reason for forfeiture</label>
+
+                                    <select class="match-forfeit-input"
+                                            @bind="forfeitReason">
+                                        <option value="@MatchForfeitReason.NoShow">No show</option>
+                                        <option value="@MatchForfeitReason.LateArrival">Late arrival</option>
+                                        <option value="@MatchForfeitReason.AbandonedMatch">Abandoned match</option>
+                                        <option value="@MatchForfeitReason.RefusedToPlay">Refused to play</option>
+                                        <option value="@MatchForfeitReason.Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div class="match-forfeit-field">
+                                    <label>Additional explanation</label>
+
+                                    <textarea class="match-forfeit-input match-forfeit-textarea"
+                                              rows="4"
+                                              maxlength="1000"
+                                              placeholder="Describe what happened and why this decision was made..."
+                                              @bind="forfeitNotes"></textarea>
+
+                                    <small>Required for the administrative audit record.</small>
+                                </div>
+
+                                <div class="match-forfeit-actions">
+                                    <button type="button"
+                                            class="match-forfeit-cancel"
+                                            disabled="@(isMatchProcessing || isForfeitProcessing)"
+                                            @onclick="CancelForfeiture">
+                                        Cancel
+                                    </button>
+
+                                    <button type="button"
+                                            class="match-forfeit-confirm"
+                                            disabled="@(isMatchProcessing || isForfeitProcessing)"
+                                            @onclick="HandleForfeitMatchAsync">
+                                        @(isForfeitProcessing ? "Processing..." : "Confirm forfeiture")
+                                    </button>
+                                </div>
+
+                            </div>
+                        }
+                    </div>
+                }
+
+
+                @* Normal match result entry form *@
+                @if (CanEnterResult(selectedMatch) && !isForfeitFormOpen)
             {
                     <div class="match-manager-section">
 
@@ -441,28 +571,72 @@ else
                     </div>
             }
 
+                @* DIsplay winner or fortiture depending *@
+                @if (selectedMatch.Status == MatchStatus.Completed)
+                {
+                    <div class="match-completed-result">
 
-            @if (selectedMatch.Status == MatchStatus.Completed)
-            {
-                <div class="match-completed-result">
+                        <span>Final result</span>
 
-                    <span>Final result</span>
+                        @if (selectedMatch.IsWalkover)
+                        {
+                            <strong>Walkover</strong>
 
-                    <strong>
-                        @MatchScoreFormatter.Format(
-                        selectedMatch.PlayerOneScore,
-                        selectedMatch.PlayerTwoScore,
-                        selectedMatch.WentToExtraTime,
-                        selectedMatch.PlayerOnePenaltyScore,
-                        selectedMatch.PlayerTwoPenaltyScore)
-                    </strong>
+                            <p>
+                                @GetWinnerText(selectedMatch)
+                            </p>
 
-                    <p>
-                        @GetWinnerText(selectedMatch)
-                    </p>
+                            <p class="adm-muted">
+                                Reason: @selectedMatch.ForfeitReason
+                            </p>
 
-                </div>
-            }
+                            @if (!string.IsNullOrWhiteSpace(selectedMatch.ForfeitNotes))
+                            {
+                                <p class="adm-muted">
+                                    @selectedMatch.ForfeitNotes
+                                </p>
+                            }
+                        }
+                        else if (selectedMatch.IsDoubleForfeit)
+                        {
+                            <strong>Double forfeiture</strong>
+
+                            <p>Neither player was awarded the win.</p>
+
+                            <p class="adm-muted">
+                                Reason: @selectedMatch.ForfeitReason
+                            </p>
+
+                            @if (!string.IsNullOrWhiteSpace(selectedMatch.ForfeitNotes))
+                            {
+                                <p class="adm-muted">
+                                    @selectedMatch.ForfeitNotes
+                                </p>
+                            }
+                        }
+                        else if (selectedMatch.HasScore)
+                        {
+                            <strong>
+                                @MatchScoreFormatter.Format(
+                                selectedMatch.PlayerOneScore,
+                                        selectedMatch.PlayerTwoScore,
+                                        selectedMatch.WentToExtraTime,
+                                        selectedMatch.PlayerOnePenaltyScore,
+                                        selectedMatch.PlayerTwoPenaltyScore)
+                </strong>
+
+                <p>
+                    @GetWinnerText(selectedMatch)
+                </p>
+                                }
+                        else
+                        {
+                            <strong>Completed</strong>
+                            <p>No score recorded.</p>
+                        }
+
+                    </div>
+                }
 
         </div>
     }
@@ -484,7 +658,7 @@ else
         }
 
 
-        @if (selectedMatch is not null && CanEnterResult(selectedMatch))
+        @if (selectedMatch is not null && CanEnterResult(selectedMatch) && !isForfeitFormOpen)
         {
             <button type="submit" class="adm-button primary" disabled="@isMatchProcessing">
 
@@ -561,11 +735,9 @@ else
                         </strong>
                     </div>
 
-                    <InputNumber @bind-Value="correctionModel.PlayerTwoScore"
-                                 class="adm-input adm-score-input" />
+                    <InputNumber @bind-Value="correctionModel.PlayerTwoScore" class="adm-input adm-score-input" />
 
-                    <ValidationMessage For="@(() =>
-                        correctionModel.PlayerTwoScore)" />
+                    <ValidationMessage For="@(() => correctionModel.PlayerTwoScore)" />
 
                 </div>
 
@@ -584,11 +756,9 @@ else
                                rows="4"
                                placeholder="Explain why this result is being corrected..." />
 
-                <ValidationMessage For="@(() =>
-                    correctionModel.Reason)" />
+                <ValidationMessage For="@(() => correctionModel.Reason)" />
 
             </div>
-
         </div>
     }
     </ChildContent>
@@ -673,6 +843,21 @@ else
 
     private EditContext? correctionEditContext;
     //end Update match score
+
+
+    //match forfieture area
+    private bool isForfeitFormOpen;
+
+    private MatchResultType forfeitResultType = MatchResultType.Walkover;
+
+    private Guid? forfeitingPlayerId;
+
+    private MatchForfeitReason forfeitReason = MatchForfeitReason.NoShow;
+
+    private string forfeitNotes = string.Empty;
+
+    private bool isForfeitProcessing;
+    //end match forfieture area
 
     protected override async Task OnParametersSetAsync()
     {
@@ -960,14 +1145,96 @@ else
 
 
 
+
+    //Forfit match handler
+    private async Task HandleForfeitMatchAsync()
+    {
+        if (selectedMatch is null || isMatchProcessing || isForfeitProcessing || !CanForfeitMatch(selectedMatch))
+        {
+            return;
+        }
+
+        if (forfeitResultType == MatchResultType.Walkover &&
+            !forfeitingPlayerId.HasValue)
+        {
+            Toast.Warning("Select the player who forfeited.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(forfeitNotes))
+        {
+            Toast.Warning("Provide a reason for the forfeiture.");
+            return;
+        }
+
+        isForfeitProcessing = true;
+
+        try
+        {
+            var request = new ForfeitMatchRequest
+            {
+                MatchId = selectedMatch.Id,
+                ResultType = forfeitResultType,
+                Reason = forfeitReason,
+
+                ForfeitingPlayerId =
+                    forfeitResultType == MatchResultType.Walkover
+                        ? forfeitingPlayerId
+                        : null,
+
+                Notes = forfeitNotes.Trim()
+            };
+
+            var result = await MatchService.ForfeitMatchAsync(request);
+
+            if (!result.Succeeded)
+            {
+                Toast.Error(
+                    result.Error ?? "Match forfeiture could not be recorded.");
+                return;
+            }
+
+            Toast.Success(
+                result.Message ?? "Match forfeiture recorded successfully.");
+
+            await RefreshSelectedMatchAsync();
+            await LoadAsync();
+
+            CancelForfeiture();
+            CloseManageMatchAfterSuccess();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            Toast.Error(
+                "Something went wrong while recording the forfeiture.");
+        }
+        finally
+        {
+            isForfeitProcessing = false;
+        }
+    }
+
+
+
+    private void CancelForfeiture()
+    {
+        isForfeitFormOpen = false;
+        forfeitResultType = MatchResultType.Walkover;
+        forfeitingPlayerId = null;
+        forfeitReason = MatchForfeitReason.NoShow;
+        forfeitNotes = string.Empty;
+    }
+
+
+
+
     //submit result of match onvalid form input///////////////////////////////////////////////////////////////
 
     private async Task HandleMatchSubmitAsync()
     {
-        if (selectedMatch is null || isMatchProcessing)
-        {
-            return;
-        }
+        if (selectedMatch is null || isMatchProcessing || isForfeitProcessing || isForfeitFormOpen || !CanEnterResult(selectedMatch))
 
         NormaliseResultRequest();
 
@@ -1174,8 +1441,13 @@ else
         resultRequest = new SubmitMatchResultRequest
         {
             MatchId = selectedMatch.Id,
+
             PlayerOneScore = selectedMatch.PlayerOneScore,
-            PlayerTwoScore = selectedMatch.PlayerTwoScore
+            PlayerTwoScore = selectedMatch.PlayerTwoScore,
+
+            WentToExtraTime = selectedMatch.WentToExtraTime,
+            PlayerOnePenaltyScore = selectedMatch.PlayerOnePenaltyScore,
+            PlayerTwoPenaltyScore = selectedMatch.PlayerTwoPenaltyScore
         };
     }
 
@@ -1231,6 +1503,21 @@ else
             &&
             match.PlayerTwoId.HasValue;
     }
+
+
+    private static bool CanForfeitMatch(MatchDetailsDto match)
+    {
+        return
+            (match.Status == MatchStatus.Pending ||
+             match.Status == MatchStatus.Scheduled ||
+             match.Status == MatchStatus.Live)
+            &&
+            match.PlayerOneId.HasValue
+            &&
+            match.PlayerTwoId.HasValue;
+    }
+
+
 
     private static string GetWinnerText(MatchDetailsDto match)
     {
@@ -1340,10 +1627,13 @@ else
         }
     }
 
+
+
     private bool IsKnockoutMatch =>
         selectedMatch?.TournamentFormat is
         TournamentFormat.SingleElimination or
         TournamentFormat.DoubleElimination;
+
 
 
     private bool ShouldShowPenaltyInputs =>

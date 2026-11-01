@@ -414,6 +414,261 @@
 }
 
 
+
+/* ==========================================
+   ALPHAMODE — MATCH FORFEITURE FORM
+   ========================================== */
+
+.match-forfeit-section {
+    margin-top: 24px;
+    padding: 22px;
+    border: 1px solid #303746;
+    border-radius: 16px;
+    background: #171c27;
+    color: #f3f5fa;
+}
+
+/* Header */
+
+.match-forfeit-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.match-forfeit-header-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+    font-size: 17px;
+}
+
+.match-forfeit-header h4 {
+    margin: 0 0 5px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.match-forfeit-header p {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Open form button */
+
+.match-forfeit-open-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 18px;
+    border: 1px solid #475569;
+    border-radius: 10px;
+    background: #242c3a;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+    .match-forfeit-open-btn:hover:not(:disabled) {
+        background: #303b4d;
+        border-color: #64748b;
+    }
+
+/* Form layout */
+
+.match-forfeit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 19px;
+    animation: forfeitFadeIn 0.2s ease;
+}
+
+/* Warning */
+
+.match-forfeit-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px 15px;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.07);
+    color: #fcd34d;
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+    .match-forfeit-warning i {
+        margin-top: 3px;
+        flex-shrink: 0;
+    }
+
+/* Fields */
+
+.match-forfeit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+    .match-forfeit-field label {
+        font-size: 12px;
+        font-weight: 650;
+        color: #cbd5e1;
+    }
+
+.match-forfeit-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 11px 13px;
+    border: 1px solid #384354;
+    border-radius: 10px;
+    background: #101722;
+    color: #f8fafc;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .match-forfeit-input:focus {
+        border-color: #818cf8;
+        box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.12);
+    }
+
+    .match-forfeit-input::placeholder {
+        color: #64748b;
+    }
+
+    .match-forfeit-input option {
+        background: #171c27;
+        color: #f8fafc;
+    }
+
+.match-forfeit-textarea {
+    min-height: 105px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.match-forfeit-field small {
+    color: #8794a8;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* Action buttons */
+
+.match-forfeit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 18px;
+    border-top: 1px solid #303746;
+}
+
+.match-forfeit-cancel,
+.match-forfeit-confirm {
+    min-height: 42px;
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.match-forfeit-cancel {
+    background: transparent;
+    border: 1px solid #475569;
+    color: #cbd5e1;
+}
+
+    .match-forfeit-cancel:hover:not(:disabled) {
+        background: #293241;
+    }
+
+.match-forfeit-confirm {
+    background: #dc2626;
+    border: 1px solid #dc2626;
+    color: #fff;
+}
+
+    .match-forfeit-confirm:hover:not(:disabled) {
+        background: #b91c1c;
+        border-color: #b91c1c;
+    }
+
+    .match-forfeit-confirm:active:not(:disabled) {
+        transform: scale(0.98);
+    }
+
+.match-forfeit-section button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Animation */
+
+@keyframes forfeitFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+
+@media (max-width: 600px) {
+    .match-forfeit-section {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .match-forfeit-actions {
+        flex-direction: column-reverse;
+    }
+
+    .match-forfeit-cancel,
+    .match-forfeit-confirm {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .match-forfeit-form {
+        animation: none;
+    }
+
+    .match-forfeit-section button,
+    .match-forfeit-input {
+        transition: none;
+    }
+}
+
+
+
 @media (max-width: 650px) {
 
     .adm-correction-matchup {
