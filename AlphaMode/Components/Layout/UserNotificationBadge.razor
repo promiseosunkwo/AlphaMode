@@ -1,8 +1,9 @@
 @rendermode InteractiveServer
 @using AlphaMode.Application.Notifications.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
-@inject INotificationService NotificationService
+@using Microsoft.Extensions.DependencyInjection
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IServiceScopeFactory ScopeFactory
 
 @if (Sidebar)
 {
@@ -20,11 +21,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // The layout previously displayed a permanent "3"; this badge reflects the signed-in user's real unread inbox.
+        // Two badge instances render concurrently in the layout. A short-lived scope gives each
+        // query its own DbContext instead of sharing the circuit-scoped context across threads.
         var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrWhiteSpace(userId)) return;
-        var result = await NotificationService.GetForUserAsync(userId);
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+        var result = await notificationService.GetForUserAsync(userId);
         if (result.Succeeded) unreadCount = result.Value?.Count(x => !x.IsRead) ?? 0;
     }
 }
