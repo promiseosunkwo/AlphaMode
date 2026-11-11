@@ -22,7 +22,7 @@ else
     <section class="fixture-summary"><div><span class="game-tile">@Initials(SelectedTournament.GameName)</span><div><small>Current tournament</small><h2>@SelectedTournament.Name</h2><p>@SelectedTournament.Format · starts @SelectedTournament.StartDate.ToLocalTime().ToString("dd MMM yyyy")</p></div></div><span class="portal-status live">@SelectedTournament.Status</span></section>
     <section class="portal-panel"><div class="portal-section-heading"><div><span>Bracket schedule</span><h2>Your fixture path</h2></div><small>Times shown in local time</small></div>
         @if (!SelectedMatches.Any()) { <EmptyState Title="Fixtures not available" Message="The administrator has not generated your fixtures for this tournament yet." /> }
-        else { <div class="fixture-timeline">@foreach (var fixture in SelectedMatches) { <article class="fixture-row is-player"><div class="fixture-round">R@fixture.RoundNumber</div><div class="fixture-players"><strong>@fixture.PlayerOneName</strong><span>@Score(fixture)</span><strong>@fixture.PlayerTwoName</strong></div><div class="fixture-time"><strong>@(fixture.ScheduledAt?.ToLocalTime().ToString("ddd dd MMM") ?? "Date TBC")</strong><small>@(fixture.ScheduledAt?.ToLocalTime().ToString("HH:mm") ?? "Time TBC") · @fixture.GameName</small></div><span class="portal-status @(fixture.Status == AlphaMode.Domain.Enums.MatchStatus.Completed ? "pending" : "open")">@fixture.Status</span></article> }</div> }
+        else { <div class="fixture-timeline">@foreach (var fixture in SelectedMatches) { <article class="fixture-row is-player"><div class="fixture-round">R@fixture.RoundNumber</div><div class="fixture-players"><strong>@fixture.PlayerOneName</strong><span>@Score(fixture)</span><strong>@fixture.PlayerTwoName</strong></div><div class="fixture-time"><strong>@(fixture.ScheduledAt?.ToLocalTime().ToString("ddd dd MMM") ?? "Date TBC")</strong><small>@(fixture.ScheduledAt?.ToLocalTime().ToString("HH:mm") ?? "Time TBC") · @fixture.GameName</small></div><span class="portal-status @(fixture.Status == MatchStatus.Completed ? "pending" : "open")">@fixture.Status</span></article> }</div> }
     </section>
     <aside class="portal-callout"><span>i</span><div><strong>Match check-in</strong><p>Check in before your scheduled match. Missing check-in may result in a forfeit.</p></div><a href="/dashboard/matches">Open matches</a></aside>
 }
@@ -30,7 +30,13 @@ else
 @code {
     private UserFixturesDto? data; private Guid selectedTournamentId; private bool isLoading; private string? errorMessage;
     private UserTournamentSummaryDto? SelectedTournament => data?.Tournaments.FirstOrDefault(x => x.TournamentId == selectedTournamentId);
-    private IEnumerable<UserMatchDto> SelectedMatches => data?.Matches.Where(x => x.TournamentId == selectedTournamentId).OrderBy(x => x.RoundNumber).ThenBy(x => x.ScheduledAt) ?? [];
+    
+    private IEnumerable<UserMatchDto> SelectedMatches =>
+    (data?.Matches ?? Enumerable.Empty<UserMatchDto>())
+        .Where(x => x.TournamentId == selectedTournamentId)
+        .OrderBy(x => x.RoundNumber)
+        .ThenBy(x => x.ScheduledAt);
+
     protected override Task OnInitializedAsync() => LoadAsync();
     private async Task LoadAsync() { isLoading = true; errorMessage = null; try { var state = await AuthenticationStateProvider.GetAuthenticationStateAsync(); var userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value; if (string.IsNullOrWhiteSpace(userId)) { errorMessage = "Your identity could not be loaded."; return; } var result = await DashboardService.GetUserFixturesAsync(userId); if (!result.Succeeded) { errorMessage = result.Error; return; } data = result.Value; selectedTournamentId = data?.Tournaments.FirstOrDefault()?.TournamentId ?? Guid.Empty; } finally { isLoading = false; } }
     private void SelectTournament(ChangeEventArgs args) { if (Guid.TryParse(args.Value?.ToString(), out var id)) selectedTournamentId = id; }
