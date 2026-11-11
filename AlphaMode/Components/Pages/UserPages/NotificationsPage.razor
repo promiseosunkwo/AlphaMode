@@ -9,8 +9,28 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Notifications | AlphaMode</PageTitle>
-<PortalPageHeader Eyebrow="Inbox" Title="Notifications" Description="Match updates, competition alerts, and account activity."><Actions><button class="portal-button subtle" disabled="@(isSaving || UnreadCount == 0)" @onclick="MarkAllReadAsync">@(isSaving ? "Updating…" : "Mark all as read")</button></Actions></PortalPageHeader>
-<div class="portal-filter-row"><button class="@(filter == "All" ? "active" : null)" @onclick="() => filter = "All"">All <span>@notifications.Count</span></button><button class="@(filter == "Unread" ? "active" : null)" @onclick="() => filter = "Unread"">Unread <span>@UnreadCount</span></button></div>
+
+<PortalPageHeader Eyebrow="Inbox" Title="Notifications" Description="Match updates, competition alerts, and account activity.">
+    <Actions>
+        <button class="portal-button subtle" disabled="@(isSaving || UnreadCount == 0)" @onclick="MarkAllReadAsync">@(isSaving ? "Updating…" : "Mark all as read")</button>
+    </Actions>
+</PortalPageHeader>
+
+<div class="portal-filter-row">
+
+    <button class="@(filter == "All" ? "active" : "")"
+            @onclick='() => filter = "All"'>
+        All
+        <span>@notifications.Count</span>
+    </button>
+
+    <button class="@(filter == "Unread" ? "active" : "")"
+            @onclick='() => filter = "Unread"'>
+        Unread
+        <span>@UnreadCount</span>
+    </button>
+
+</div>
 
 @if (isLoading) { <ContentSkeleton Rows="6" /> }
 else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadAsync" /> }
