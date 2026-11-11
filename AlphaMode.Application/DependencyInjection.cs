@@ -4,6 +4,8 @@ using AlphaMode.Application.FriendlyMatches.Interfaces;
 using AlphaMode.Application.FriendlyMatches.Services;
 using AlphaMode.Application.FootballRankings.Interfaces;
 using AlphaMode.Application.FootballRankings.Services;
+using AlphaMode.Application.Dashboards.Interfaces;
+using AlphaMode.Application.Dashboards.Services;
 using AlphaMode.Application.Payments.Interfaces;
 using AlphaMode.Application.Payments.Services;
 using AlphaMode.Application.Players.Interfaces;
@@ -42,6 +44,8 @@ public static class DependencyInjection
         // Elo processing is isolated from match orchestration so eligibility, history and replay stay consistent.
         services.AddScoped<IFootballRatingService, FootballRatingService>();
         services.AddScoped<IRankingQueryService, RankingQueryService>();
+        // Dashboard pages share one read-only query service so their totals and match lists cannot drift apart.
+        services.AddScoped<IDashboardQueryService, DashboardQueryService>();
 
         services.AddScoped<IPrizePoolService, PrizePoolService>();
 

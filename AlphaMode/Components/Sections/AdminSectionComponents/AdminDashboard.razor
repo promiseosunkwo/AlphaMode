@@ -1,30 +1,30 @@
-<AdminPageHeader Title="Command centre" Description="Monitor platform activity and move quickly on the work that needs attention.">
-    <Actions><a class="adm-button secondary" href="/admin/reports">Export report</a><a class="adm-button primary" href="/admin/tournaments">Create tournament</a></Actions>
-</AdminPageHeader>
+@using AlphaMode.Application.Dashboards.DTOs
+@using AlphaMode.Application.Dashboards.Interfaces
+@inject IDashboardQueryService DashboardService
 
-<section class="adm-stats-grid" aria-label="Platform summary">
-    <AdminStatCard Label="Active players" Value="2,418" Detail="↑ 8.2% this month" Icon="♙" Tone="blue" />
-    <AdminStatCard Label="Live tournaments" Value="12" Detail="4 require attention" Icon="♜" Tone="purple" />
-    <AdminStatCard Label="Matches today" Value="48" Detail="7 currently live" Icon="⚔" Tone="green" />
-    <AdminStatCard Label="Open reports" Value="6" Detail="2 high priority" Icon="!" Tone="amber" />
-</section>
+<AdminPageHeader Title="Command centre" Description="Monitor current platform activity and move quickly on work that needs attention."><Actions><a class="adm-button secondary" href="/admin/reports">Reports</a><a class="adm-button primary" href="/admin/tournaments">Create tournament</a></Actions></AdminPageHeader>
 
-<div class="adm-dashboard-grid">
-    <section class="adm-panel adm-span-2">
-        <div class="adm-panel-header"><div><p class="adm-eyebrow">Live operations</p><h2>Matches in progress</h2></div><a href="/admin/matches">View schedule →</a></div>
-        <div class="adm-match-row"><span class="adm-live-dot"></span><div><strong>NovaStrike</strong><small>Valorant Masters · Semi-final</small></div><b>1 — 0</b><div class="right"><strong>PixelRaiders</strong><small>Map 2 · 18:42</small></div></div>
-        <div class="adm-match-row"><span class="adm-live-dot"></span><div><strong>KingPromise</strong><small>FIFA Elite Cup · Round 4</small></div><b>2 — 2</b><div class="right"><strong>GoalMachine</strong><small>Second half · 72'</small></div></div>
-        <div class="adm-match-row"><span class="adm-live-dot"></span><div><strong>ApexCore</strong><small>CODM League · Group A</small></div><b>3 — 1</b><div class="right"><strong>NightOwl</strong><small>Game 5 · Starting</small></div></div>
-    </section>
-    <aside class="adm-panel">
-        <div class="adm-panel-header"><div><p class="adm-eyebrow">Action queue</p><h2>Needs review</h2></div><span class="adm-count">9</span></div>
-        <a class="adm-queue-item" href="/admin/players"><span class="amber">3</span><div><strong>Player verifications</strong><small>Oldest: 2 hours ago</small></div></a>
-        <a class="adm-queue-item" href="/admin/reports"><span class="red">2</span><div><strong>Match disputes</strong><small>One is high priority</small></div></a>
-        <a class="adm-queue-item" href="/admin/tournaments"><span class="blue">4</span><div><strong>Draft tournaments</strong><small>Awaiting publication</small></div></a>
-    </aside>
-    <section class="adm-panel adm-span-2">
-        <div class="adm-panel-header"><div><p class="adm-eyebrow">Performance</p><h2>Registrations this week</h2></div><select class="adm-compact-select"><option>Last 7 days</option><option>Last 30 days</option></select></div>
-        <div class="adm-chart" aria-label="Registration trend"><div style="--h:42%"><span>Mon</span></div><div style="--h:58%"><span>Tue</span></div><div style="--h:48%"><span>Wed</span></div><div style="--h:75%"><span>Thu</span></div><div style="--h:64%"><span>Fri</span></div><div style="--h:91%"><span>Sat</span></div><div style="--h:78%"><span>Sun</span></div></div>
-    </section>
-    <aside class="adm-panel"><div class="adm-panel-header"><div><p class="adm-eyebrow">Quick actions</p><h2>Create & manage</h2></div></div><div class="adm-quick-grid"><a href="/admin/tournaments">＋<span>New tournament</span></a><a href="/admin/matches">＋<span>Schedule match</span></a><a href="/admin/notifications">✦<span>Send update</span></a><a href="/admin/players">♙<span>Add player</span></a></div></aside>
-</div>
+@if (isLoading) { <ContentSkeleton Rows="8" /> }
+else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadAsync" /> }
+else if (dashboard is not null)
+{
+    @* These cards previously displayed fixed demo numbers; every value now reflects persisted platform records. *@
+    <section class="adm-stats-grid" aria-label="Platform summary"><AdminStatCard Label="Active players" Value="@dashboard.ActivePlayers.ToString("N0")" Detail="Enabled player profiles" Icon="♙" Tone="blue" /><AdminStatCard Label="Live tournaments" Value="@dashboard.ActiveTournaments.ToString()" Detail="Currently in progress" Icon="♜" Tone="purple" /><AdminStatCard Label="Matches today" Value="@dashboard.MatchesToday.ToString()" Detail="@dashboard.LiveMatches currently live" Icon="⚔" Tone="green" /><AdminStatCard Label="Draft tournaments" Value="@dashboard.DraftTournaments.ToString()" Detail="Awaiting publication" Icon="!" Tone="amber" /></section>
+    <div class="adm-dashboard-grid">
+        <section class="adm-panel adm-span-2"><div class="adm-panel-header"><div><p class="adm-eyebrow">Live operations</p><h2>Matches in progress</h2></div><a href="/admin/matches">View schedule →</a></div>
+            @if (dashboard.LiveMatchItems.Count == 0) { <EmptyState Title="No live matches" Message="Matches will appear here as soon as an administrator starts them." /> }
+            else { @foreach (var match in dashboard.LiveMatchItems) { <div class="adm-match-row"><span class="adm-live-dot"></span><div><strong>@match.PlayerOneName</strong><small>@match.CompetitionName · Round @match.RoundNumber</small></div><b>@Score(match)</b><div class="right"><strong>@match.PlayerTwoName</strong><small>@match.GameName · @FormatTime(match.ScheduledAt)</small></div></div> } }
+        </section>
+        <aside class="adm-panel"><div class="adm-panel-header"><div><p class="adm-eyebrow">Action queue</p><h2>Needs review</h2></div></div><a class="adm-queue-item" href="/admin/tournaments"><span class="blue">@dashboard.DraftTournaments</span><div><strong>Draft tournaments</strong><small>Awaiting publication</small></div></a><a class="adm-queue-item" href="/admin/matches"><span class="amber">@dashboard.MatchesToday</span><div><strong>Today's matches</strong><small>@dashboard.LiveMatches currently live</small></div></a></aside>
+        <aside class="adm-panel"><div class="adm-panel-header"><div><p class="adm-eyebrow">Quick actions</p><h2>Create & manage</h2></div></div><div class="adm-quick-grid"><a href="/admin/tournaments">＋<span>New tournament</span></a><a href="/admin/matches">＋<span>Schedule match</span></a><a href="/admin/notifications">✦<span>Send update</span></a><a href="/admin/players">♙<span>Manage players</span></a></div></aside>
+    </div>
+}
+
+@code {
+    private AdminDashboardDto? dashboard; private bool isLoading; private string? errorMessage;
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync() { isLoading = true; errorMessage = null; try { var result = await DashboardService.GetAdminDashboardAsync(); if (!result.Succeeded) { errorMessage = result.Error; return; } dashboard = result.Value; } finally { isLoading = false; } }
+    private static string Score(UserMatchDto match) => match.PlayerOneScore.HasValue ? $"{match.PlayerOneScore} — {match.PlayerTwoScore}" : "VS";
+    private static string FormatTime(DateTime? value) => value?.ToLocalTime().ToString("HH:mm") ?? "Time TBC";
+}
+
