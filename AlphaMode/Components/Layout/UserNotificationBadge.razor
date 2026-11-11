@@ -1,0 +1,31 @@
+@rendermode InteractiveServer
+@using AlphaMode.Application.Notifications.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@inject INotificationService NotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (Sidebar)
+{
+    <NavLink href="dashboard/notifications"><span>○</span>Notifications @if (unreadCount > 0) { <b>@DisplayCount</b> }</NavLink>
+}
+else
+{
+    <a class="notification-button" href="dashboard/notifications" aria-label="Notifications">♢@if (unreadCount > 0) { <span>@DisplayCount</span> }</a>
+}
+
+@code {
+    [Parameter] public bool Sidebar { get; set; }
+    private int unreadCount;
+    private string DisplayCount => unreadCount > 99 ? "99+" : unreadCount.ToString();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The layout previously displayed a permanent "3"; this badge reflects the signed-in user's real unread inbox.
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var result = await NotificationService.GetForUserAsync(userId);
+        if (result.Succeeded) unreadCount = result.Value?.Count(x => !x.IsRead) ?? 0;
+    }
+}
+
