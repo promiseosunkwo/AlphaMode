@@ -57,26 +57,15 @@ public sealed class TournamentLifecycleBackgroundService : BackgroundService
 
             var now = DateTime.UtcNow;
 
-            var tournamentIds = await context.Tournaments.AsNoTracking().Where(t =>
-                (
-                    t.Status == TournamentStatus.Upcoming &&
-                    (!t.RegistrationOpenDate.HasValue ||
-                     t.RegistrationOpenDate.Value <= now) &&
-                    (!t.RegistrationDeadline.HasValue ||
-                     t.RegistrationDeadline.Value > now) &&
-                    t.StartDate > now
-                )
-                ||
-                (
-                t.Status == TournamentStatus.RegistrationOpen &&
-                (
-                    (t.RegistrationDeadline.HasValue &&
-                     t.RegistrationDeadline.Value <= now) ||
-                    t.StartDate <= now
-                )
-                ))
-            .Select(t => t.Id)
-            .ToListAsync(cancellationToken);
+            var tournamentIds = await context.Tournaments
+                .AsNoTracking()
+                .Where(t =>
+                    t.Status == TournamentStatus.Upcoming ||
+                    t.Status == TournamentStatus.RegistrationOpen)
+                .Select(t => t.Id)
+                .ToListAsync(cancellationToken);
+
+            _logger.LogInformation("Tournament lifecycle check at {Time}. Found {Count} tournaments.", now, tournamentIds.Count);
 
             foreach (var tournamentId in tournamentIds)
             {
@@ -86,6 +75,10 @@ public sealed class TournamentLifecycleBackgroundService : BackgroundService
                 {
                     var result = await lifecycleService.SynchroniseStatusAsync(tournamentId, cancellationToken);
 
+                    if (result.Succeeded)
+                    {
+                        _logger.LogInformation("Lifecycle synchronisation completed for tournament {TournamentId}.", tournamentId);
+                    }
                     if (!result.Succeeded)
                     {
                         _logger.LogWarning("Lifecycle synchronisation failed for tournament {TournamentId}: {Error}", tournamentId, result.Error);

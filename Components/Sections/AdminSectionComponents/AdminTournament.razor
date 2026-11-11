@@ -979,18 +979,15 @@
         }
 
 
-        tournamentToDelete =
-            tournament;
+        tournamentToDelete = tournament;
 
-        showDeleteConfirmation =
-            true;
+        showDeleteConfirmation = true;
     }
 
 
     private async Task ConfirmDeleteTournamentAsync()
     {
-        if (tournamentToDelete is null ||
-            isDeleting)
+        if (tournamentToDelete is null || isDeleting)
         {
             return;
         }
@@ -1000,22 +997,17 @@
 
         try
         {
-            var result =
-                await TournamentService.DeleteAsync(
-                    tournamentToDelete.Id);
+            var result = await TournamentService.DeleteAsync(tournamentToDelete.Id);
 
 
-            showDeleteConfirmation =
-                false;
+            showDeleteConfirmation = false;
 
 
             if (!result.Succeeded)
             {
                 tournamentToDelete = null;
 
-                Toast.Warning(
-                    result.Error
-                    ?? "Unable to delete tournament.");
+                Toast.Warning(result.Error ?? "Unable to delete tournament.");
 
                 return;
             }
@@ -1024,9 +1016,7 @@
             tournamentToDelete = null;
 
 
-            Toast.Success(
-                result.Message
-                ?? "Tournament deleted successfully.");
+            Toast.Success(result.Message ?? "Tournament deleted successfully.");
 
 
             await LoadTournamentsAsync();
@@ -1037,8 +1027,7 @@
 
             tournamentToDelete = null;
 
-            Toast.Error(
-                "Something went wrong while deleting the tournament.");
+            Toast.Error("Something went wrong while deleting the tournament.");
         }
         finally
         {
@@ -1067,27 +1056,22 @@
     {
         try
         {
-            var result =
-                await TournamentService.GetAllAsync();
+            var result = await TournamentService.GetAllAsync();
 
 
             if (!result.Succeeded)
             {
-                Toast.Error(
-                    result.Error
-                    ?? "Unable to reload tournaments.");
+                Toast.Error(result.Error ?? "Unable to reload tournaments.");
 
                 return;
             }
 
 
-            tournaments =
-                result.Value ?? [];
+            tournaments = result.Value ?? [];
         }
         catch (Exception)
         {
-            Toast.Error(
-                "Something went wrong while refreshing tournaments.");
+            Toast.Error("Something went wrong while refreshing tournaments.");
         }
     }
 
@@ -1167,20 +1151,15 @@
 
         selectedLifecycleTournament = tournament;
 
-        pendingLifecycleAction =
-            TournamentLifecycleAction.Publish;
+        pendingLifecycleAction = TournamentLifecycleAction.Publish;
 
-        lifecycleConfirmTitle =
-            "Publish tournament?";
+        lifecycleConfirmTitle = "Publish tournament?";
 
-        lifecycleConfirmMessage =
-            $"Publish {tournament.Name}? Registration will open automatically during the configured registration period.";
+        lifecycleConfirmMessage = $"Publish {tournament.Name}? Registration will open automatically during the configured registration period.";
 
-        lifecycleConfirmButtonText =
-            "Publish tournament";
+        lifecycleConfirmButtonText = "Publish tournament";
 
-        lifecycleProcessingText =
-            "Publishing...";
+        lifecycleProcessingText = "Publishing...";
 
         isLifecycleConfirmationOpen = true;
     }
@@ -1196,20 +1175,15 @@
 
         selectedLifecycleTournament = tournament;
 
-        pendingLifecycleAction =
-            TournamentLifecycleAction.Start;
+        pendingLifecycleAction = TournamentLifecycleAction.Start;
 
-        lifecycleConfirmTitle =
-            "Start tournament?";
+        lifecycleConfirmTitle = "Start tournament?";
 
-        lifecycleConfirmMessage =
-            $"Start {tournament.Name}? At least two checked-in players and generated fixtures are required.";
+        lifecycleConfirmMessage = $"Start {tournament.Name}? At least two checked-in players and generated fixtures are required.";
 
-        lifecycleConfirmButtonText =
-            "Start tournament";
+        lifecycleConfirmButtonText = "Start tournament";
 
-        lifecycleProcessingText =
-            "Starting...";
+        lifecycleProcessingText = "Starting...";
 
         isLifecycleConfirmationOpen = true;
     }
@@ -1447,7 +1421,6 @@
 
     private bool IsLifecycleProcessing(Guid tournamentId)
     {
-        return isLifecycleProcessing &&
-               selectedLifecycleTournament?.Id == tournamentId;
+        return isLifecycleProcessing && selectedLifecycleTournament?.Id == tournamentId;
     }
 }
