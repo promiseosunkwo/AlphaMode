@@ -1,4 +1,4 @@
-﻿@page "/dashboard/my-tournaments/{TournamentId:guid}"
+@page "/dashboard/my-tournaments/{TournamentId:guid}"
 
 @layout AlphaMode.Components.Layout.UserLayout
 @rendermode InteractiveServer
@@ -29,6 +29,8 @@
 <PageTitle>
     @(tournament is null ? "Tournament | AlphaMode" : $"{tournament.TournamentName} | AlphaMode")
 </PageTitle>
+
+<BackNavigation Href="/dashboard/my-tournaments" Label="My tournaments" />
 
 
 @if (isLoading)
@@ -1719,3 +1721,4 @@ else
                $"{match.PlayerTwoId}";
     }
 }
+

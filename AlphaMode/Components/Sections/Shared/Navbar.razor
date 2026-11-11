@@ -1,4 +1,5 @@
 @using AlphaMode.Application.Common
+@inject NavigationManager Navigation
 <!-- NAVBAR -->
 <header class="alpha-navbar">
     <div class="alpha-container nav-content">
@@ -44,4 +45,18 @@
         </div>
     </div>
 </header>
+
+@if (!string.IsNullOrWhiteSpace(EffectiveBackHref))
+{
+    <div class="public-back"><BackNavigation Href="@EffectiveBackHref" Label="@EffectiveBackLabel" /></div>
+}
+
+@code {
+    [Parameter] public string? BackHref { get; set; }
+    [Parameter] public string BackLabel { get; set; } = "Back";
+    private string Path => Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].Trim('/');
+    // Public detail and bracket routes return to the tournament directory; discovery pages return home.
+    private string? EffectiveBackHref => BackHref ?? (string.IsNullOrWhiteSpace(Path) || Path == "index" ? null : Path.StartsWith("tournaments/", StringComparison.OrdinalIgnoreCase) ? "/tournaments" : "/");
+    private string EffectiveBackLabel => BackHref is not null ? BackLabel : Path.StartsWith("tournaments/", StringComparison.OrdinalIgnoreCase) ? "All tournaments" : "Back to home";
+}
 

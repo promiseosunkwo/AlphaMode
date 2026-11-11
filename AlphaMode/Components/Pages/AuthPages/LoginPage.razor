@@ -20,6 +20,8 @@
             <div class="auth-stat-row"><div><strong>24/7</strong><span>Competition</span></div><div><strong>Live</strong><span>Rankings</span></div><div><strong>One</strong><span>Community</span></div></div>
         </aside>
         <div class="auth-panel">
+            @* Explicit home fallback works even when the sign-in URL was opened directly. *@
+            <BackNavigation Href="/" Label="Back to home" Theme="auth" />
             <header class="auth-header"><span class="auth-kicker">Welcome back</span><h2 id="login-title">Sign in to AlphaMode</h2><p>Enter your details to continue your journey.</p></header>
             <StatusMessage Message="@errorMessage" />
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
@@ -87,4 +89,5 @@
         else errorMessage = "Error: We couldn't sign you in with those details. Check your email and password.";
     }
 }
+
 

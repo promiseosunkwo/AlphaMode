@@ -1,4 +1,4 @@
-﻿@page "/dashboard/checkout/{RegistrationId:guid}"
+@page "/dashboard/checkout/{RegistrationId:guid}"
 @layout AlphaMode.Components.Layout.UserLayout
 @rendermode InteractiveServer
 
@@ -15,6 +15,8 @@
 @inject ToastService Toast
 
 <PageTitle>Checkout | AlphaMode</PageTitle>
+
+<BackNavigation Href="/dashboard/my-tournaments" Label="Back to my tournaments" />
 
 <PortalPageHeader Eyebrow="Tournament entry"
                   Title="Complete payment"
@@ -310,3 +312,4 @@ else
         };
     }
 }
+

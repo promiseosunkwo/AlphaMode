@@ -31,6 +31,7 @@
             <ol class="auth-steps"><li><span>1</span><div><strong>Create your profile</strong><small>Claim your gamer tag</small></div></li><li><span>2</span><div><strong>Find your competition</strong><small>Join matches and tournaments</small></div></li><li><span>3</span><div><strong>Climb the ranks</strong><small>Build your AlphaMode legacy</small></div></li></ol>
         </aside>
         <div class="auth-panel auth-panel-register">
+            <BackNavigation Href="/" Label="Back to home" Theme="auth" />
             <header class="auth-header"><span class="auth-kicker">Join AlphaMode</span><h2 id="register-title">Create your account</h2><p>It only takes a minute to get match-ready.</p></header>
             <StatusMessage Message="@Message" />
             <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
@@ -208,4 +209,5 @@
         return (IUserEmailStore<ApplicationUser>)UserStore;
     }
 }
+
 

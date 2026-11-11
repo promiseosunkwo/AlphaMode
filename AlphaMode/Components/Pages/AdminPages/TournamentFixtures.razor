@@ -1,4 +1,4 @@
-﻿@page "/admin/tournaments/{TournamentId:guid}/fixtures"
+@page "/admin/tournaments/{TournamentId:guid}/fixtures"
 
 @layout AlphaMode.Components.Layout.AdminLayout
 @rendermode InteractiveServer
@@ -26,6 +26,8 @@
 
 <PageTitle>Fixtures | AlphaMode</PageTitle>
 <ToastContainer />
+
+<BackNavigation Href="/admin/tournaments" Label="Back to tournaments" Theme="light" />
 
 @if (isLoading)
 {
@@ -1659,3 +1661,4 @@ else
         }
     }
 }
+

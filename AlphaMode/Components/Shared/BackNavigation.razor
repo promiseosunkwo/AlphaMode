@@ -1,0 +1,3 @@
+<a class="back-navigation @Theme" href="@Href" aria-label="@Label"><span aria-hidden="true">←</span><span>@Label</span></a>
+@code { [Parameter, EditorRequired] public string Href { get; set; } = "/"; [Parameter] public string Label { get; set; } = "Back"; [Parameter] public string Theme { get; set; } = string.Empty; }
+

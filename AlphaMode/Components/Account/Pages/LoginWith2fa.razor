@@ -1,4 +1,4 @@
-﻿@page "/Account/LoginWith2fa"
+@page "/Account/LoginWith2fa"
 
 @using System.ComponentModel.DataAnnotations
 @using AlphaMode.Components.Account
@@ -11,6 +11,8 @@
 @inject ILogger<LoginWith2fa> Logger
 
 <PageTitle>Two-factor authentication</PageTitle>
+
+<BackNavigation Href="/login" Label="Back to sign in" Theme="light" />
 
 <h1>Two-factor authentication</h1>
 <hr />
@@ -100,3 +102,4 @@
         public bool RememberMachine { get; set; }
     }
 }
+
