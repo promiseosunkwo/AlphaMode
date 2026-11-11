@@ -1,4 +1,4 @@
-﻿using AlphaMode.Domain.Common;
+using AlphaMode.Domain.Common;
 
 namespace AlphaMode.Domain.Entities;
 public class Game : AuditableEntity
@@ -16,4 +16,8 @@ public class Game : AuditableEntity
     public bool IsActive { get; set; } = true;
 
     public ICollection<Tournament> Tournaments { get; set; } = new List<Tournament>();
+
+    // Matches now reference their game directly because friendly matches do not have a tournament.
+    public ICollection<Match> Matches { get; set; } = new List<Match>();
 }
+

@@ -1,4 +1,4 @@
-﻿using AlphaMode.Application.Common.Interfaces;
+using AlphaMode.Application.Common.Interfaces;
 using AlphaMode.Application.Common.Models;
 using AlphaMode.Application.TournamentFixtures.DTOs;
 using AlphaMode.Application.TournamentFixtures.Interfaces;
@@ -293,14 +293,14 @@ public class TournamentFixtureService : ITournamentFixtureService
         {
             case TournamentFormat.League:
 
-                matches = BuildLeagueMatches(tournament.Id, players, Math.Max(1, tournament.Legs));
+                matches = BuildLeagueMatches(tournament.Id, tournament.GameId, players, Math.Max(1, tournament.Legs));
 
                 break;
 
 
             case TournamentFormat.SingleElimination:
 
-                matches = BuildSingleEliminationMatches(tournament.Id, players);
+                matches = BuildSingleEliminationMatches(tournament.Id, tournament.GameId, players);
 
                 break;
 
@@ -425,6 +425,7 @@ public class TournamentFixtureService : ITournamentFixtureService
     private static List<Match>
         BuildLeagueMatches(
             Guid tournamentId,
+            Guid gameId,
             IReadOnlyList<EligiblePlayer> players,
             int legs)
     {
@@ -439,6 +440,13 @@ public class TournamentFixtureService : ITournamentFixtureService
                 {
                     TournamentId =
                         tournamentId,
+
+                    // Tournament matches now store GameId directly so they share the same query model as friendlies.
+                    GameId = gameId,
+
+                    Type = AlphaMode.Domain.Enums.MatchType.Tournament,
+
+                    IsRanked = true,
 
                     PlayerOneId =
                         x.PlayerOne.PlayerId,
@@ -708,6 +716,7 @@ public class TournamentFixtureService : ITournamentFixtureService
     private static List<Match>
         BuildSingleEliminationMatches(
             Guid tournamentId,
+            Guid gameId,
             IReadOnlyList<EligiblePlayer> players)
     {
         var seededSlots =
@@ -737,6 +746,13 @@ public class TournamentFixtureService : ITournamentFixtureService
                 {
                     TournamentId =
                         tournamentId,
+
+                    // Tournament matches remain ranked and retain their tournament while also carrying GameId.
+                    GameId = gameId,
+
+                    Type = AlphaMode.Domain.Enums.MatchType.Tournament,
+
+                    IsRanked = true,
 
                     PlayerOneId =
                         playerOne?.PlayerId,
@@ -1000,3 +1016,4 @@ public class TournamentFixtureService : ITournamentFixtureService
         EligiblePlayer PlayerOne,
         EligiblePlayer PlayerTwo);
 }
+

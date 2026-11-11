@@ -18,7 +18,16 @@
             <NavLink href="dashboard/notifications"><span>○</span>Notifications <b>3</b></NavLink>
             <NavLink href="dashboard/profile"><span>◎</span>Profile</NavLink>
         </nav>
-        <div class="user-sidebar-footer"><a href="Account/Manage">Account settings</a><form action="Account/Logout" method="post"><AntiforgeryToken /><button type="submit">Sign out</button></form></div>
+        <div class="user-sidebar-footer">
+            <a href="Account/Manage">Account settings</a>
+            <form action="/Account/Logout" method="post">
+                <AntiforgeryToken />
+                @* The logout endpoint used to require ReturnUrl while this form omitted it, causing
+                   form-binding errors. An explicit local destination makes sign-out predictable. *@
+                <input type="hidden" name="ReturnUrl" value="/" />
+                <button type="submit">Sign out</button>
+            </form>
+        </div>
     </aside>
     <main class="user-portal-main">
         <header class="user-topbar">
@@ -37,4 +46,5 @@
     // A safe initial keeps the avatar useful when Identity has no display name yet.
     private static string GetInitial(string? name) => string.IsNullOrWhiteSpace(name) ? "P" : name.Trim()[0].ToString().ToUpperInvariant();
 }
+
 

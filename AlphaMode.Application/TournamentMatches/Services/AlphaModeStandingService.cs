@@ -1,4 +1,4 @@
-﻿using AlphaMode.Application.Common.Interfaces;
+using AlphaMode.Application.Common.Interfaces;
 using AlphaMode.Application.Common.Models;
 using AlphaMode.Application.TournamentMatches.Interfaces;
 using AlphaMode.Domain.Entities;
@@ -18,18 +18,24 @@ public class AlphaModeStandingService : ITournamentStandingService
 
     public async Task<Result> ApplyResultAsync(Match match, int playerOneScore, int playerTwoScore, CancellationToken cancellationToken = default)
     {
+        // TournamentId is nullable for friendlies; standings remain strictly tournament-only.
+        if (!match.TournamentId.HasValue || match.Tournament is null)
+        {
+            return Result.Failure("Tournament standings require a tournament match.");
+        }
+
         if (match.PlayerOneId is null || match.PlayerTwoId is null)
         {
             return Result.Failure("Both players must be assigned before standings can be updated.");
         }
 
         var playerOneStanding = await GetOrCreateStandingAsync(
-            match.TournamentId,
+            match.TournamentId.Value,
             match.PlayerOneId.Value,
             cancellationToken);
 
         var playerTwoStanding = await GetOrCreateStandingAsync(
-            match.TournamentId,
+            match.TournamentId.Value,
             match.PlayerTwoId.Value,
             cancellationToken);
 
@@ -64,6 +70,12 @@ public class AlphaModeStandingService : ITournamentStandingService
         Match match,
         CancellationToken cancellationToken = default)
     {
+        // A standalone friendly must never enter forfeiture or league-standing processing.
+        if (!match.TournamentId.HasValue || match.Tournament is null)
+        {
+            return Result.Failure("Tournament standings require a tournament match.");
+        }
+
         if (match.Tournament.Format != TournamentFormat.League)
         {
             return Result.Failure(
@@ -93,12 +105,12 @@ public class AlphaModeStandingService : ITournamentStandingService
         }
 
         var playerOneStanding = await GetOrCreateStandingAsync(
-            match.TournamentId,
+            match.TournamentId.Value,
             match.PlayerOneId.Value,
             cancellationToken);
 
         var playerTwoStanding = await GetOrCreateStandingAsync(
-            match.TournamentId,
+            match.TournamentId.Value,
             match.PlayerTwoId.Value,
             cancellationToken);
 
@@ -208,3 +220,4 @@ public class AlphaModeStandingService : ITournamentStandingService
         playerTwoStanding.Points += match.Tournament.PointsForDraw;
     }
 }
+
