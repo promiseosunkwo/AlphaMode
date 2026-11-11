@@ -1,10 +1,96 @@
 @page "/dashboard/ranking"
+@rendermode InteractiveServer
 @layout AlphaMode.Components.Layout.UserLayout
+@using AlphaMode.Application.FootballRankings.DTOs
+@using AlphaMode.Application.FootballRankings.Interfaces
+@using AlphaMode.Application.Games.DTOs
+@using AlphaMode.Application.Games.Interfaces
 @using AlphaMode.Components.Sections.UserSectionComponents
-@using AlphaMode.Data
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IRankingQueryService RankingService
+@inject IGameService GameService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 <PageTitle>Ranking | AlphaMode</PageTitle>
-<PortalPageHeader Eyebrow="Performance" Title="Global ranking" Description="See where you stand and what it takes to reach the next tier." />
-<section class="ranking-hero"><div><span>Current position</span><strong>#@UserPortalSampleData.Stats.CurrentRank</strong><small>↑ 3 places this month</small></div><div class="rank-copy"><span class="portal-status open">Diamond tier</span><h2>You're in the top 8%</h2><p>Earn 140 more points to pass the next ranked player.</p><progress value="72" max="100"></progress></div><div class="rank-metric"><small>Points</small><strong>@UserPortalSampleData.Stats.Points.ToString("N0")</strong><span>+180 this month</span></div></section>
-<section class="portal-panel"><div class="portal-section-heading"><div><span>Leaderboard</span><h2>Top competitors</h2></div><select class="portal-select"><option>All games</option><option>EA FC 26</option><option>Tekken 8</option></select></div>
-<div class="portal-ranking-table"><div class="ranking-table-head"><span>Rank</span><span>Player</span><span>Game</span><span>Wins</span><span>Points</span><span>Trend</span></div>@foreach (var player in UserPortalSampleData.Rankings) { <div class="ranking-table-row @(player.IsCurrentUser ? "is-current-user" : "")"><strong>#@player.Rank</strong><div class="rank-player"><span>@player.Initials</span><strong>@player.Player @if(player.IsCurrentUser){<small>You</small>}</strong></div><span>@player.Game</span><span>@player.Wins</span><b>@player.Points.ToString("N0")</b><span class="trend @player.Trend">@(player.Trend == "up" ? "↑" : "↓")</span></div> }</div></section>
+<PortalPageHeader Eyebrow="Performance" Title="Competitive Elo" Description="Game-specific ratings from completed ranked matches. Friendlies and forfeitures never affect this table." />
+
+@* The old page showed shared sample rankings. This selector and leaderboard now use the real per-game Elo ledger. *@
+<section class="portal-panel">
+    <div class="portal-section-heading"><div><span>Game ranking</span><h2>Leaderboard</h2></div>
+        <select class="portal-select" value="@selectedGameId" @onchange="ChangeGameAsync">
+            @foreach (var game in games) { <option value="@game.Id">@game.Name · @game.Platform</option> }
+        </select>
+    </div>
+
+    @if (isLoading) { <ContentSkeleton Variant="table" Rows="7" /> }
+    else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadRankingAsync" /> }
+    else
+    {
+        @if (summary is not null)
+        {
+            <section class="ranking-hero">
+                <div><span>Current position</span><strong>#@summary.Position</strong><small>@(summary.IsProvisional ? $"Provisional · {summary.MatchesPlayed}/5 matches" : "Established rating")</small></div>
+                <div class="rank-copy"><span class="portal-status open">@GetTier(summary.EloRating) tier</span><h2>@summary.EloRating.ToString("0") Elo</h2><p>@summary.Wins wins · @summary.Draws draws · @summary.Losses losses</p></div>
+                <div class="rank-metric"><small>Last change</small><strong>@FormatChange(summary.LastChange)</strong><span>Ranked matches only</span></div>
+            </section>
+        }
+
+        @if (leaderboard.Count == 0) { <EmptyState Title="No ranked results yet" Message="This leaderboard will appear after the first ranked tournament result." /> }
+        else
+        {
+            <div class="portal-ranking-table">
+                <div class="ranking-table-head"><span>Rank</span><span>Player</span><span>Record</span><span>Matches</span><span>Elo</span><span>Status</span></div>
+                @foreach (var player in leaderboard)
+                {
+                    <div class="ranking-table-row @(player.UserId == currentUserId ? "is-current-user" : null)">
+                        <strong>#@player.Position</strong><div class="rank-player"><span>@GetInitials(player.GamerTag)</span><strong>@player.GamerTag @if(player.UserId == currentUserId){<small>You</small>}</strong></div>
+                        <span>@player.Wins W · @player.Draws D · @player.Losses L</span><span>@player.MatchesPlayed</span><b>@player.EloRating.ToString("0")</b><span>@(player.IsProvisional ? "Provisional" : GetTier(player.EloRating))</span>
+                    </div>
+                }
+            </div>
+        }
+    }
+</section>
+
+@code {
+    private IReadOnlyList<GameDto> games = [];
+    private IReadOnlyList<LeaderboardEntryDto> leaderboard = [];
+    private PlayerRatingSummaryDto? summary;
+    private Guid selectedGameId;
+    private string? currentUserId;
+    private string? errorMessage;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        currentUserId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var gameResult = await GameService.GetActiveAsync();
+        if (!gameResult.Succeeded) { errorMessage = gameResult.Error; return; }
+        games = gameResult.Value ?? [];
+        selectedGameId = games.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadRankingAsync();
+    }
+
+    private async Task ChangeGameAsync(ChangeEventArgs args)
+    {
+        if (Guid.TryParse(args.Value?.ToString(), out var gameId)) { selectedGameId = gameId; await LoadRankingAsync(); }
+    }
+
+    private async Task LoadRankingAsync()
+    {
+        if (selectedGameId == Guid.Empty) { leaderboard = []; summary = null; return; }
+        isLoading = true; errorMessage = null;
+        try {
+            var boardResult = await RankingService.GetLeaderboardAsync(selectedGameId);
+            var summaryResult = await RankingService.GetPlayerSummaryAsync(currentUserId ?? string.Empty, selectedGameId);
+            if (!boardResult.Succeeded || !summaryResult.Succeeded) { errorMessage = boardResult.Error ?? summaryResult.Error ?? "Rankings could not be loaded."; return; }
+            leaderboard = boardResult.Value ?? []; summary = summaryResult.Value;
+        } finally { isLoading = false; }
+    }
+
+    private static string FormatChange(decimal? value) => !value.HasValue ? "—" : value.Value >= 0 ? $"+{value:0.##}" : $"{value:0.##}";
+    private static string GetInitials(string value) => string.Concat(value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => char.ToUpperInvariant(x[0])));
+    private static string GetTier(decimal rating) => rating switch { < 900m => "Bronze", < 1000m => "Silver", < 1100m => "Gold", < 1200m => "Platinum", < 1300m => "Diamond", _ => "Elite" };
+}
 

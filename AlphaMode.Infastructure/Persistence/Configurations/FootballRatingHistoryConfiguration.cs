@@ -1,4 +1,4 @@
-﻿using AlphaMode.Domain.Entities;
+using AlphaMode.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -19,7 +19,8 @@ public class FootballRatingHistoryConfiguration : IEntityTypeConfiguration<Footb
             x.PlayerId
         }).IsUnique();
 
-        builder.HasIndex(x => x.ProcessingSequence);
+        // Replay is scoped by game and ordered by the database-generated match sequence.
+        builder.HasIndex(x => new { x.GameId, x.ProcessingSequence });
 
         builder.Property(x => x.RatingBefore)
             .HasPrecision(12, 4);
@@ -54,3 +55,4 @@ public class FootballRatingHistoryConfiguration : IEntityTypeConfiguration<Footb
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
+

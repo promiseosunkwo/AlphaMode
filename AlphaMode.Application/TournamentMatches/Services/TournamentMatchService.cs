@@ -1,5 +1,6 @@
 using AlphaMode.Application.Common.Interfaces;
 using AlphaMode.Application.Common.Models;
+using AlphaMode.Application.FootballRankings.Interfaces;
 using AlphaMode.Application.TournamentMatches.DTOs;
 using AlphaMode.Application.TournamentMatches.Interfaces;
 using AlphaMode.Application.TournamentMatches.Requests;
@@ -16,14 +17,17 @@ public class TournamentMatchService : ITournamentMatchService
     private readonly IMatchResultProcessor _resultProcessor;
     private readonly IApplicationTransaction _transaction;
     private readonly ITournamentStandingService _standingService;
+    private readonly IFootballRatingService _ratingService;
 
     public TournamentMatchService(IApplicationDbContext context, IMatchResultProcessor resultProcessor,
-        IApplicationTransaction transaction, ITournamentStandingService standingService)
+        IApplicationTransaction transaction, ITournamentStandingService standingService,
+        IFootballRatingService ratingService)
     {
         _context = context;
         _resultProcessor = resultProcessor;
         _transaction = transaction;
         _standingService = standingService;
+        _ratingService = ratingService;
     }
 
 
@@ -420,6 +424,14 @@ public class TournamentMatchService : ITournamentMatchService
                 return processResult;
             }
 
+            // Elo participates in the same transaction as the score. Unranked matches return success
+            // without side effects, while any genuine rating failure rolls the entire result back.
+            var ratingResult = await _ratingService.ApplyMatchAsync(match, ct);
+            if (!ratingResult.Succeeded)
+            {
+                return ratingResult;
+            }
+
             // =============================================
             // SAVE RESULT BEFORE KNOCKOUT PROGRESSION
             // =============================================
@@ -773,6 +785,14 @@ public class TournamentMatchService : ITournamentMatchService
                 playerTwoScore,
                 oldWinnerId,
                 request.Reason.Trim());
+
+            // A correction changes the starting rating of every later match in this game.
+            // Replay the game ledger in its original sequence instead of subtracting one old delta.
+            var rebuildResult = await _ratingService.RebuildGameAsync(match.GameId, ct);
+            if (!rebuildResult.Succeeded)
+            {
+                return rebuildResult;
+            }
 
 
             // =============================================

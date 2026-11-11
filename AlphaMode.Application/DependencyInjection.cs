@@ -2,6 +2,8 @@ using AlphaMode.Application.Games.Interfaces;
 using AlphaMode.Application.Games.Services;
 using AlphaMode.Application.FriendlyMatches.Interfaces;
 using AlphaMode.Application.FriendlyMatches.Services;
+using AlphaMode.Application.FootballRankings.Interfaces;
+using AlphaMode.Application.FootballRankings.Services;
 using AlphaMode.Application.Payments.Interfaces;
 using AlphaMode.Application.Payments.Services;
 using AlphaMode.Application.Players.Interfaces;
@@ -36,6 +38,10 @@ public static class DependencyInjection
 
         // Friendlies use their own service so unranked results cannot enter tournament/Elo processing.
         services.AddScoped<IFriendlyMatchService, FriendlyMatchService>();
+
+        // Elo processing is isolated from match orchestration so eligibility, history and replay stay consistent.
+        services.AddScoped<IFootballRatingService, FootballRatingService>();
+        services.AddScoped<IRankingQueryService, RankingQueryService>();
 
         services.AddScoped<IPrizePoolService, PrizePoolService>();
 

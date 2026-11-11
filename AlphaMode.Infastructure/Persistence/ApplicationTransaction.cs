@@ -1,5 +1,6 @@
-﻿using AlphaMode.Application.Common.Interfaces;
+using AlphaMode.Application.Common.Interfaces;
 using AlphaMode.Application.Common.Models;
+using System.Data;
 
 namespace AlphaMode.Infrastructure.Persistence;
 
@@ -18,6 +19,9 @@ public sealed class ApplicationTransaction : IApplicationTransaction
     {
         await using var transaction =
             await _context.Database.BeginTransactionAsync(
+                // Elo reads and updates two rating rows together. Serializable isolation prevents
+                // simultaneous results in the same game from calculating against stale ratings.
+                IsolationLevel.Serializable,
                 cancellationToken);
 
         try
@@ -51,3 +55,4 @@ public sealed class ApplicationTransaction : IApplicationTransaction
         }
     }
 }
+
