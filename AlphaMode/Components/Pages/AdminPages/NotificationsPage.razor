@@ -1,11 +1,44 @@
 @page "/admin/notifications"
 @rendermode InteractiveServer
-@using AlphaMode.Components.Layout
+@layout AlphaMode.Components.Layout.AdminLayout
+@using AlphaMode.Application.Notifications.DTOs
+@using AlphaMode.Application.Notifications.Interfaces
+@using AlphaMode.Application.Tournaments.DTOs
+@using AlphaMode.Application.Tournaments.Interfaces
 @using AlphaMode.Components.Sections.AdminSectionComponents
-@using AlphaMode.ViewModels
-@layout AdminLayout
+@inject INotificationService NotificationService
+@inject ITournamentService TournamentService
+@inject AlphaMode.Services.ToastService Toast
+
 <PageTitle>Notifications · AlphaMode Admin</PageTitle>
-<AdminPageHeader Title="Notifications" Description="Create targeted announcements and review the communication history."><Actions><button class="adm-button primary" @onclick="Compose">✦ Compose notification</button></Actions></AdminPageHeader>
-<section class="adm-panel"><div class="adm-panel-header"><div><p class="adm-eyebrow">Communication log</p><h2>Recently sent</h2></div><span class="adm-count">@items.Count</span></div><div class="adm-notification-list">@foreach(var note in items){<article><span class="adm-notification-icon">✦</span><div><div class="adm-notification-heading"><strong>@note.Title</strong><span>@note.CreatedAt.ToString("dd MMM · HH:mm")</span></div><p>@note.Message</p><small>@note.Audience · @note.Channel</small></div><button class="adm-icon-button danger" title="Delete" @onclick="()=>items.Remove(note)">✕</button></article>}</div></section>
-<AdminModal IsOpen="open" Title="Compose notification" Eyebrow="Broadcast" OnClose="Close"><ChildContent><div class="adm-form-grid"><label>Audience<select @bind="model.Audience"><option>All players</option><option>Tournament participants</option><option>Administrators</option><option>Inactive players</option></select></label><label>Channel<select @bind="model.Channel"><option>In-app</option><option>Email + in-app</option><option>Email</option></select></label><label class="span-2">Title<input @bind="model.Title" /></label><label class="span-2">Message<textarea rows="5" @bind="model.Message"></textarea></label><p class="adm-form-note span-2">This prototype stores the notification only in the current page. Delivery services can be connected later.</p></div></ChildContent><Footer><button class="adm-button secondary" @onclick="Close">Save draft</button><button class="adm-button primary" @onclick="Send">Send notification</button></Footer></AdminModal>
-@code {private bool open;private AdminNotificationItem model=new();private readonly List<AdminNotificationItem> items=[new(){Id=1,Title="Valorant check-in is open",Message="Participants can now confirm their place for tonight's fixtures.",Audience="Tournament participants",Channel="Email + in-app",CreatedAt=DateTime.Now.AddHours(-2)},new(){Id=2,Title="Scheduled maintenance",Message="The competition portal will be unavailable for approximately 15 minutes.",CreatedAt=DateTime.Now.AddDays(-1)}];private void Compose(){model=new();open=true;}private void Send(){if(string.IsNullOrWhiteSpace(model.Title))return;model.Id=items.Max(x=>x.Id)+1;model.CreatedAt=DateTime.Now;items.Insert(0,model);Close();}private void Close()=>open=false;}
+<AdminPageHeader Title="Notifications" Description="Send focused in-app updates and review recent delivery activity."><Actions><button class="adm-button primary" @onclick="Compose">✦ Compose notification</button></Actions></AdminPageHeader>
+
+@if (isLoading) { <ContentSkeleton Rows="6" /> }
+else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadAsync" /> }
+else
+{
+    <section class="adm-panel"><div class="adm-panel-header"><div><p class="adm-eyebrow">Communication log</p><h2>Recently sent</h2></div><span class="adm-count">@broadcasts.Count</span></div>
+        @if (broadcasts.Count == 0) { <EmptyState Title="No notifications sent" Message="Use Compose notification to send the first player update." /> }
+        else { <div class="adm-notification-list">@foreach (var note in broadcasts) { <article><span class="adm-notification-icon">✦</span><div><div class="adm-notification-heading"><strong>@note.Title</strong><span>@note.SentAt.ToLocalTime().ToString("dd MMM · HH:mm")</span></div><p>@note.Message</p><small>@note.RecipientCount recipient(s) · In-app</small></div></article> }</div> }
+    </section>
+}
+
+<AdminModal IsOpen="open" Title="Compose notification" Eyebrow="Broadcast" OnClose="Close"><ChildContent>
+    <EditForm Model="model" FormName="notification-compose" OnValidSubmit="SendAsync"><DataAnnotationsValidator /><ValidationSummary /><div class="adm-form-grid">
+        <label>Audience<InputSelect @bind-Value="model.Audience"><option value="@NotificationAudience.AllPlayers">All players</option><option value="@NotificationAudience.ActivePlayers">Active players</option><option value="@NotificationAudience.TournamentParticipants">Tournament participants</option></InputSelect></label>
+        @if (model.Audience == NotificationAudience.TournamentParticipants) { <label>Tournament<InputSelect @bind-Value="model.TournamentId"><option value="">Select tournament</option>@foreach (var tournament in tournaments) { <option value="@tournament.Id">@tournament.Name</option> }</InputSelect></label> }
+        <label class="span-2">Title<InputText @bind-Value="model.Title" maxlength="150" /></label><label class="span-2">Message<InputTextArea rows="5" @bind-Value="model.Message" maxlength="1000" /></label>
+        <p class="adm-form-note span-2">Each recipient receives a private inbox record and controls their own read state.</p>
+        <button type="submit" class="adm-button primary span-2" disabled="@isSaving">@(isSaving ? "Sending…" : "Send notification")</button>
+    </div></EditForm>
+</ChildContent></AdminModal>
+
+@code {
+    private List<NotificationBroadcastDto> broadcasts = []; private IReadOnlyList<TournamentDto> tournaments = []; private SendNotificationRequest model = new(); private bool open; private bool isLoading; private bool isSaving; private string? errorMessage;
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync() { isLoading = true; errorMessage = null; try { var log = await NotificationService.GetRecentBroadcastsAsync(); var tournamentResult = await TournamentService.GetAllAsync(); if (!log.Succeeded || !tournamentResult.Succeeded) { errorMessage = log.Error ?? tournamentResult.Error; return; } broadcasts = log.Value?.ToList() ?? []; tournaments = tournamentResult.Value ?? []; } finally { isLoading = false; } }
+    private void Compose() { model = new(); open = true; }
+    private void Close() { if (!isSaving) open = false; }
+    private async Task SendAsync() { if (model.Audience == NotificationAudience.TournamentParticipants && !model.TournamentId.HasValue) { Toast.Warning("Select a tournament audience."); return; } isSaving = true; var result = await NotificationService.SendAsync(model); isSaving = false; if (!result.Succeeded) { Toast.Error(result.Error ?? "Notification could not be sent."); return; } Toast.Success(result.Message ?? "Notification sent."); open = false; await LoadAsync(); }
+}
+

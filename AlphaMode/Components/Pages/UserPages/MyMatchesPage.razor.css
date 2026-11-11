@@ -1,0 +1,28 @@
+.match-card-grid.three { gap: 1rem; }
+
+.portal-match-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 232px;
+    padding: 1rem;
+    border: 1px solid var(--portal-border);
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(31, 34, 43, .96), rgba(20, 22, 29, .96));
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .14);
+    display: flex;
+    flex-direction: column;
+    transition: transform .18s ease, border-color .18s ease;
+}
+
+.portal-match-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 2px; background: linear-gradient(90deg, #ff6727, transparent 70%); }
+.portal-match-card:hover { transform: translateY(-3px); border-color: rgba(255, 103, 39, .28); }
+.portal-match-card header, .portal-match-card footer { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.portal-match-card header small { color: var(--portal-muted); font-size: .58rem; text-align: right; }
+.match-opponents { flex: 1; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .8rem; padding: 1.65rem 0; text-align: center; }
+.match-opponents strong { overflow: hidden; font-size: .78rem; text-overflow: ellipsis; }
+.match-opponents span { min-width: 48px; padding: .6rem .45rem; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; background: rgba(255,255,255,.04); color: #fff; font: 700 .8rem Orbitron, sans-serif; }
+.portal-match-card footer { padding-top: .8rem; border-top: 1px solid var(--portal-border); color: var(--portal-muted); font-size: .58rem; }
+.portal-match-card footer b { color: #d9dbe2; font-size: .58rem; text-transform: uppercase; }
+
+@media (max-width: 590px) { .portal-match-card { min-height: 210px; } }
+

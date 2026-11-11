@@ -6,6 +6,8 @@ using AlphaMode.Application.FootballRankings.Interfaces;
 using AlphaMode.Application.FootballRankings.Services;
 using AlphaMode.Application.Dashboards.Interfaces;
 using AlphaMode.Application.Dashboards.Services;
+using AlphaMode.Application.Notifications.Interfaces;
+using AlphaMode.Application.Notifications.Services;
 using AlphaMode.Application.Payments.Interfaces;
 using AlphaMode.Application.Payments.Services;
 using AlphaMode.Application.Players.Interfaces;
@@ -46,6 +48,8 @@ public static class DependencyInjection
         services.AddScoped<IRankingQueryService, RankingQueryService>();
         // Dashboard pages share one read-only query service so their totals and match lists cannot drift apart.
         services.AddScoped<IDashboardQueryService, DashboardQueryService>();
+        // Notifications are persisted per recipient so read state remains private to each player.
+        services.AddScoped<INotificationService, NotificationService>();
 
         services.AddScoped<IPrizePoolService, PrizePoolService>();
 

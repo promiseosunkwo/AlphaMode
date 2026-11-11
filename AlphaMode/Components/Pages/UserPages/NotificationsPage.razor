@@ -1,30 +1,39 @@
 @page "/dashboard/notifications"
 @layout AlphaMode.Components.Layout.UserLayout
 @rendermode InteractiveServer
-@using AlphaMode.Data
+@using AlphaMode.Application.Notifications.DTOs
+@using AlphaMode.Application.Notifications.Interfaces
 @using AlphaMode.Components.Sections.UserSectionComponents
+@using Microsoft.AspNetCore.Components.Authorization
+@inject INotificationService NotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 <PageTitle>Notifications | AlphaMode</PageTitle>
-<PortalPageHeader Eyebrow="Inbox" Title="Notifications" Description="Match updates, competition alerts, and account activity.">
-    <Actions>
-        <button class="portal-button subtle" @onclick="MarkAllRead">Mark all as read</button>
-    </Actions>
-</PortalPageHeader>
-<div class="portal-filter-row"><button class="active">All <span>@notifications.Count</span></button><button>Unread <span>@notifications.Count(x => !x.IsRead)</span></button><button>Matches</button><button>Tournaments</button></div>
-<section class="notification-list">
-@if (notifications.Count == 0) 
+<PortalPageHeader Eyebrow="Inbox" Title="Notifications" Description="Match updates, competition alerts, and account activity."><Actions><button class="portal-button subtle" disabled="@(isSaving || UnreadCount == 0)" @onclick="MarkAllReadAsync">@(isSaving ? "Updating…" : "Mark all as read")</button></Actions></PortalPageHeader>
+<div class="portal-filter-row"><button class="@(filter == "All" ? "active" : null)" @onclick="() => filter = "All"">All <span>@notifications.Count</span></button><button class="@(filter == "Unread" ? "active" : null)" @onclick="() => filter = "Unread"">Unread <span>@UnreadCount</span></button></div>
+
+@if (isLoading) { <ContentSkeleton Rows="6" /> }
+else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadAsync" /> }
+else if (!FilteredNotifications.Any()) { <EmptyState Title="You are all caught up" Message="New tournament, match, and platform updates will appear here." /> }
+else
 {
-    <p>You are all caught up</p>
+    <section class="notification-list">
+    @foreach (var item in FilteredNotifications)
+    {
+        <article class="notification-row @(!item.IsRead ? "unread" : null)"><span class="notification-type">@GetIcon(item.Title)</span><div><div><strong>@item.Title</strong><time>@FormatAge(item.CreatedAt)</time></div><p>@item.Message</p></div>@if (!item.IsRead) { <button disabled="@isSaving" @onclick="() => MarkReadAsync(item.Id)" aria-label="Mark notification as read" title="Mark as read">✓</button> }</article>
+    }
+    </section>
 }
-else 
-{ @foreach (var item in notifications) { 
-        <article class="notification-row @(!item.IsRead ? "unread" : "")"><span class="notification-type">@GetIcon(item.Type)</span><div><div><strong>@item.Title</strong><time>@FormatAge(item.CreatedAt)</time></div><p>@item.Message</p>@if(item.Link is not null){<a href="@item.Link">View details →</a>}</div>@if(!item.IsRead){<button @onclick="() => MarkRead(item.Id)" aria-label="Mark notification as read">✓</button>}</article> } }
-</section>
+
 @code {
-    private List<AlphaMode.ViewModels.PlayerNotificationViewModel> notifications = UserPortalSampleData.Notifications.ToList();
-    // Immutable records make notification updates predictable and easy to replace with API commands.
-    private void MarkRead(int id) => notifications = notifications.Select(x => x.Id == id ? x with { IsRead = true } : x).ToList();
-    private void MarkAllRead() => notifications = notifications.Select(x => x with { IsRead = true }).ToList();
-    private static string GetIcon(string type) => type switch { "match" => "◉", "rank" => "↗", "tournament" => "◇", _ => "✓" };
-    private static string FormatAge(DateTime date) { var age = DateTime.Now - date; return age.TotalHours < 1 ? $"{Math.Max(1,(int)age.TotalMinutes)}m ago" : age.TotalDays < 1 ? $"{(int)age.TotalHours}h ago" : $"{(int)age.TotalDays}d ago"; }
+    private List<NotificationDto> notifications = []; private string filter = "All"; private string? userId; private string? errorMessage; private bool isLoading; private bool isSaving;
+    private int UnreadCount => notifications.Count(x => !x.IsRead);
+    private IEnumerable<NotificationDto> FilteredNotifications => filter == "Unread" ? notifications.Where(x => !x.IsRead) : notifications;
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync() { isLoading = true; errorMessage = null; try { var state = await AuthenticationStateProvider.GetAuthenticationStateAsync(); userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value; if (string.IsNullOrWhiteSpace(userId)) { errorMessage = "Your identity could not be loaded."; return; } var result = await NotificationService.GetForUserAsync(userId); if (!result.Succeeded) { errorMessage = result.Error; return; } notifications = result.Value?.ToList() ?? []; } finally { isLoading = false; } }
+    private async Task MarkReadAsync(Guid id) { if (string.IsNullOrWhiteSpace(userId)) return; isSaving = true; var result = await NotificationService.MarkReadAsync(id, userId); isSaving = false; if (result.Succeeded) notifications = notifications.Select(x => x.Id == id ? new NotificationDto { Id = x.Id, Title = x.Title, Message = x.Message, CreatedAt = x.CreatedAt, IsRead = true } : x).ToList(); else errorMessage = result.Error; }
+    private async Task MarkAllReadAsync() { if (string.IsNullOrWhiteSpace(userId)) return; isSaving = true; var result = await NotificationService.MarkAllReadAsync(userId); isSaving = false; if (result.Succeeded) await LoadAsync(); else errorMessage = result.Error; }
+    private static string GetIcon(string title) => title.Contains("match", StringComparison.OrdinalIgnoreCase) ? "◉" : title.Contains("tournament", StringComparison.OrdinalIgnoreCase) ? "◇" : "✦";
+    private static string FormatAge(DateTime date) { var age = DateTime.UtcNow - date.ToUniversalTime(); return age.TotalHours < 1 ? $"{Math.Max(1, (int)age.TotalMinutes)}m ago" : age.TotalDays < 1 ? $"{(int)age.TotalHours}h ago" : $"{(int)age.TotalDays}d ago"; }
 }
 
