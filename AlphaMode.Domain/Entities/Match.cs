@@ -1,12 +1,20 @@
-﻿using AlphaMode.Domain.Common;
+using AlphaMode.Domain.Common;
 using AlphaMode.Domain.Enums;
 
 namespace AlphaMode.Domain.Entities;
 public class Match : AuditableEntity
 {
-    public Guid TournamentId { get; set; }
+    // A match used to require a tournament, which made standalone friendlies impossible.
+    // TournamentId is now optional while tournament services still enforce it for competitive fixtures.
+    public Guid? TournamentId { get; set; }
 
-    public Tournament Tournament { get; set; } = null!;
+    public Tournament? Tournament { get; set; }
+
+    // Standalone matches cannot discover their game through a tournament, so every match now owns
+    // an explicit game relationship. This also makes match history filtering consistent.
+    public Guid GameId { get; set; }
+
+    public Game Game { get; set; } = null!;
 
     public Enums.MatchType Type { get; set; }
 
@@ -44,3 +52,4 @@ public class Match : AuditableEntity
 
     public DateTime? ForfeitedAt { get; set; }
 }
+

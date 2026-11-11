@@ -1,4 +1,4 @@
-﻿@using AlphaMode.Application.Common
+@using AlphaMode.Application.Common
 <!-- NAVBAR -->
 <header class="alpha-navbar">
     <div class="alpha-container nav-content">
@@ -27,7 +27,9 @@
                     <form action="/Account/Logout" method="post">
                         <AntiforgeryToken />
 
-                        <input type="hidden" name="ReturnUrl" value="" />
+                        @* An empty ReturnUrl previously produced an unreliable redirect. The home route is
+                           explicit so logout always lands on a valid public page. *@
+                        <input type="hidden" name="ReturnUrl" value="/" />
 
                         <button type="submit" class="btn btn-primary">Logout</button>
                     </form>
@@ -42,3 +44,4 @@
         </div>
     </div>
 </header>
+

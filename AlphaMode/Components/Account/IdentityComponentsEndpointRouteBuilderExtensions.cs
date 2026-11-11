@@ -43,10 +43,17 @@ namespace Microsoft.AspNetCore.Routing
             accountGroup.MapPost("/Logout", async (
                 ClaimsPrincipal user,
                 SignInManager<ApplicationUser> signInManager,
-                [FromForm] string returnUrl) =>
+                [FromForm] string? returnUrl) =>
             {
                 await signInManager.SignOutAsync();
-                return TypedResults.LocalRedirect($"~/{returnUrl}");
+
+                // Some layouts previously omitted ReturnUrl, so form binding rejected the request before
+                // SignOutAsync could run. Accepting an optional value makes every logout form reliable.
+                // The destination is also normalised and restricted to a local path to prevent malformed
+                // redirects (for example "~//") and to avoid accepting an external return URL.
+                var localReturnUrl = GetSafeLogoutReturnUrl(returnUrl);
+
+                return TypedResults.LocalRedirect(localReturnUrl);
             });
 
             var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();
@@ -109,5 +116,26 @@ namespace Microsoft.AspNetCore.Routing
 
             return accountGroup;
         }
+
+        private static string GetSafeLogoutReturnUrl(string? returnUrl)
+        {
+            if (string.IsNullOrWhiteSpace(returnUrl))
+            {
+                return "/";
+            }
+
+            var trimmedReturnUrl = returnUrl.Trim();
+
+            // A valid logout destination must remain inside AlphaMode. Protocol-relative URLs beginning
+            // with "//" are explicitly rejected because browsers interpret them as external destinations.
+            if (trimmedReturnUrl.StartsWith("//", StringComparison.Ordinal) ||
+                Uri.TryCreate(trimmedReturnUrl, UriKind.Absolute, out _))
+            {
+                return "/";
+            }
+
+            return $"/{trimmedReturnUrl.TrimStart('/')}";
+        }
     }
 }
+

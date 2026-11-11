@@ -1,4 +1,4 @@
-﻿using AlphaMode.Domain.Entities;
+using AlphaMode.Domain.Entities;
 using AlphaMode.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -16,6 +16,15 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
 
         builder.Property(x => x.Status)
             .IsRequired();
+
+        // The combined index supports the admin filters and upcoming-player match timeline.
+        builder.HasIndex(x => new { x.Type, x.Status, x.ScheduledAt });
+
+        // Friendlies have no tournament, so the game is stored directly on every match.
+        builder.HasOne(x => x.Game)
+            .WithMany(x => x.Matches)
+            .HasForeignKey(x => x.GameId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Match result type: Played, Walkover or DoubleForfeit
         builder.Property(x => x.ResultType)
@@ -39,6 +48,7 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.HasOne(x => x.Tournament)
             .WithMany(x => x.Matches)
             .HasForeignKey(x => x.TournamentId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(x => x.PlayerOne)
@@ -62,3 +72,4 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

@@ -1,69 +1,119 @@
 @page "/admin/matches"
 @rendermode InteractiveServer
+@using AlphaMode.Application.FriendlyMatches.DTOs
+@using AlphaMode.Application.FriendlyMatches.Interfaces
+@using AlphaMode.Application.FriendlyMatches.Requests
+@using AlphaMode.Application.Games.DTOs
+@using AlphaMode.Application.Games.Interfaces
+@using AlphaMode.Application.Players.DTOs
+@using AlphaMode.Application.Players.Interfaces
 @using AlphaMode.Components.Layout
 @using AlphaMode.Components.Sections.AdminSectionComponents
-@using AlphaMode.ViewModels
+@using AlphaMode.Domain.Enums
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
 @layout AdminLayout
-<PageTitle>Matches · AlphaMode Admin</PageTitle>
-<AdminPageHeader Title="Matches & fixtures" Description="Schedule fixtures, monitor live play and record match progression.">
-    <Actions><button class="adm-button primary" @onclick="Create">＋ Schedule match</button></Actions>
+@inject IFriendlyMatchService FriendlyMatchService
+@inject IGameService GameService
+@inject IPlayerService PlayerService
+@inject AlphaMode.Services.ToastService Toast
+
+<PageTitle>Friendlies · AlphaMode Admin</PageTitle>
+@* This page used to edit an in-memory demo list. It now manages persistent, explicitly unranked matches. *@
+<AdminPageHeader Title="Friendly & exhibition matches" Description="Schedule standalone matches and record results without changing Elo or tournament standings.">
+    <Actions><button class="adm-button primary" @onclick="OpenCreate">＋ Schedule friendly</button></Actions>
 </AdminPageHeader>
 
 <div class="adm-segmented">
-    @foreach(var s in new[]{"All","Live","Scheduled","Completed"}){
-        <button class="@(filter==s?"active":"")" @onclick="()=>filter=s">@s</button>}</div>
-<section class="adm-panel"><div class="adm-table-wrap"><table class="adm-table">
-    <thead>
-        <tr>
-            <th>Fixture</th>
-            <th>Tournament</th>
-            <th>Scheduled</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach(var match in Filtered){
+    @foreach (var value in new[] { "All", "Scheduled", "Completed", "Cancelled" })
+    { <button class="@(filter == value ? "active" : null)" @onclick="() => filter = value">@value</button> }
+</div>
+
+@if (isLoading) { <ContentSkeleton Rows="6" /> }
+else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadAsync" /> }
+else if (!FilteredMatches.Any()) { <EmptyState Title="No friendly matches" Message="Schedule an unranked match between two active players." /> }
+else
+{
+    <section class="adm-panel"><div class="adm-table-wrap"><table class="adm-table">
+        <thead><tr><th>Players</th><th>Game</th><th>Type</th><th>Scheduled</th><th>Result</th><th>Status</th><th></th></tr></thead>
+        <tbody>@foreach (var match in FilteredMatches) {
             <tr>
-                <td><strong>@match.PlayerOne <span class="adm-versus">vs</span> @match.PlayerTwo</strong></td>
-                <td>@match.Tournament</td><td>@match.ScheduledFor.ToString("dd MMM · HH:mm")</td>
-                <td><span class="adm-status @match.Status.ToLower()">@match.Status</span></td>
+                <td><strong>@match.PlayerOneName <span class="adm-versus">vs</span> @match.PlayerTwoName</strong><small class="d-block">Unranked · no Elo impact</small></td>
+                <td>@match.GameName</td><td>@match.Type</td>
+                <td>@(match.ScheduledAt?.ToLocalTime().ToString("dd MMM yyyy · HH:mm") ?? "Not scheduled")</td>
+                <td>@FormatScore(match)</td><td><span class="adm-status @match.Status.ToString().ToLowerInvariant()">@match.Status</span></td>
                 <td class="adm-row-actions">
-                    <button @onclick="()=>Edit(match)">Edit</button>
-                    <button class="danger" @onclick="()=>items.Remove(match)">Delete</button>
+                    @if (match.Status != MatchStatus.Cancelled) { <button @onclick="() => OpenResult(match)">@(match.Status == MatchStatus.Completed ? "Correct result" : "Record result")</button> }
+                    @if (match.Status is not (MatchStatus.Completed or MatchStatus.Cancelled)) { <button class="danger" @onclick="() => CancelAsync(match.Id)">Cancel</button> }
                 </td>
             </tr>
-            }
-            </tbody>
-            </table>
-            </div>
-       </section>
+        }</tbody>
+    </table></div></section>
+}
 
-<AdminModal IsOpen="open" Title="@(model.Id==0?"Schedule match":"Edit fixture")" OnClose="Close"><ChildContent>
-    <div class="adm-form-grid">
-        <label class="span-2">Tournament<input @bind="model.Tournament" /></label>
-        <label>Player / team one<input @bind="model.PlayerOne" /></label>
-        <label>Player / team two<input @bind="model.PlayerTwo" /></label>
-        <label>Scheduled time<input type="datetime-local" @bind="model.ScheduledFor" /></label>
-        <label>Status<select @bind="model.Status">
-            <option>Scheduled</option>
-            <option>Live</option>
-            <option>Completed</option>
-        </select>
-        </label>
-        
-    </div>
-    
-</ChildContent>
+<AdminModal IsOpen="showCreate" Title="Schedule an unranked match" OnClose="CloseCreate"><ChildContent>
+    <EditForm Model="createModel" FormName="friendly-create" OnValidSubmit="CreateAsync">
+        <DataAnnotationsValidator /><ValidationSummary />
+        <div class="adm-form-grid">
+            <label>Game<InputSelect @bind-Value="createModel.GameId"><option value="@Guid.Empty">Select a game</option>@foreach (var game in games){<option value="@game.Id">@game.Name · @game.Platform</option>}</InputSelect></label>
+            <label>Match label<InputSelect @bind-Value="createModel.Type"><option value="@MatchType.Friendly">Friendly</option><option value="@MatchType.Exhibition">Exhibition</option><option value="@MatchType.Practice">Practice</option></InputSelect></label>
+            <label>Player one<InputSelect @bind-Value="createModel.PlayerOneId"><option value="@Guid.Empty">Select player one</option>@foreach (var player in players){<option value="@player.Id">@player.GamerTag</option>}</InputSelect></label>
+            <label>Player two<InputSelect @bind-Value="createModel.PlayerTwoId"><option value="@Guid.Empty">Select player two</option>@foreach (var player in players){<option value="@player.Id">@player.GamerTag</option>}</InputSelect></label>
+            <label class="span-2">Scheduled time<InputDate Type="InputDateType.DateTimeLocal" @bind-Value="createModel.ScheduledAt" /></label>
+        </div>
+        <p class="adm-help">This match is always unranked. Its result will not change Elo, rankings, tournament standings, or competitive W/D/L.</p>
+        <button type="submit" class="adm-button primary" disabled="@isSaving">@(isSaving ? "Scheduling…" : "Schedule match")</button>
+    </EditForm>
+</ChildContent></AdminModal>
 
-<Footer>
-    <button class="adm-button secondary" @onclick="Close">Cancel</button>
-    <button class="adm-button primary" @onclick="Save">Save fixture</button>
-</Footer>
-
-</AdminModal>
+<AdminModal IsOpen="showResult" Title="@(selectedMatch?.Status == MatchStatus.Completed ? "Correct friendly result" : "Record friendly result")" OnClose="CloseResult"><ChildContent>
+    @if (selectedMatch is not null) {
+        <EditForm Model="resultModel" FormName="friendly-result" OnValidSubmit="SaveResultAsync">
+            <DataAnnotationsValidator /><div class="adm-form-grid">
+                <label>@selectedMatch.PlayerOneName<InputNumber @bind-Value="resultModel.PlayerOneScore" /></label>
+                <label>@selectedMatch.PlayerTwoName<InputNumber @bind-Value="resultModel.PlayerTwoScore" /></label>
+            </div><p class="adm-help">Only this friendly record changes. Elo and tournament data remain untouched.</p>
+            <button type="submit" class="adm-button primary" disabled="@isSaving">@(isSaving ? "Saving…" : "Save result")</button>
+        </EditForm>
+    }
+</ChildContent></AdminModal>
 
 @code {
-    private string filter="All";private bool open;
-    private AdminMatchItem model=new();
-    private readonly List<AdminMatchItem> items=[new(){Id=1,Tournament="Valorant Masters",PlayerOne="NovaStrike",PlayerTwo="PixelRaiders",ScheduledFor=DateTime.Now.AddMinutes(-20),Status="Live"},new(){Id=2,Tournament="FIFA Elite Cup",PlayerOne="KingPromise",PlayerTwo="GoalMachine",ScheduledFor=DateTime.Now.AddHours(3),Status="Scheduled"},new(){Id=3,Tournament="CODM Weekend League",PlayerOne="ApexCore",PlayerTwo="NightOwl",ScheduledFor=DateTime.Now.AddDays(1),Status="Scheduled"}];private IEnumerable<AdminMatchItem> Filtered=>items.Where(x=>filter=="All"||x.Status==filter);private void Create(){model=new(){ScheduledFor=DateTime.Now.AddDays(1)};open=true;}private void Edit(AdminMatchItem x){model=new(){Id=x.Id,Tournament=x.Tournament,PlayerOne=x.PlayerOne,PlayerTwo=x.PlayerTwo,ScheduledFor=x.ScheduledFor,Status=x.Status};open=true;}private void Save(){if(string.IsNullOrWhiteSpace(model.PlayerOne))return;var x=items.FirstOrDefault(i=>i.Id==model.Id);if(x is null){model.Id=items.Max(i=>i.Id)+1;items.Add(model);}else{x.Tournament=model.Tournament;x.PlayerOne=model.PlayerOne;x.PlayerTwo=model.PlayerTwo;x.ScheduledFor=model.ScheduledFor;x.Status=model.Status;}Close();}private void Close()=>open=false;}
+    private IReadOnlyList<FriendlyMatchDto> matches = [];
+    private IReadOnlyList<GameDto> games = [];
+    private IReadOnlyList<PlayerDto> players = [];
+    private CreateFriendlyMatchRequest createModel = NewCreateModel();
+    private RecordFriendlyResultRequest resultModel = new();
+    private FriendlyMatchDto? selectedMatch;
+    private string filter = "All";
+    private string? errorMessage;
+    private bool isLoading;
+    private bool isSaving;
+    private bool showCreate;
+    private bool showResult;
+    private IEnumerable<FriendlyMatchDto> FilteredMatches => matches.Where(x => filter == "All" || x.Status.ToString() == filter);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync()
+    {
+        isLoading = true; errorMessage = null;
+        try {
+            var matchResult = await FriendlyMatchService.GetAllAsync();
+            var gameResult = await GameService.GetActiveAsync();
+            var playerResult = await PlayerService.GetPagedAsync(pageSize: 200, isActive: true);
+            if (!matchResult.Succeeded || !gameResult.Succeeded || !playerResult.Succeeded) { errorMessage = matchResult.Error ?? gameResult.Error ?? playerResult.Error ?? "The friendly-match workspace could not be loaded."; return; }
+            matches = matchResult.Value ?? []; games = gameResult.Value ?? []; players = playerResult.Value?.Items ?? [];
+        } finally { isLoading = false; }
+    }
+
+    private void OpenCreate() { createModel = NewCreateModel(); showCreate = true; }
+    private void CloseCreate() => showCreate = false;
+    private void CloseResult() => showResult = false;
+    private void OpenResult(FriendlyMatchDto match) { selectedMatch = match; resultModel = new() { MatchId = match.Id, PlayerOneScore = match.PlayerOneScore ?? 0, PlayerTwoScore = match.PlayerTwoScore ?? 0 }; showResult = true; }
+    private async Task CreateAsync() { isSaving = true; var result = await FriendlyMatchService.CreateAsync(createModel); isSaving = false; if (!result.Succeeded) { Toast.Error(result.Error ?? "Friendly could not be scheduled."); return; } Toast.Success(result.Message ?? "Friendly scheduled."); CloseCreate(); await LoadAsync(); }
+    private async Task SaveResultAsync() { if (selectedMatch is null) return; isSaving = true; var result = selectedMatch.Status == MatchStatus.Completed ? await FriendlyMatchService.CorrectResultAsync(resultModel) : await FriendlyMatchService.RecordResultAsync(resultModel); isSaving = false; if (!result.Succeeded) { Toast.Error(result.Error ?? "Result could not be saved."); return; } Toast.Success(result.Message ?? "Result saved."); CloseResult(); await LoadAsync(); }
+    private async Task CancelAsync(Guid id) { var result = await FriendlyMatchService.CancelAsync(id); if (!result.Succeeded) { Toast.Error(result.Error ?? "Friendly could not be cancelled."); return; } Toast.Success(result.Message ?? "Friendly cancelled."); await LoadAsync(); }
+    private static string FormatScore(FriendlyMatchDto match) => match.PlayerOneScore.HasValue ? $"{match.PlayerOneScore} – {match.PlayerTwoScore}" : "—";
+    private static CreateFriendlyMatchRequest NewCreateModel() => new() { Type = MatchType.Friendly, ScheduledAt = DateTime.Now.AddDays(1) };
+}
+

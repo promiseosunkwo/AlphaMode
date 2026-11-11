@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+@implements IDisposable
 
 @inject NavigationManager NavigationManager
 
@@ -52,7 +52,9 @@
                 <div class="nav-item px-3">
                     <form action="Account/Logout" method="post">
                         <AntiforgeryToken />
-                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                        @* Returning to a protected page immediately after logout can trigger another auth
+                           redirect. Use the public home page for a predictable completed sign-out flow. *@
+                        <input type="hidden" name="ReturnUrl" value="/" />
                         <button type="submit" class="nav-link">
                             <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
                         </button>
@@ -95,4 +97,5 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
+
 

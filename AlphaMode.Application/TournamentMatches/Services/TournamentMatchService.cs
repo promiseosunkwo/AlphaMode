@@ -1,4 +1,4 @@
-﻿using AlphaMode.Application.Common.Interfaces;
+using AlphaMode.Application.Common.Interfaces;
 using AlphaMode.Application.Common.Models;
 using AlphaMode.Application.TournamentMatches.DTOs;
 using AlphaMode.Application.TournamentMatches.Interfaces;
@@ -68,7 +68,7 @@ public class TournamentMatchService : ITournamentMatchService
                     {
                         Id = x.Id,
 
-                        TournamentId = x.TournamentId,
+                        TournamentId = x.TournamentId!.Value,
 
                         TournamentName = x.Tournament.Name,
 
@@ -169,7 +169,7 @@ public class TournamentMatchService : ITournamentMatchService
                     {
                         Id = x.Id,
 
-                        TournamentId =  x.TournamentId,
+                        TournamentId = x.TournamentId!.Value,
 
                         TournamentName = x.Tournament.Name,
 
@@ -516,6 +516,11 @@ public class TournamentMatchService : ITournamentMatchService
             nextRoundMatches.Add(new Match
             {
                 TournamentId = tournamentId,
+
+                // Later knockout rounds inherit the direct game and ranked classification from the completed round.
+                GameId = completedMatch.GameId,
+                Type = AlphaMode.Domain.Enums.MatchType.Tournament,
+                IsRanked = true,
 
                 PlayerOneId = winners[i],
                 PlayerTwoId = winners[i + 1],
@@ -1079,3 +1084,4 @@ public class TournamentMatchService : ITournamentMatchService
     }
 
 }
+

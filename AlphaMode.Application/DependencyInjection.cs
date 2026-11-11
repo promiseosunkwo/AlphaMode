@@ -1,5 +1,7 @@
-﻿using AlphaMode.Application.Games.Interfaces;
+using AlphaMode.Application.Games.Interfaces;
 using AlphaMode.Application.Games.Services;
+using AlphaMode.Application.FriendlyMatches.Interfaces;
+using AlphaMode.Application.FriendlyMatches.Services;
 using AlphaMode.Application.Payments.Interfaces;
 using AlphaMode.Application.Payments.Services;
 using AlphaMode.Application.Players.Interfaces;
@@ -32,6 +34,9 @@ public static class DependencyInjection
 
         services.AddScoped<IGameService, GameService>();
 
+        // Friendlies use their own service so unranked results cannot enter tournament/Elo processing.
+        services.AddScoped<IFriendlyMatchService, FriendlyMatchService>();
+
         services.AddScoped<IPrizePoolService, PrizePoolService>();
 
         services.AddScoped<IPlayerService, PlayerService>();
@@ -59,3 +64,4 @@ public static class DependencyInjection
         return services;
     }
 }
+
