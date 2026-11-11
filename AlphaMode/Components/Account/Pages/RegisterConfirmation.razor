@@ -1,4 +1,4 @@
-﻿@page "/Account/RegisterConfirmation"
+@page "/Account/RegisterConfirmation"
 
 @using System.Text
 @using AlphaMode.Components.Account
@@ -12,6 +12,8 @@
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Register confirmation</PageTitle>
+
+<BackNavigation Href="/login" Label="Back to sign in" Theme="light" />
 
 <h1>Register confirmation</h1>
 
@@ -67,3 +69,4 @@ else
         }
     }
 }
+

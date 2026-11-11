@@ -9,6 +9,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Fixtures | AlphaMode</PageTitle>
+<BackNavigation Href="/dashboard" Label="Back to dashboard" />
 <PortalPageHeader Eyebrow="Competition" Title="Tournament fixtures" Description="Follow fixtures from tournaments you have actually joined.">
     <Actions>@if (data?.Tournaments.Count > 0) { <select class="portal-select" value="@selectedTournamentId" @onchange="SelectTournament">@foreach (var item in data.Tournaments) { <option value="@item.TournamentId">@item.Name · @item.GameName</option> }</select> }</Actions>
 </PortalPageHeader>

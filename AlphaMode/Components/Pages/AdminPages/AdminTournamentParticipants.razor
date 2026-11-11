@@ -1,4 +1,4 @@
-﻿@page "/admin/tournaments/{TournamentId:guid}/participants"
+@page "/admin/tournaments/{TournamentId:guid}/participants"
 
 @layout AlphaMode.Components.Layout.AdminLayout
 @rendermode InteractiveServer
@@ -22,6 +22,8 @@
 
 <PageTitle>Tournament Participants | AlphaMode</PageTitle>
 <ToastContainer />
+
+<BackNavigation Href="/admin/tournaments" Label="Back to tournaments" Theme="light" />
 
 @if (isLoading)
 {
@@ -1186,3 +1188,4 @@ else
         public string Reason { get; set; } = string.Empty;
     }
 }
+

@@ -1,4 +1,4 @@
-﻿@page "/dashboard/my-tournaments"
+@page "/dashboard/my-tournaments"
 @layout AlphaMode.Components.Layout.UserLayout
 @rendermode InteractiveServer
 
@@ -16,6 +16,8 @@
 @inject ToastService Toast
 
 <PageTitle>My Tournaments | AlphaMode</PageTitle>
+
+<BackNavigation Href="/dashboard" Label="Back to dashboard" />
 
 <PortalPageHeader Eyebrow="Competition hub"
                   Title="My tournaments"
@@ -854,3 +856,4 @@ else
         Completed
     }
 }
+

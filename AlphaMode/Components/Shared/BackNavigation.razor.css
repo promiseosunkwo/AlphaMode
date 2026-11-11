@@ -1,0 +1,7 @@
+.back-navigation { width: max-content; display: inline-flex; align-items: center; gap: .55rem; margin-bottom: 1.15rem; color: #858b98; text-decoration: none; font-size: .72rem; font-weight: 750; transition: color .18s ease, transform .18s ease; }
+.back-navigation>span:first-child { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid #30343e; border-radius: 9px; background: rgba(255,255,255,.025); color: #e5e7ec; font-size: .9rem; }
+.back-navigation:hover { color: #fff; transform: translateX(-2px); }
+.back-navigation.light { color: #667085; }
+.back-navigation.light>span:first-child { border-color: #d9dee7; background: #fff; color: #344054; }
+.back-navigation.auth { margin-bottom: 1.4rem; color: #737987; }
+

@@ -1,4 +1,4 @@
-﻿@page "/Account/LoginWithRecoveryCode"
+@page "/Account/LoginWithRecoveryCode"
 
 @using System.ComponentModel.DataAnnotations
 @using AlphaMode.Components.Account
@@ -11,6 +11,8 @@
 @inject ILogger<LoginWithRecoveryCode> Logger
 
 <PageTitle>Recovery code verification</PageTitle>
+
+<BackNavigation Href="/Account/LoginWith2fa" Label="Back to verification" Theme="light" />
 
 <h1>Recovery code verification</h1>
 <hr />
@@ -84,3 +86,4 @@
         public string RecoveryCode { get; set; } = "";
     }
 }
+
