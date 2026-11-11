@@ -1,0 +1,9 @@
+@using AlphaMode.ViewModels
+<article class="player-match-card">
+    <div class="match-card-top"><span class="portal-status @Match.Status.ToLowerInvariant()">@Match.Status</span><time>@Match.StartsAt.ToString("ddd, dd MMM · HH:mm")</time></div>
+    <div class="match-opponent"><span>@Match.OpponentInitials</span><div><small>Opponent</small><strong>@Match.Opponent</strong></div>@if (Match.PlayerScore.HasValue) { <b>@Match.PlayerScore – @Match.OpponentScore</b> }</div>
+    <div class="match-meta"><span>@Match.Game</span><span>@Match.Tournament</span></div>
+    <a class="portal-button subtle" href="dashboard/fixtures">View fixture <span>→</span></a>
+</article>
+@code { [Parameter, EditorRequired] public PlayerMatchViewModel Match { get; set; } = default!; }
+

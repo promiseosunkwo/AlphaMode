@@ -1,0 +1,19 @@
+@* Skeleton geometry mirrors the content type and prevents layout movement. *@
+<div class="skeleton-group skeleton-@Variant" role="status" aria-label="@Label" aria-busy="true">
+    @for (var row = 0; row < Rows; row++)
+    {
+        <div class="skeleton-item" aria-hidden="true">
+            <span class="skeleton-line skeleton-line-title"></span>
+            <span class="skeleton-line"></span>
+            @if (Variant == "table") { <span class="skeleton-line skeleton-line-short"></span> }
+        </div>
+    }
+    <span class="visually-hidden">@Label</span>
+</div>
+
+@code {
+    [Parameter] public string Variant { get; set; } = "card";
+    [Parameter] public int Rows { get; set; } = 3;
+    [Parameter] public string Label { get; set; } = "Loading content";
+}
+

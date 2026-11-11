@@ -1,0 +1,40 @@
+@inherits LayoutComponentBase
+
+<div class="user-portal-shell">
+    <input id="user-nav-toggle" class="user-nav-toggle" type="checkbox" aria-label="Toggle dashboard navigation" />
+    <label class="user-nav-backdrop" for="user-nav-toggle" aria-hidden="true"></label>
+    <aside class="user-sidebar">
+        <a class="user-brand" href="/"><span>A</span><strong>ALPHA<em>MODE</em></strong></a>
+        <nav aria-label="Player navigation">
+            <p>Workspace</p>
+            <NavLink href="dashboard" Match="NavLinkMatch.All"><span>⌂</span>Overview</NavLink>
+            <NavLink href="dashboard/matches"><span>◉</span>My matches</NavLink>
+            <NavLink href="dashboard/tournaments"><span>◇</span>All Tournaments</NavLink>
+            <NavLink href="dashboard/my-tournaments"><span>◇</span>My Tournaments</NavLink>
+            <NavLink href="dashboard/fixtures"><span>▦</span>Fixtures</NavLink>
+            <p>Performance</p>
+            <NavLink href="dashboard/ranking"><span>↗</span>Ranking</NavLink>
+            <NavLink href="dashboard/payments"><span>↗</span>Payment History</NavLink>
+            <NavLink href="dashboard/notifications"><span>○</span>Notifications <b>3</b></NavLink>
+            <NavLink href="dashboard/profile"><span>◎</span>Profile</NavLink>
+        </nav>
+        <div class="user-sidebar-footer"><a href="Account/Manage">Account settings</a><form action="Account/Logout" method="post"><AntiforgeryToken /><button type="submit">Sign out</button></form></div>
+    </aside>
+    <main class="user-portal-main">
+        <header class="user-topbar">
+            <label class="user-menu-button" for="user-nav-toggle" aria-label="Open navigation">☰</label>
+            <div><small>Player portal</small><strong>Compete. Improve. Win.</strong></div>
+            <div class="user-top-actions">
+                <a class="notification-button" href="dashboard/notifications" aria-label="Notifications">♢<span>3</span></a>
+                <AuthorizeView><Authorized><a class="user-chip" href="dashboard/profile"><span>@GetInitial(context.User.Identity?.Name)</span><div><strong>@(context.User.Identity?.Name ?? "Player")</strong><small>View profile</small></div></a></Authorized></AuthorizeView>
+            </div>
+        </header>
+        <article class="user-portal-content">@Body</article>
+    </main>
+</div>
+
+@code {
+    // A safe initial keeps the avatar useful when Identity has no display name yet.
+    private static string GetInitial(string? name) => string.IsNullOrWhiteSpace(name) ? "P" : name.Trim()[0].ToString().ToUpperInvariant();
+}
+
