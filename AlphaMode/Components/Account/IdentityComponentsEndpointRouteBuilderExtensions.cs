@@ -40,21 +40,18 @@ namespace Microsoft.AspNetCore.Routing
                 return TypedResults.Challenge(properties, [provider]);
             });
 
-            accountGroup.MapPost("/Logout", async (
-                ClaimsPrincipal user,
-                SignInManager<ApplicationUser> signInManager,
-                [FromForm] string? returnUrl) =>
-            {
-                await signInManager.SignOutAsync();
-
-                // Some layouts previously omitted ReturnUrl, so form binding rejected the request before
-                // SignOutAsync could run. Accepting an optional value makes every logout form reliable.
-                // The destination is also normalised and restricted to a local path to prevent malformed
-                // redirects (for example "~//") and to avoid accepting an external return URL.
-                var localReturnUrl = GetSafeLogoutReturnUrl(returnUrl);
-
-                return TypedResults.LocalRedirect(localReturnUrl);
-            });
+            // Logout previously bound ReturnUrl from the form. Minimal API form binding automatically
+            // required an antiforgery token, but interactive layout forms did not reliably render one,
+            // causing AntiforgeryValidationException before SignOutAsync ran. Logout is an idempotent,
+            // authenticated POST with a fixed local destination, so it needs no request body and can
+            // safely disable antiforgery for this endpoint only.
+            accountGroup.MapPost("/Logout", async (SignInManager<ApplicationUser> signInManager) =>
+                {
+                    await signInManager.SignOutAsync();
+                    return TypedResults.LocalRedirect("/");
+                })
+                .RequireAuthorization()
+                .DisableAntiforgery();
 
             var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();
 
@@ -117,25 +114,6 @@ namespace Microsoft.AspNetCore.Routing
             return accountGroup;
         }
 
-        private static string GetSafeLogoutReturnUrl(string? returnUrl)
-        {
-            if (string.IsNullOrWhiteSpace(returnUrl))
-            {
-                return "/";
-            }
-
-            var trimmedReturnUrl = returnUrl.Trim();
-
-            // A valid logout destination must remain inside AlphaMode. Protocol-relative URLs beginning
-            // with "//" are explicitly rejected because browsers interpret them as external destinations.
-            if (trimmedReturnUrl.StartsWith("//", StringComparison.Ordinal) ||
-                Uri.TryCreate(trimmedReturnUrl, UriKind.Absolute, out _))
-            {
-                return "/";
-            }
-
-            return $"/{trimmedReturnUrl.TrimStart('/')}";
-        }
     }
 }
 
