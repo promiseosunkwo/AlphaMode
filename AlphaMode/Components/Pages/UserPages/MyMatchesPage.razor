@@ -1,18 +1,18 @@
 @page "/dashboard/matches"
 @rendermode InteractiveServer
 @layout AlphaMode.Components.Layout.UserLayout
-@using AlphaMode.Application.FriendlyMatches.DTOs
-@using AlphaMode.Application.FriendlyMatches.Interfaces
+@using AlphaMode.Application.Dashboards.DTOs
+@using AlphaMode.Application.Dashboards.Interfaces
 @using AlphaMode.Components.Sections.UserSectionComponents
 @using AlphaMode.Domain.Enums
 @using Microsoft.AspNetCore.Components.Authorization
-@inject IFriendlyMatchService FriendlyMatchService
+@inject IDashboardQueryService DashboardService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>My matches | AlphaMode</PageTitle>
-<PortalPageHeader Eyebrow="Competition" Title="My matches" Description="Review your friendly and exhibition matches. These results never affect your Elo." />
+<PortalPageHeader Eyebrow="Competition" Title="My matches" Description="Review every tournament, friendly, and exhibition match assigned to you." />
 
-@* The old page displayed shared sample fixtures. This version loads only matches belonging to the signed-in player. *@
+@* One database query now combines tournament and friendly matches for the signed-in player. *@
 <div class="portal-filter-row">
     @foreach (var value in new[] { "All", "Upcoming", "Completed" })
     { <button class="@(filter == value ? "active" : null)" @onclick="() => filter = value">@value @if(value == "All"){<span>@matches.Count</span>}</button> }
@@ -20,14 +20,14 @@
 
 @if (isLoading) { <ContentSkeleton Rows="5" /> }
 else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadAsync" /> }
-else if (!FilteredMatches.Any()) { <EmptyState Title="No matches yet" Message="Your friendly and exhibition matches will appear here after an administrator schedules them." /> }
+else if (!FilteredMatches.Any()) { <EmptyState Title="No matches yet" Message="Tournament and friendly matches will appear here after fixtures are generated or scheduled." /> }
 else
 {
     <section class="match-card-grid three">
         @foreach (var match in FilteredMatches)
         {
             <article class="portal-match-card">
-                <header><span class="portal-status open">@match.Type</span><small>Unranked · no Elo impact</small></header>
+                <header><span class="portal-status open">@match.CompetitionName</span><small>@(match.IsRanked ? "Ranked · affects Elo" : "Unranked · no Elo impact")</small></header>
                 <div class="match-opponents"><strong>@match.PlayerOneName</strong><span>@FormatScore(match)</span><strong>@match.PlayerTwoName</strong></div>
                 <footer><span>@match.GameName</span><span>@(match.ScheduledAt?.ToLocalTime().ToString("dd MMM yyyy · HH:mm") ?? "Time to be confirmed")</span><b>@match.Status</b></footer>
             </article>
@@ -36,12 +36,12 @@ else
 }
 
 @code {
-    private IReadOnlyList<FriendlyMatchDto> matches = [];
+    private IReadOnlyList<UserMatchDto> matches = [];
     private string filter = "All";
     private string? errorMessage;
     private bool isLoading;
 
-    private IEnumerable<FriendlyMatchDto> FilteredMatches => filter switch
+    private IEnumerable<UserMatchDto> FilteredMatches => filter switch
     {
         "Upcoming" => matches.Where(x => x.Status is MatchStatus.Pending or MatchStatus.Scheduled or MatchStatus.Live),
         "Completed" => matches.Where(x => x.Status == MatchStatus.Completed),
@@ -57,12 +57,12 @@ else
             var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(userId)) { errorMessage = "Your player identity could not be loaded."; return; }
-            var result = await FriendlyMatchService.GetForUserAsync(userId);
+            var result = await DashboardService.GetUserMatchesAsync(userId);
             if (!result.Succeeded) { errorMessage = result.Error ?? "Your matches could not be loaded."; return; }
             matches = result.Value ?? [];
         } finally { isLoading = false; }
     }
 
-    private static string FormatScore(FriendlyMatchDto match) => match.PlayerOneScore.HasValue ? $"{match.PlayerOneScore} – {match.PlayerTwoScore}" : "VS";
+    private static string FormatScore(UserMatchDto match) => match.PlayerOneScore.HasValue ? $"{match.PlayerOneScore} – {match.PlayerTwoScore}" : "VS";
 }
 
