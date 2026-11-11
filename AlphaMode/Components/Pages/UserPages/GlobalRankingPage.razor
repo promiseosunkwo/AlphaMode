@@ -18,11 +18,17 @@
 <section class="portal-panel">
     <div class="portal-section-heading"><div><span>Game ranking</span><h2>Leaderboard</h2></div>
         <select class="portal-select" value="@selectedGameId" @onchange="ChangeGameAsync">
-            @foreach (var game in games) { <option value="@game.Id">@game.Name · @game.Platform</option> }
+            @foreach (var game in games) 
+            { 
+                <option value="@game.Id">@game.Name · @game.Platform</option>
+            }
         </select>
     </div>
 
-    @if (isLoading) { <ContentSkeleton Variant="table" Rows="7" /> }
+    @if (isLoading) 
+    { 
+        <ContentSkeleton Variant="table" Rows="7" />
+    }
     else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadRankingAsync" /> }
     else
     {
@@ -50,9 +56,13 @@
             </div>
         }
     }
+    
 </section>
 
+
+
 @code {
+
     private IReadOnlyList<GameDto> games = [];
     private IReadOnlyList<LeaderboardEntryDto> leaderboard = [];
     private PlayerRatingSummaryDto? summary;
@@ -91,6 +101,24 @@
 
     private static string FormatChange(decimal? value) => !value.HasValue ? "—" : value.Value >= 0 ? $"+{value:0.##}" : $"{value:0.##}";
     private static string GetInitials(string value) => string.Concat(value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => char.ToUpperInvariant(x[0])));
-    private static string GetTier(decimal rating) => rating switch { < 900m => "Bronze", < 1000m => "Silver", < 1100m => "Gold", < 1200m => "Platinum", < 1300m => "Diamond", _ => "Elite" };
-}
+   
+    private static string GetTier(decimal rating)
+    {
+        if (rating < 900m)
+            return "Bronze";
 
+        if (rating < 1000m)
+            return "Silver";
+
+        if (rating < 1100m)
+            return "Gold";
+
+        if (rating < 1200m)
+            return "Platinum";
+
+        if (rating < 1300m)
+            return "Diamond";
+
+        return "Elite";
+    }
+}

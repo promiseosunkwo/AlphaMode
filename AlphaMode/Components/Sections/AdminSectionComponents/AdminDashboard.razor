@@ -4,16 +4,75 @@
 
 <AdminPageHeader Title="Command centre" Description="Monitor current platform activity and move quickly on work that needs attention."><Actions><a class="adm-button secondary" href="/admin/reports">Reports</a><a class="adm-button primary" href="/admin/tournaments">Create tournament</a></Actions></AdminPageHeader>
 
-@if (isLoading) { <ContentSkeleton Rows="8" /> }
-else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadAsync" /> }
+@if (isLoading) 
+{ 
+    <ContentSkeleton Rows="8" />
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage)) 
+{ 
+    <ErrorState Message="@errorMessage" OnRetry="LoadAsync" /> 
+}
 else if (dashboard is not null)
 {
     @* These cards previously displayed fixed demo numbers; every value now reflects persisted platform records. *@
-    <section class="adm-stats-grid" aria-label="Platform summary"><AdminStatCard Label="Active players" Value="@dashboard.ActivePlayers.ToString("N0")" Detail="Enabled player profiles" Icon="♙" Tone="blue" /><AdminStatCard Label="Live tournaments" Value="@dashboard.ActiveTournaments.ToString()" Detail="Currently in progress" Icon="♜" Tone="purple" /><AdminStatCard Label="Matches today" Value="@dashboard.MatchesToday.ToString()" Detail="@dashboard.LiveMatches currently live" Icon="⚔" Tone="green" /><AdminStatCard Label="Draft tournaments" Value="@dashboard.DraftTournaments.ToString()" Detail="Awaiting publication" Icon="!" Tone="amber" /></section>
+
+    <section class="adm-stats-grid" aria-label="Platform summary">
+
+        <AdminStatCard Label="Active players"
+                       Value="@dashboard.ActivePlayers.ToString("N0")"
+                       Detail="Enabled player profiles"
+                       Icon="♙"
+                       Tone="blue" />
+
+        <AdminStatCard Label="Live tournaments"
+                       Value="@dashboard.ActiveTournaments.ToString()"
+                       Detail="Currently in progress"
+                       Icon="♜"
+                       Tone="purple" />
+
+        <AdminStatCard Label="Matches today"
+                       Value="@dashboard.MatchesToday.ToString()"
+                       Detail="@($"{dashboard.LiveMatches} currently live")"
+                       Icon="⚔"
+                       Tone="green" />
+
+        <AdminStatCard Label="Draft tournaments"
+                       Value="@dashboard.DraftTournaments.ToString()"
+                       Detail="Awaiting publication"
+                       Icon="!"
+                       Tone="amber" />
+
+    </section>
+
+    
+    
     <div class="adm-dashboard-grid">
-        <section class="adm-panel adm-span-2"><div class="adm-panel-header"><div><p class="adm-eyebrow">Live operations</p><h2>Matches in progress</h2></div><a href="/admin/matches">View schedule →</a></div>
-            @if (dashboard.LiveMatchItems.Count == 0) { <EmptyState Title="No live matches" Message="Matches will appear here as soon as an administrator starts them." /> }
-            else { @foreach (var match in dashboard.LiveMatchItems) { <div class="adm-match-row"><span class="adm-live-dot"></span><div><strong>@match.PlayerOneName</strong><small>@match.CompetitionName · Round @match.RoundNumber</small></div><b>@Score(match)</b><div class="right"><strong>@match.PlayerTwoName</strong><small>@match.GameName · @FormatTime(match.ScheduledAt)</small></div></div> } }
+        <section class="adm-panel adm-span-2">
+            <div class="adm-panel-header">
+                <div>
+                    <p class="adm-eyebrow">Live operations</p>
+                    <h2>Matches in progress</h2>
+                </div>
+                <a href="/admin/matches">View schedule →</a>
+            </div>
+            @if (dashboard.LiveMatchItems.Count == 0) 
+            { 
+                <EmptyState Title="No live matches" Message="Matches will appear here as soon as an administrator starts them." />
+            }
+            else { 
+                @foreach (var match in dashboard.LiveMatchItems) 
+                { 
+                    <div class="adm-match-row">
+                        <span class="adm-live-dot"></span>
+                        <div>
+                            <strong>@match.PlayerOneName</strong>
+                            <small>@match.CompetitionName · Round @match.RoundNumber</small>
+                        </div>
+                        <b>@Score(match)</b>
+                        <div class="right">
+                            <strong>@match.PlayerTwoName</strong>
+                            <small>@match.GameName · @FormatTime(match.ScheduledAt)</small>
+                        </div></div> } }
         </section>
         <aside class="adm-panel"><div class="adm-panel-header"><div><p class="adm-eyebrow">Action queue</p><h2>Needs review</h2></div></div><a class="adm-queue-item" href="/admin/tournaments"><span class="blue">@dashboard.DraftTournaments</span><div><strong>Draft tournaments</strong><small>Awaiting publication</small></div></a><a class="adm-queue-item" href="/admin/matches"><span class="amber">@dashboard.MatchesToday</span><div><strong>Today's matches</strong><small>@dashboard.LiveMatches currently live</small></div></a></aside>
         <aside class="adm-panel"><div class="adm-panel-header"><div><p class="adm-eyebrow">Quick actions</p><h2>Create & manage</h2></div></div><div class="adm-quick-grid"><a href="/admin/tournaments">＋<span>New tournament</span></a><a href="/admin/matches">＋<span>Schedule match</span></a><a href="/admin/notifications">✦<span>Send update</span></a><a href="/admin/players">♙<span>Manage players</span></a></div></aside>
