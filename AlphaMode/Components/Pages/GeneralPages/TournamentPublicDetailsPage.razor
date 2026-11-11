@@ -1,0 +1,20 @@
+@page "/tournaments/{Slug}"
+@rendermode InteractiveServer
+@using AlphaMode.Application.TournamentFixtures.DTOs
+@using AlphaMode.Application.TournamentFixtures.Interfaces
+@using AlphaMode.Application.Tournaments.DTOs
+@using AlphaMode.Application.Tournaments.Interfaces
+@using AlphaMode.Components.Sections.Shared
+@using AlphaMode.Domain.Enums
+@inject ITournamentService TournamentService
+@inject ITournamentFixtureService FixtureService
+
+<PageTitle>@(tournament?.Name ?? "Tournament") | AlphaMode</PageTitle><div class="alpha-page"><Navbar /><main class="public-main">
+@if (isLoading) { <section class="public-section"><ContentSkeleton Rows="9" /></section> } else if (!string.IsNullOrWhiteSpace(errorMessage)) { <section class="public-section"><ErrorState Message="@errorMessage" OnRetry="LoadAsync" /></section> } else if (tournament is not null) {
+<section class="public-detail-hero" style="@Cover"><div><span class="public-pill">@tournament.Status</span><small>@tournament.GameName · @tournament.Format</small><h1>@tournament.Name</h1><p>@tournament.Description</p><div><a class="public-button" href="/register">Join AlphaMode</a>@if (fixtures?.FixturesGenerated == true) { <a class="public-button secondary" href="/tournaments/@tournament.Id/bracket">Open full bracket</a> }</div></div></section>
+<section class="public-section"><div class="public-facts"><div><span>Starts</span><strong>@tournament.StartDate.ToLocalTime().ToString("dd MMM yyyy")</strong></div><div><span>Players</span><strong>@tournament.RegisteredPlayers / @tournament.MaxPlayers</strong></div><div><span>Entry</span><strong>@(tournament.EntryFee == 0 ? "Free" : tournament.EntryFee.ToString("N0"))</strong></div><div><span>Format</span><strong>@tournament.Format</strong></div></div><div class="public-section-heading"><div><span>Schedule</span><h2>Tournament fixtures</h2></div></div>
+@if (fixtures?.FixturesGenerated != true || fixtures.Rounds.Count == 0) { <EmptyState Title="Fixtures coming soon" Message="The tournament organizer has not published the bracket or schedule yet." /> } else { <div class="public-rounds">@foreach (var round in fixtures.Rounds) { <section><header><h3>@round.Name</h3><span>@round.Matches.Count matches</span></header>@foreach (var match in round.Matches) { <article><span>@match.PlayerOneName</span><b>@Score(match)</b><span>@match.PlayerTwoName</span><small>@(match.ScheduledAt?.ToLocalTime().ToString("dd MMM · HH:mm") ?? match.Status.ToString())</small></article> }</section> }</div> }
+</section> }
+</main><Footer /></div>
+@code { [Parameter] public string Slug { get; set; } = string.Empty; private TournamentDto? tournament; private TournamentFixtureDto? fixtures; private bool isLoading; private string? errorMessage; private string Cover => string.IsNullOrWhiteSpace(tournament?.ImageUrl) ? "" : $"background-image:linear-gradient(90deg,#10131bee,#10131b88),url('{tournament.ImageUrl}')"; protected override Task OnParametersSetAsync() => LoadAsync(); private async Task LoadAsync() { isLoading = true; errorMessage = null; try { var result = await TournamentService.GetBySlugAsync(Slug); if (!result.Succeeded || result.Value is null) { errorMessage = result.Error ?? "Tournament not found."; return; } tournament = result.Value; if (tournament.Status is TournamentStatus.Draft or TournamentStatus.Cancelled) { errorMessage = "This tournament is not publicly available."; tournament = null; return; } var fixtureResult = await FixtureService.GetAsync(tournament.Id); if (fixtureResult.Succeeded) fixtures = fixtureResult.Value; } finally { isLoading = false; } } private static string Score(FixtureMatchDto x) => x.HasScore ? $"{x.PlayerOneScore} – {x.PlayerTwoScore}" : "vs"; }
+

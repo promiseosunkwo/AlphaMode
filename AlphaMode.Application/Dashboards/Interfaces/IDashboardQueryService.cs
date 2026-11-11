@@ -9,5 +9,6 @@ public interface IDashboardQueryService
     Task<Result<IReadOnlyList<UserMatchDto>>> GetUserMatchesAsync(string userId, CancellationToken cancellationToken = default);
     Task<Result<UserFixturesDto>> GetUserFixturesAsync(string userId, CancellationToken cancellationToken = default);
     Task<Result<AdminDashboardDto>> GetAdminDashboardAsync(CancellationToken cancellationToken = default);
+    Task<Result<IReadOnlyList<UserMatchDto>>> GetPublicTournamentMatchesAsync(CancellationToken cancellationToken = default);
 }
 
