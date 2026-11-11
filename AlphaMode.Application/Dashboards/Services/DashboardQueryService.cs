@@ -78,6 +78,15 @@ public sealed class DashboardQueryService : IDashboardQueryService
         return Result<AdminDashboardDto>.Success(dto);
     }
 
+    public async Task<Result<IReadOnlyList<UserMatchDto>>> GetPublicTournamentMatchesAsync(CancellationToken cancellationToken = default)
+    {
+        // Standalone friendlies are intentionally excluded from the public match centre.
+        var matches = await _context.Matches.AsNoTracking().Where(x => x.TournamentId.HasValue && x.Tournament!.Status != TournamentStatus.Draft && x.Tournament.Status != TournamentStatus.Cancelled)
+            .OrderByDescending(x => x.Status == MatchStatus.Live).ThenBy(x => x.ScheduledAt).Take(200)
+            .Select(MatchProjection).ToListAsync(cancellationToken);
+        return Result<IReadOnlyList<UserMatchDto>>.Success(matches);
+    }
+
     private async Task<IReadOnlyList<UserMatchDto>> LoadMatchesAsync(Guid playerId, CancellationToken cancellationToken) =>
         await _context.Matches.AsNoTracking().Where(x => x.PlayerOneId == playerId || x.PlayerTwoId == playerId)
             .OrderByDescending(x => x.Status == MatchStatus.Live).ThenByDescending(x => x.ScheduledAt)

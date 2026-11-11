@@ -1,118 +1,13 @@
-﻿@page "/upcoming-matches"
+@page "/upcoming-matches"
+@rendermode InteractiveServer
+@using AlphaMode.Application.Dashboards.DTOs
+@using AlphaMode.Application.Dashboards.Interfaces
+@using AlphaMode.Components.Sections.Shared
+@using AlphaMode.Domain.Enums
+@inject IDashboardQueryService DashboardService
 
-<div class="alpha-page">
+<PageTitle>Upcoming matches | AlphaMode</PageTitle><div class="alpha-page"><Navbar /><main class="public-main"><section class="public-hero"><div><span>Match centre</span><h1>Upcoming fixtures</h1><p>Published tournament matches, scheduled times, games, and rounds in one place.</p></div><a class="public-button secondary" href="/live-matches">View live matches</a></section><section class="public-section">
+@if (isLoading) { <ContentSkeleton Rows="7" /> } else if (!string.IsNullOrWhiteSpace(errorMessage)) { <ErrorState Message="@errorMessage" OnRetry="LoadAsync" /> } else if (!Upcoming.Any()) { <EmptyState Title="No upcoming fixtures" Message="Scheduled tournament matches will appear here after fixtures are generated." /> } else { <div class="public-fixture-list">@foreach (var match in Upcoming) { <article class="public-fixture"><time><strong>@(match.ScheduledAt?.ToLocalTime().ToString("dd") ?? "—")</strong><span>@(match.ScheduledAt?.ToLocalTime().ToString("MMM · HH:mm") ?? "Time TBC")</span></time><div><small>@match.CompetitionName · Round @match.RoundNumber</small><h2>@match.PlayerOneName <em>vs</em> @match.PlayerTwoName</h2><p>@match.GameName</p></div><span class="public-pill">@match.Status</span></article> }</div> }
+</section></main><Footer /></div>
+@code { private IReadOnlyList<UserMatchDto> matches = []; private bool isLoading; private string? errorMessage; private IEnumerable<UserMatchDto> Upcoming => matches.Where(x => x.Status is MatchStatus.Pending or MatchStatus.Scheduled).OrderBy(x => x.ScheduledAt); protected override Task OnInitializedAsync() => LoadAsync(); private async Task LoadAsync() { isLoading = true; errorMessage = null; try { var result = await DashboardService.GetPublicTournamentMatchesAsync(); if (!result.Succeeded) { errorMessage = result.Error; return; } matches = result.Value ?? []; } finally { isLoading = false; } } }
 
-    <section class="section">
-        <div class="alpha-container">
-
-            <div class="section-heading">
-                <p class="eyebrow">Match Schedule</p>
-                <h2>Upcoming Games</h2>
-                <p class="subtext">
-                    View all scheduled matches, players, rankings, and tournaments.
-                </p>
-            </div>
-
-            <!-- MATCH LIST -->
-            <div class="match-schedule">
-
-                @foreach (var match in Matches)
-                {
-                    <div class="match-card">
-
-                        <!-- LEFT: DATE/TIME -->
-                        <div class="match-time">
-                            <span class="date">@match.Date.ToString("dd MMM")</span>
-                            <span class="time">@match.Date.ToString("HH:mm")</span>
-                        </div>
-
-                        <!-- TOURNAMENT -->
-                        <div class="match-tournament">
-                            <span class="label">Tournament</span>
-                            <b>@match.Tournament</b>
-                        </div>
-
-                        <!-- PLAYERS -->
-                        <div class="match-players">
-
-                            <div class="player-block">
-                                <div class="avatar">@GetInitials(match.Player1)</div>
-                                <div>
-                                    <b>@match.Player1</b>
-                                    <small>Rank #@match.Player1Rank</small>
-                                </div>
-                            </div>
-
-                            <span class="vs">VS</span>
-
-                            <div class="player-block">
-                                <div class="avatar">@GetInitials(match.Player2)</div>
-                                <div>
-                                    <b>@match.Player2</b>
-                                    <small>Rank #@match.Player2Rank</small>
-                                </div>
-                            </div>
-
-                        </div>
-
-                        <!-- STATUS -->
-                        <div class="match-status">
-                            <span class="status upcoming">Upcoming</span>
-                        </div>
-
-                    </div>
-                }
-
-            </div>
-
-        </div>
-    </section>
-
-</div>
-
-@code {
-
-    private List<Match> Matches = new()
-    {
-        new()
-        {
-            Date = DateTime.Now.AddHours(3),
-            Tournament = "Alpha Cup 1",
-            Player1 = "ToyinFC",
-            Player1Rank = 1,
-            Player2 = "ShadowX",
-            Player2Rank = 4
-        },
-        new()
-        {
-            Date = DateTime.Now.AddDays(1).AddHours(2),
-            Tournament = "Mortal Clash",
-            Player1 = "FatalKen",
-            Player1Rank = 2,
-            Player2 = "ComboLord",
-            Player2Rank = 3
-        },
-        new()
-        {
-            Date = DateTime.Now.AddDays(2).AddHours(5),
-            Tournament = "Elite Series",
-            Player1 = "KingJay",
-            Player1Rank = 5,
-            Player2 = "ToyinFC",
-            Player2Rank = 1
-        }
-    };
-
-    private string GetInitials(string name)
-        => string.Join("", name.Split(' ').Select(x => x[0])).ToUpper();
-
-    private class Match
-    {
-        public DateTime Date { get; set; }
-        public string Tournament { get; set; } = "";
-        public string Player1 { get; set; } = "";
-        public int Player1Rank { get; set; }
-        public string Player2 { get; set; } = "";
-        public int Player2Rank { get; set; }
-    }
-}
