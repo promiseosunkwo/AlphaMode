@@ -1,5 +1,6 @@
 using AlphaMode.Application.Common.Interfaces;
 using AlphaMode.Application.Common.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Data;
 
 namespace AlphaMode.Infrastructure.Persistence;

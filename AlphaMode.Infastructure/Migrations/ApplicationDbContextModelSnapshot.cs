@@ -22,8 +22,6 @@ namespace AlphaMode.Infastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.HasSequence("FootballRatingSequence");
-
             modelBuilder.Entity("AlphaMode.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -139,8 +137,6 @@ namespace AlphaMode.Infastructure.Migrations
                         .HasColumnType("decimal(3,1)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GameId");
 
                     b.HasIndex("OpponentPlayerId");
 
