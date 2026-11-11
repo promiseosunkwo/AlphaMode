@@ -1,4 +1,4 @@
-﻿namespace AlphaMode.Application.FootballRankings.Services;
+namespace AlphaMode.Application.FootballRankings.Services;
 
 public static class EloCalculator
 {
@@ -23,6 +23,26 @@ public static class EloCalculator
         }
 
         decimal playerOneResult = playerOneScore > playerTwoScore ? 1m : playerOneScore < playerTwoScore ? 0m : 0.5m;
+
+        return Calculate(playerOneRating, playerTwoRating, playerOneResult);
+    }
+
+    public static EloCalculationResult Calculate(
+        decimal playerOneRating,
+        decimal playerTwoRating,
+        decimal playerOneResult)
+    {
+        if (playerOneRating < 0 || playerTwoRating < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(playerOneRating), "Ratings cannot be negative.");
+        }
+
+        // Accepting the outcome directly lets a penalty-shootout winner receive a win even when
+        // the regulation score is tied, without making goal margin affect Elo.
+        if (playerOneResult is not (0m or 0.5m or 1m))
+        {
+            throw new ArgumentOutOfRangeException(nameof(playerOneResult), "Result must be 0, 0.5, or 1.");
+        }
 
         decimal playerTwoResult = 1m - playerOneResult;
 
@@ -59,3 +79,4 @@ public sealed record EloCalculationResult(
     decimal PlayerTwoChange,
     decimal PlayerOneResult,
     decimal PlayerTwoResult);
+

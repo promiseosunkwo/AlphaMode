@@ -1,4 +1,4 @@
-﻿using AlphaMode.Application.FootballRankings.Services;
+using AlphaMode.Application.FootballRankings.Services;
 using Xunit;
 
 public class EloCalculatorTests
@@ -49,6 +49,17 @@ public class EloCalculatorTests
         Assert.Equal(0m, result.PlayerOneChange + result.PlayerTwoChange);
     }
 
+    [Fact]
+    public void ExplicitOutcome_AllowsPenaltyWinnerToReceiveWin()
+    {
+        // Regulation goals may be tied, so the result overload lets the match engine pass
+        // the shootout winner without introducing goal-margin weighting.
+        var result = EloCalculator.Calculate(1000m, 1000m, 1m);
+
+        Assert.Equal(1016m, result.PlayerOneRatingAfter);
+        Assert.Equal(984m, result.PlayerTwoRatingAfter);
+    }
+
     [Theory]
     [InlineData(-1, 2)]
     [InlineData(2, -1)]
@@ -64,3 +75,4 @@ public class EloCalculatorTests
                 playerTwoScore));
     }
 }
+

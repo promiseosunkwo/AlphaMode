@@ -1,4 +1,4 @@
-﻿using AlphaMode.Domain.Entities;
+using AlphaMode.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using RegistrationEntity = AlphaMode.Domain.Entities.TournamentRegistration;
 namespace AlphaMode.Application.Common.Interfaces;
@@ -33,5 +33,10 @@ public interface IApplicationDbContext
 
     DbSet<FootballRatingHistory> FootballRatingHistories { get; }
 
+    // Elo history needs one database-generated order value per match so concurrent result
+    // submissions cannot receive the same replay position.
+    Task<long> GetNextFootballRatingSequenceAsync(CancellationToken cancellationToken = default);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
+

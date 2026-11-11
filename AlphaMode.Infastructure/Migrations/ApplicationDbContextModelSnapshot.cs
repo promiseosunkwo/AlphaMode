@@ -22,6 +22,8 @@ namespace AlphaMode.Infastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence("FootballRatingSequence");
+
             modelBuilder.Entity("AlphaMode.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -144,7 +146,7 @@ namespace AlphaMode.Infastructure.Migrations
 
                     b.HasIndex("PlayerId");
 
-                    b.HasIndex("ProcessingSequence");
+                    b.HasIndex("GameId", "ProcessingSequence");
 
                     b.HasIndex("MatchId", "PlayerId")
                         .IsUnique();

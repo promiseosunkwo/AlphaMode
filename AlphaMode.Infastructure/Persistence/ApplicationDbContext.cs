@@ -1,4 +1,4 @@
-﻿using AlphaMode.Application.Common.Interfaces;
+using AlphaMode.Application.Common.Interfaces;
 using AlphaMode.Domain.Common;
 using AlphaMode.Domain.Entities;
 using AlphaMode.Domain.Identity;
@@ -46,6 +46,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     #endregion
 
+    public Task<long> GetNextFootballRatingSequenceAsync(CancellationToken cancellationToken = default)
+    {
+        // SQL Server owns sequence generation, avoiding the race condition caused by Max + 1.
+        return Database.SqlQueryRaw<long>(
+                "SELECT NEXT VALUE FOR dbo.FootballRatingSequence AS [Value]")
+            .SingleAsync(cancellationToken);
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -77,3 +85,4 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         return await base.SaveChangesAsync(cancellationToken);
     }
 }
+
