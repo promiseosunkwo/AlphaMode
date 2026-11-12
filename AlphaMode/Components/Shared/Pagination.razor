@@ -1,0 +1,43 @@
+@if (TotalPages > 1)
+{
+    <nav class="public-pagination" aria-label="@AriaLabel">
+        <span>Showing @FirstItem–@LastItem of @TotalItems</span>
+        <div>
+            <button disabled="@(CurrentPage <= 1)" @onclick="() => SelectPageAsync(CurrentPage - 1)">Previous</button>
+            @foreach (var page in VisiblePages)
+            {
+                <button class="@(page == CurrentPage ? "active" : null)"
+                        aria-current="@(page == CurrentPage ? "page" : null)"
+                        @onclick="() => SelectPageAsync(page)">@page</button>
+            }
+            <button disabled="@(CurrentPage >= TotalPages)" @onclick="() => SelectPageAsync(CurrentPage + 1)">Next</button>
+        </div>
+    </nav>
+}
+
+@code {
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public int TotalItems { get; set; }
+    [Parameter] public string AriaLabel { get; set; } = "Pagination";
+    [Parameter] public EventCallback<int> CurrentPageChanged { get; set; }
+
+    private int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalItems / (double)PageSize);
+    private int FirstItem => TotalItems == 0 ? 0 : ((CurrentPage - 1) * PageSize) + 1;
+    private int LastItem => Math.Min(CurrentPage * PageSize, TotalItems);
+
+    // Keep the control compact on mobile while still exposing nearby pages.
+    private IEnumerable<int> VisiblePages
+    {
+        get
+        {
+            var start = Math.Max(1, CurrentPage - 2);
+            var end = Math.Min(TotalPages, start + 4);
+            start = Math.Max(1, end - 4);
+            return Enumerable.Range(start, Math.Max(0, end - start + 1));
+        }
+    }
+
+    private Task SelectPageAsync(int page) =>
+        CurrentPageChanged.InvokeAsync(Math.Clamp(page, 1, Math.Max(1, TotalPages)));
+}

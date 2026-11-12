@@ -87,6 +87,24 @@ public sealed class DashboardQueryService : IDashboardQueryService
         return Result<IReadOnlyList<UserMatchDto>>.Success(matches);
     }
 
+    public async Task<Result<PublicHomeStatsDto>> GetPublicHomeStatsAsync(CancellationToken cancellationToken = default)
+    {
+        // Each figure is computed from persisted records; draft/cancelled competitions are not advertised publicly.
+        var stats = new PublicHomeStatsDto
+        {
+            ActivePlayers = await _context.Players.AsNoTracking().CountAsync(x => x.IsActive, cancellationToken),
+            PublishedTournaments = await _context.Tournaments.AsNoTracking().CountAsync(
+                x => x.Status != TournamentStatus.Draft && x.Status != TournamentStatus.Cancelled, cancellationToken),
+            CompletedMatches = await _context.Matches.AsNoTracking().CountAsync(
+                x => x.TournamentId.HasValue && x.Status == MatchStatus.Completed, cancellationToken),
+            PrizesPaid = await _context.Payments.AsNoTracking()
+                .Where(x => x.Type == PaymentType.PrizePayout && x.Status == PaymentStatus.Completed)
+                .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0m
+        };
+
+        return Result<PublicHomeStatsDto>.Success(stats);
+    }
+
     private async Task<IReadOnlyList<UserMatchDto>> LoadMatchesAsync(Guid playerId, CancellationToken cancellationToken) =>
         await _context.Matches.AsNoTracking().Where(x => x.PlayerOneId == playerId || x.PlayerTwoId == playerId)
             .OrderByDescending(x => x.Status == MatchStatus.Live).ThenByDescending(x => x.ScheduledAt)
@@ -108,4 +126,3 @@ public sealed class DashboardQueryService : IDashboardQueryService
         PlayerTwoScore = x.Score != null ? x.Score.PlayerTwoScore : null, IsRanked = x.IsRanked
     };
 }
-
