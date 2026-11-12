@@ -1,4 +1,4 @@
-﻿    <!-- HERO -->
+    <!-- HERO -->
 <section class="hero-section">
     <div class="alpha-container hero-grid">
         <div class="hero-text">
@@ -21,45 +21,44 @@
 
             <div class="hero-stats">
                 <div>
-                    <strong>2.5K+</strong>
+                    <strong>@Stats.ActivePlayers.ToString("N0")</strong>
                     <span>Players</span>
                 </div>
                 <div>
-                    <strong>120+</strong>
+                    <strong>@Stats.PublishedTournaments.ToString("N0")</strong>
                     <span>Tournaments</span>
                 </div>
                 <div>
-                    <strong>£15K+</strong>
+                    <strong>@Stats.PrizesPaid.ToString("N0")</strong>
                     <span>Prizes Paid</span>
                 </div>
             </div>
         </div>
 
         <div class="hero-card">
-            <div class="live-badge">LIVE EVENT</div>
-            <h3>AlphaMode FIFA Clash</h3>
-            <p>32 players. Single elimination. Manchester Arena.</p>
+            <div class="live-badge">@(FeaturedTournament is null ? "NEXT EVENT" : FeaturedTournament.Status.ToString().ToUpperInvariant())</div>
+            <h3>@(FeaturedTournament?.Name ?? "New tournaments coming soon")</h3>
+            <p>@(FeaturedTournament is null ? "Create an account and be ready for the next competition." : $"{FeaturedTournament.RegisteredPlayers} / {FeaturedTournament.MaxPlayers} players · {FeaturedTournament.Format}")</p>
 
-            <div class="match-preview">
-                <div class="player">
-                    <div class="avatar">T</div>
-                    <span>ToyinFC</span>
-                </div>
-
-                <strong>VS</strong>
-
-                <div class="player">
-                    <div class="avatar">K</div>
-                    <span>KillerPad</span>
-                </div>
-            </div>
+            @if (FeaturedMatch is not null)
+            {
+                <div class="match-preview"><div class="player"><div class="avatar">@Initial(FeaturedMatch.PlayerOneName)</div><span>@FeaturedMatch.PlayerOneName</span></div><strong>@Score</strong><div class="player"><div class="avatar">@Initial(FeaturedMatch.PlayerTwoName)</div><span>@FeaturedMatch.PlayerTwoName</span></div></div>
+            }
 
             <div class="prize-box">
                 <span>Prize Pool</span>
-                <strong>£500</strong>
+                <strong>@((FeaturedTournament?.EntryFee * FeaturedTournament?.RegisteredPlayers ?? 0).ToString("N0"))</strong>
             </div>
 
             <a href="/tournaments" class="btn btn-primary w-100">Register</a>
         </div>
     </div>
 </section>
+
+@code {
+    [Parameter] public AlphaMode.Application.Dashboards.DTOs.PublicHomeStatsDto Stats { get; set; } = new();
+    [Parameter] public AlphaMode.Application.Tournaments.DTOs.TournamentDto? FeaturedTournament { get; set; }
+    [Parameter] public AlphaMode.Application.Dashboards.DTOs.UserMatchDto? FeaturedMatch { get; set; }
+    private string Score => FeaturedMatch?.PlayerOneScore.HasValue == true ? $"{FeaturedMatch.PlayerOneScore} - {FeaturedMatch.PlayerTwoScore}" : "VS";
+    private static string Initial(string value) => string.IsNullOrWhiteSpace(value) ? "?" : char.ToUpperInvariant(value[0]).ToString();
+}

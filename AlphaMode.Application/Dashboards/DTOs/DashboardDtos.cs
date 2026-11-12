@@ -74,3 +74,11 @@ public sealed class AdminDashboardDto
     public IReadOnlyList<UserMatchDto> LiveMatchItems { get; init; } = [];
 }
 
+// A small aggregate DTO keeps the public landing page free from placeholder statistics.
+public sealed class PublicHomeStatsDto
+{
+    public int ActivePlayers { get; init; }
+    public int PublishedTournaments { get; init; }
+    public int CompletedMatches { get; init; }
+    public decimal PrizesPaid { get; init; }
+}

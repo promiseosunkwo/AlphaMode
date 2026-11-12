@@ -1,22 +1,98 @@
-﻿@page "/index"
+@page "/index"
 @rendermode InteractiveServer
 @using AlphaMode.Components.Sections.GeneralSectionComponents
 @using AlphaMode.Components.Sections.Shared
-
-
+@using AlphaMode.Application.Dashboards.DTOs
+@using AlphaMode.Application.Dashboards.Interfaces
+@using AlphaMode.Application.FootballRankings.DTOs
+@using AlphaMode.Application.FootballRankings.Interfaces
+@using AlphaMode.Application.Games.DTOs
+@using AlphaMode.Application.Games.Interfaces
+@using AlphaMode.Application.Tournaments.DTOs
+@using AlphaMode.Application.Tournaments.Interfaces
+@using AlphaMode.Domain.Enums
+@inject IDashboardQueryService DashboardService
+@inject ITournamentService TournamentService
+@inject IGameService GameService
+@inject IRankingQueryService RankingService
 
 <div class="alpha-page">
     <Navbar />
-    <HeroComponent />
-    <GamesComponent />
-    <TournamentComponent />
-    <MatchesComponent />
-    <LeaderboardComponent />
+    @if (isLoading)
+    {
+        <main class="public-main"><section class="public-section"><ContentSkeleton Rows="10" /></section></main>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <main class="public-main"><section class="public-section"><ErrorState Message="@errorMessage" OnRetry="LoadAsync" /></section></main>
+    }
+    else
+    {
+        <HeroComponent Stats="stats" FeaturedTournament="featuredTournament" FeaturedMatch="featuredMatch" />
+        <GamesComponent Games="games" />
+        <TournamentComponent Tournaments="featuredTournaments" />
+        <MatchesComponent Matches="recentMatches" />
+        <LeaderboardComponent Players="leaders" GameName="@leaderboardGameName" />
+    }
     <HowItWorksComponent />
     <CTAComponent />
     <Footer />
 </div>
 
 @code {
-   
+    private PublicHomeStatsDto stats = new();
+    private IReadOnlyList<GameDto> games = [];
+    private IReadOnlyList<TournamentDto> featuredTournaments = [];
+    private IReadOnlyList<UserMatchDto> recentMatches = [];
+    private IReadOnlyList<LeaderboardEntryDto> leaders = [];
+    private TournamentDto? featuredTournament;
+    private UserMatchDto? featuredMatch;
+    private string leaderboardGameName = "Global";
+    private bool isLoading;
+    private string? errorMessage;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            // Load sequentially because all scoped services share one EF Core DbContext in this circuit.
+            var statsResult = await DashboardService.GetPublicHomeStatsAsync();
+            var tournamentResult = await TournamentService.GetAllAsync();
+            var gameResult = await GameService.GetActiveAsync();
+            var matchResult = await DashboardService.GetPublicTournamentMatchesAsync();
+
+            if (!statsResult.Succeeded || !tournamentResult.Succeeded || !gameResult.Succeeded || !matchResult.Succeeded)
+            {
+                errorMessage = statsResult.Error ?? tournamentResult.Error ?? gameResult.Error ?? matchResult.Error ?? "The home page could not be loaded.";
+                return;
+            }
+
+            stats = statsResult.Value ?? new();
+            games = gameResult.Value ?? [];
+            featuredTournaments = (tournamentResult.Value ?? [])
+                .Where(x => x.Status is not TournamentStatus.Draft and not TournamentStatus.Cancelled)
+                .OrderBy(x => x.Status == TournamentStatus.Live ? 0 : x.Status == TournamentStatus.RegistrationOpen ? 1 : 2)
+                .ThenBy(x => x.StartDate).Take(3).ToList();
+            featuredTournament = featuredTournaments.FirstOrDefault();
+            recentMatches = (matchResult.Value ?? []).Where(x => x.Status == MatchStatus.Completed)
+                .OrderByDescending(x => x.ScheduledAt).Take(3).ToList();
+            featuredMatch = (matchResult.Value ?? []).FirstOrDefault(x => x.Status == MatchStatus.Live) ?? recentMatches.FirstOrDefault();
+
+            var leaderboardGame = games.FirstOrDefault();
+            if (leaderboardGame is not null)
+            {
+                leaderboardGameName = leaderboardGame.Name;
+                var rankingResult = await RankingService.GetLeaderboardAsync(leaderboardGame.Id, 5);
+                if (rankingResult.Succeeded) leaders = rankingResult.Value ?? [];
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
 }

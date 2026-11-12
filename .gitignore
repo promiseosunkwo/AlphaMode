@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # Local .NET/NuGet caches used by sandboxed and CI-style test runs
 .dotnet-home/
 .nuget-packages/
+.nuget-temp/

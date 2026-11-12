@@ -1,5 +1,6 @@
 using AlphaMode.Application.Dashboards.Services;
 using AlphaMode.Application.Tests.Support;
+using AlphaMode.Domain.Entities;
 using AlphaMode.Domain.Enums;
 
 namespace AlphaMode.Application.Tests.Dashboards;
@@ -35,5 +36,26 @@ public sealed class DashboardQueryServiceTests
         await using var db = new TestApplicationDbContext();
         var result = await new DashboardQueryService(db).GetUserMatchesAsync("missing");
         Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PublicHomeStats_AreComputedFromEligibleDatabaseRecords()
+    {
+        await using var db = new TestApplicationDbContext();
+        var game = TestData.Game(); var active = TestData.Player("Active"); var inactive = TestData.Player("Inactive", false);
+        var live = TestData.Tournament(game, TournamentStatus.Live); var draft = TestData.Tournament(game, TournamentStatus.Draft);
+        var completed = TestData.Match(game, active, inactive, live);
+        db.AddRange(game, active, inactive, live, draft, completed,
+            new Payment { Id = Guid.NewGuid(), PlayerId = active.Id, Player = active, TournamentId = live.Id, Tournament = live, Amount = 250, Type = PaymentType.PrizePayout, Status = PaymentStatus.Completed, TransactionReference = "paid" },
+            new Payment { Id = Guid.NewGuid(), PlayerId = active.Id, Player = active, TournamentId = live.Id, Tournament = live, Amount = 999, Type = PaymentType.PrizePayout, Status = PaymentStatus.Pending, TransactionReference = "pending" });
+        await db.SaveChangesAsync();
+
+        var result = await new DashboardQueryService(db).GetPublicHomeStatsAsync();
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, result.Value!.ActivePlayers);
+        Assert.Equal(1, result.Value.PublishedTournaments);
+        Assert.Equal(1, result.Value.CompletedMatches);
+        Assert.Equal(250, result.Value.PrizesPaid);
     }
 }

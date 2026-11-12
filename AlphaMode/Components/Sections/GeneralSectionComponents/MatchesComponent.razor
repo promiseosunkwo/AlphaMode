@@ -1,35 +1,5 @@
-﻿    <!-- MATCHES -->
-<section id="matches" class="section">
-    <div class="alpha-container">
-        <div class="section-heading">
-            <p class="eyebrow">Match Centre</p>
-            <h2>Recent Results</h2>
-        </div>
-
-        <div class="matches-list">
-            <div class="match-row">
-                <span>FIFA 25</span>
-                <strong>ToyinFC</strong>
-                <b>3 - 1</b>
-                <strong>KingJay</strong>
-                <small>Completed</small>
-            </div>
-
-            <div class="match-row">
-                <span>Mortal Kombat</span>
-                <strong>FatalKen</strong>
-                <b>2 - 0</b>
-                <strong>ShadowX</strong>
-                <small>Completed</small>
-            </div>
-
-            <div class="match-row">
-                <span>Tekken</span>
-                <strong>RageMode</strong>
-                <b>1 - 2</b>
-                <strong>ComboLord</strong>
-                <small>Completed</small>
-            </div>
-        </div>
-    </div>
-</section>
+@using AlphaMode.Application.Dashboards.DTOs
+<section id="matches" class="section"><div class="alpha-container"><div class="section-heading"><p class="eyebrow">Match Centre</p><h2>Recent Results</h2></div>
+@if (Matches.Count == 0) { <p>No completed tournament results are available yet.</p> } else { <div class="matches-list">@foreach (var match in Matches.Take(3)) { <div class="match-row"><span>@match.GameName</span><strong>@match.PlayerOneName</strong><b>@Score(match)</b><strong>@match.PlayerTwoName</strong><small>@match.Status</small></div> }</div> }
+</div></section>
+@code { [Parameter] public IReadOnlyList<UserMatchDto> Matches { get; set; } = []; private static string Score(UserMatchDto match) => match.PlayerOneScore.HasValue ? $"{match.PlayerOneScore} - {match.PlayerTwoScore}" : "VS"; }
